@@ -1,0 +1,90 @@
+.feed-post-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    margin-bottom: 10px;
+    padding: 10px;
+}
+
+.profile-picture {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 3px solid #f3f0e7; /* Matches feed background */
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.feed-post-username {
+    margin-left: 70px; /* Offset for profile picture */
+    font-weight: bold;
+    font-size: 1.2em;
+    color: var(--primary-text-color, #3e3d3a);
+}
+
+.feed-post-content {
+    padding: 10px 15px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.3s ease;
+}
+
+.feed-post-content h3 {
+    margin: 0;
+    font-size: 1.3em;
+    color: var(--primary-heading-color, #333);
+}
+
+.feed-post-content p {
+    font-size: 1em;
+    color: var(--secondary-text-color, #555);
+}
+
+.feed-post:hover .feed-post-content {
+    box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+.like-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2em;
+    transition: transform 0.2s ease;
+    cursor: pointer;
+}
+
+.like-button:hover {
+    transform: scale(1.1); /* Grow slightly on hover */
+}
+
+.icon {
+    display: inline-block;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.icon.clicked {
+    animation: like-animation 0.6s ease forwards;
+}
+
+@keyframes like-animation {
+    0% {
+        transform: scale(1);
+        box-shadow: none;
+    }
+    30% {
+        transform: scale(1.4);
+        box-shadow: 0 0 10px rgba(230, 57, 70, 0.5), 0 0 20px rgba(230, 57, 70, 0.5);
+    }
+    60% {
+        transform: scale(1.2);
+        box-shadow: 0 0 8px rgba(230, 57, 70, 0.3), 0 0 16px rgba(230, 57, 70, 0.3);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: none;
+    }
+}

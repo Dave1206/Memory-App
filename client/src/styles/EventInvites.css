@@ -1,0 +1,64 @@
+/* Container for the event invites */
+.event-invites {
+    padding: 10px;
+    background-color: #ffffff;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    font-family: Arial, sans-serif;
+}
+
+/* Header for the event invites */
+.event-invites h3 {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+/* Individual invite item */
+.event-invite-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    margin-bottom: 6px;
+    background-color: #f0f4f8;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+/* On hover effect for invite item */
+.event-invite-item:hover {
+    background-color: #e0e7ef;
+}
+
+/* Title and inviter username section */
+.event-invite-item p {
+    margin: 0;
+    font-size: 0.9em;
+    color: #333;
+}
+
+/* Button styles */
+.event-invite-item button {
+    padding: 4px 8px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85em;
+}
+
+.event-invite-item button:nth-child(1) { /* Accept button */
+    background-color: #4CAF50;
+    color: white;
+}
+
+.event-invite-item button:nth-child(2) { /* Reject button */
+    background-color: #F44336;
+    color: white;
+}
+
+/* Button hover effects */
+.event-invite-item button:hover {
+    opacity: 0.9;
+}

@@ -1,0 +1,169 @@
+/* Wrapper styling for the whole component */
+.event-wrapper {
+    display: flex;
+    justify-content: space-between;
+    padding: 20px;
+    gap: 20px;
+    width: 87.5vw;
+    z-index: 1;
+    position: relative;
+    margin: 50px auto;
+    transition: all 0.8s ease;
+}
+
+.event-wrapper.expanded .selected-event {
+  display: none;
+}
+
+/* Scrollable event list */
+.event-list-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 65vh;
+  width: 310px;
+  border-radius: 8px;
+  box-shadow: inset 0px 4px 12px rgba(110, 110, 110, 0.548);
+  padding: 10px 0;
+  transition: width 0.8s ease;
+}
+
+.event-list-container.expanded {
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.event-list {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: scroll;
+  transition: width 0.3s ease;
+  height: 100%;
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 0;
+}
+
+.event-list.expanded {
+  width: 100%;
+  height: 100%;
+  flex-wrap: wrap;
+  flex-direction: row;
+  gap: 10px;
+  padding: 10px;
+}
+
+.event-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.event-list::-webkit-scrollbar-thumb {
+  background-color: #bbb;
+  border-radius: 4px;
+}
+/* Styling for the selected event */
+.selected-event {
+    padding: 10px 0;
+    border-radius: 8px;
+    box-shadow: inset 0px 4px 12px rgba(110, 110, 110, 0.548);
+    position: relative;
+    margin-bottom: 0;
+    overflow-y: scroll;
+    height: 65vh;
+    width: 65%; 
+}
+
+.selected-event::-webkit-scrollbar {
+  width: 8px;
+}
+
+.selected-event::-webkit-scrollbar-thumb {
+  background-color: #bbb;
+  border-radius: 4px;
+}
+
+/* Button Styling */
+.event-button-container {
+  display: flex;
+  justify-content: center;
+  gap: 5%;
+}
+
+
+/* Expand button styling */
+.expand-button {
+  position: absolute;
+  right: 0px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0.5em;
+  background-color: transparent;
+  color: white;
+  font-size: 1.2em;
+  border: none;
+  border-radius: 10%;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.3s ease;
+  z-index: 5;
+}
+
+.expand-button:hover {
+  background-color: transparent;
+}
+
+.expand-button:focus {
+  outline: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .event-wrapper {
+      flex-direction: column;
+      flex-basis: 100%;
+      width: 80vw;
+      margin-bottom: 0;
+  }
+
+  .event-list {
+      max-height: 100%;
+      min-height: 100%;
+      width: 100%;
+      align-items: center;
+  }
+
+  .event-list-container{
+    width: 80vw;
+    max-height: 30vh;
+    min-height: 30vh;
+    margin-bottom: 0;
+    margin-top: 50px;
+  }
+
+  .event-list-container.expanded {
+    min-height: 67vh;
+    max-height: 67vh;
+    margin-bottom: 0;
+  }
+
+  .event-list.expanded {
+    min-height: 100%;
+    max-height: 100%;
+    justify-content: center;
+  }
+
+  .selected-event {
+      max-height: 30vh;
+      min-height: 30vh;
+      width: 100%;
+      margin-bottom: 0;
+  }
+
+  .expand-button {
+    right: 20px;
+    top: auto;
+    bottom: -5px;
+    transform: rotate(90deg);
+}
+}

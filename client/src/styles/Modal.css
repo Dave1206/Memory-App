@@ -1,0 +1,62 @@
+.friend-select {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.friend-select ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+.friend-select li {
+    padding: 5px 0;
+}
+
+.friend-select label {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.friend-select input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+.create-modal .friend-select {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.create-modal .friend-select ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+.create-modal .friend-select li {
+    padding: 5px 0;
+}
+
+.create-modal .friend-select label {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.create-modal .friend-select input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+.character-counter {
+    font-size: 0.9rem;
+    color: #666;
+    text-align: right;
+    margin-top: 5px;
+}

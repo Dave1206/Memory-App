@@ -1,0 +1,118 @@
+/* Navbar container */
+.navbar-wrapper {
+    width: 100%;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    display: flex;
+    justify-content: center;
+    z-index: 1000;
+    background: var(--background-color);
+    box-shadow: 0 -4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.navbar {
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+    width: 100%;
+    max-width: 600px;
+    padding: 10px 0;
+    background: var(--primary-color);
+    border-radius: 10px 10px 0 0;
+    box-shadow: 0px -4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.nav-item,
+.nav-dropdown-toggle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: 'Inter', sans-serif;
+    color: var(--text-color);
+}
+
+.nav-item img,
+.nav-dropdown-toggle img {
+    width: 32px;
+    height: 32px;
+    margin-bottom: 4px;
+}
+
+.nav-item.active,
+.nav-dropdown-toggle.active {
+    color: var(--button-hover-bg);
+}
+
+.nav-dropdown-toggle {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: var(--text-color);
+}
+
+/* Dropdown Content */
+.nav-dropdown-content {
+    position: absolute;
+    bottom: 70px;
+    display: flex;
+    flex-direction: column;
+    width: 90vw;
+    max-width: 400px;
+    padding: 15px;
+    background-color: #333;
+    color: #e4dbc3;
+    border-radius: 12px;
+    box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+    animation: slideDown 0.4s ease;
+    z-index: 1100;
+}
+
+.nav-dropdown-content p {
+    margin: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .navbar {
+        justify-content: space-between;
+        padding: 10px 20px;
+    }
+
+    .nav-dropdown-toggle {
+        position: fixed;
+        bottom: 70px;
+        background-color: var(--button-bg);
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+    }
+
+    .nav-dropdown-toggle:nth-child(4) {
+        right: 20px;
+    }
+
+    .nav-dropdown-toggle:nth-child(5) {
+        right: 80px;
+    }
+
+    .nav-dropdown-content {
+        width: 80vw;
+        left: 10vw;
+    }
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

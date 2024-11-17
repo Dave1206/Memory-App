@@ -1,0 +1,12 @@
+.mod-button {
+    background: transparent;
+    border: none;
+    color: #b22222;
+    cursor: pointer;
+    font-size: 1.2em;
+    padding: 5px;
+}
+
+.mod-button:hover {
+    color: #ff4d4d;
+}

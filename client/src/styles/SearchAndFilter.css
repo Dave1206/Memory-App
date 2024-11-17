@@ -1,0 +1,114 @@
+/* Main wrapper for search and filter */
+.search-filter-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px;
+    background-color: rgba(51, 51, 51, 0.8);
+    border-radius: 8px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+    flex-wrap: wrap;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Search bar styling */
+.search-bar {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background-color: #222;
+    color: #e6dbbd;
+    outline: none;
+    transition: border-color 0.3s ease;
+    min-width: 150px;
+}
+
+.search-bar:focus,
+.search-bar:hover {
+    border-color: #ffaf60;
+}
+
+/* Filter dropdown */
+.filter-dropdown {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background-color: #222;
+    color: #e6dbbd;
+    min-width: 120px;
+    cursor: pointer;
+    transition: border-color 0.3s ease;
+}
+
+.filter-dropdown:focus,
+.filter-dropdown:hover {
+    border-color: #ffaf60;
+}
+
+/* Sort controls container */
+.sort-controls {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+/* Sort dropdown */
+.sort-dropdown {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background-color: #222;
+    color: #e6dbbd;
+    cursor: pointer;
+    min-width: 120px;
+    transition: border-color 0.3s ease;
+}
+
+.sort-dropdown:focus,
+.sort-dropdown:hover {
+    border-color: #ffaf60;
+}
+
+/* Sort order button */
+.sort-order-button {
+    background: none;
+    border: none;
+    color: #ffaf60;
+    cursor: pointer;
+    font-size: 1.2em;
+    display: flex;
+    align-items: center;
+    padding: 4px;
+    transition: color 0.3s ease;
+}
+
+.sort-order-button:hover {
+    color: #ffc48a;
+}
+
+/* Media queries for responsiveness */
+@media (max-width: 768px) {
+    .search-filter-wrapper {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 10px;
+    }
+
+    .filter-dropdown,
+    .sort-dropdown {
+        width: 100%;
+    }
+
+    .sort-controls {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .sort-order-button {
+        font-size: 1em;
+    }
+}
+

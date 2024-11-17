@@ -1,0 +1,74 @@
+/* Main container adjustment */
+.moderator-tools {
+    width: 100%;
+    height: calc(100vh - 250px); /* Adjusted for header and footer */
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.253);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px; /* Increase gap for larger space between sections */
+    box-sizing: border-box;
+    overflow-y: auto;
+}
+
+/* Flexbox for responsive layout */
+.moderator-tools-group {
+    flex: 1 1 48%; /* Two columns on medium to large screens */
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    align-items: center;
+    box-sizing: border-box;
+    max-height: 100%;
+    gap: 15px; /* Add spacing between sections within the group */
+}
+
+.audit-log-wrapper,
+#ban-user-section,
+#picture-mod-queue-section {
+    width: 100%;
+    max-height: calc(50% - 20px); /* Adjusted for better spacing */
+    overflow-y: auto;
+    margin-top: 20px; /* Additional margin to avoid overlap */
+}
+
+/* Individual Section Styles */
+.audit-log, .mod-notes {
+    max-height: 180px;
+    overflow-y: auto;
+}
+
+.audit-log-entry, .mod-note {
+    padding: 5px;
+    border-bottom: 1px solid #ddd;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .moderator-tools-group {
+        flex: 1 1 100%; /* Stacks vertically on small screens */
+        align-items: flex-start;
+        margin-bottom: 20px; /* Add bottom margin for more spacing */
+    }
+
+    .moderator-tools {
+        flex-direction: column;
+        height: calc(100vh - 250px); /* Adjust height for smaller screens */
+    }
+
+    #ban-user-section,
+    .audit-log-wrapper,
+    #picture-mod-queue-section {
+        width: 100%;
+        margin-top: 20px; /* Additional space between sections */
+    }
+
+    .ban-user-form input,
+    textarea,
+    .mod-button,
+    .admin-button {
+        width: 100%; /* Full width on small screens */
+    }
+}

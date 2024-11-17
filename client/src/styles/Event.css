@@ -1,0 +1,191 @@
+/* Event container */
+.event-container {
+    position: relative;
+    padding: 15px;
+    border-radius: 12px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1), inset 0px 1px 3px rgba(255, 255, 255, 0.3);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+    height: 250px;
+    width: 250px;
+    background-color: var(--background-color);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    color: var(--text-color);
+    user-select: none; /* Prevent text highlighting */
+}
+
+.event-container.selected {
+    box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.2), inset 0px 1px 5px rgba(255, 255, 255, 0.4);
+    transform: translateY(-3px);
+}
+
+.event-container:hover {
+    box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.2);
+    transform: translateY(-4px);
+}
+
+/* Header: Like button and ellipsis menu */
+.event-header {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+    width: fit-content;
+}
+
+.like-button {
+    color: var(--button-bg);
+    cursor: pointer;
+    font-size: 1.2em;
+    transition: color 0.3s ease;
+}
+
+.like-button:hover {
+    color: var(--button-hover-bg);
+}
+
+.ellipsis-menu-toggle {
+    color: var(--text-color);
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.ellipsis-menu-toggle:hover {
+    color: var(--link-hover-color);
+}
+
+/* Menu styling */
+.ellipsis-menu {
+    position: absolute;
+    top: 35px;
+    right: 10px;
+    background-color: var(--primary-color);
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    z-index: 100;
+}
+
+.ellipsis-menu button {
+    background: none;
+    border: none;
+    padding: 8px 10px;
+    color: var(--text-color);
+    cursor: pointer;
+    text-align: left;
+    font-size: 0.9em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 0.2s ease;
+}
+
+.ellipsis-menu button:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
+}
+
+/* Event Content */
+.event-content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    word-wrap: break-word;
+    hyphens: auto;
+    padding-top: 40px;
+    text-align: left;
+}
+
+/* Profile picture styling */
+.creator-profile-pic {
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    border: 2px solid #fff;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease;
+}
+
+.creator-profile-pic:hover {
+    transform: scale(1.05);
+}
+
+/* Title, including Time Capsule Icon if applicable */
+.event-content h3 {
+    font-family: 'Inter', sans-serif;
+    font-size: 1.1rem;
+    color: var(--text-color);
+    font-weight: bold;
+    margin: 10px 0;
+    border-bottom: 3px solid rgba(0, 0, 0, 0.05);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.time-capsule-icon {
+    color: var(--button-bg);
+    font-size: 1rem;
+}
+
+/* Event description */
+.event-content p {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
+    color: var(--text-color);
+    margin-top: 8px;
+}
+
+/* Read more styling */
+.read-more {
+    color: var(--link-color);
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.read-more:hover {
+    color: var(--link-hover-color);
+}
+
+/* Footer (username link and notification badge) */
+.event-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.creator-link {
+    font-size: 0.85em;
+    color: var(--link-color);
+    text-decoration: none;
+    font-weight: bold;
+    transition: color 0.3s ease;
+}
+
+.creator-link:hover {
+    color: var(--link-hover-color);
+}
+
+/* Color variations with contrasting text color */
+.color1 { background-color: #a0b2a3; color: #2a2f23; }
+.color2 { background-color: #768e79; color: #ffffff; }
+.color3 { background-color: #b0beab; color: #333333; }
+.color4 { background-color: #e9977c; color: #2a2f23; }
+.color5 { background-color: #e4aa88; color: #2a2f23; }
+.color6 { background-color: #d1765e; color: #ffffff; }
+.color7 { background-color: #dbcaa7; color: #333333; }
+.color8 { background-color: #caaf8d; color: #333333; }
+.color9 { background-color: #dbc49f; color: #333333; }

@@ -1,0 +1,135 @@
+/* Container */
+.toggleable-list {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    transition: all 0.3s ease;
+    border-radius: 12px;
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    background-color: white;
+    overflow: hidden;
+}
+
+/* Compact (collapsed) state */
+.toggleable-list.compact {
+    width: 60px;
+    padding: 5px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Expanded state */
+.toggleable-list.expanded {
+    width: 240px;
+    padding: 20px;
+}
+
+/* Toggle Button Styling */
+.toggleable-toggle-button {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    font-size: 1.2em;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(250, 235, 215, 0.6);
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    position: absolute;
+    left: -15px;
+    bottom: 0px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.toggleable-toggle-button:hover {
+    background-color: rgba(180, 169, 154, 0.6);
+    transform: scale(1.1);
+}
+
+/* Profile Picture Styling */
+.toggleable-profile-picture {
+    border-radius: 50%;
+    object-fit: cover;
+    margin-top: 10px;
+    height: 60px;
+    width: 60px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    transition: transform 0.3s ease;
+}
+
+.toggleable-list.expanded .toggleable-profile-picture {
+    height: 80px;
+    width: 80px;
+}
+
+.toggleable-profile-picture:hover {
+    transform: scale(1.05);
+}
+
+/* Expanded List Content */
+.toggleable-list-content {
+    margin-top: 15px;
+    text-align: right;
+    padding-top: 5px;
+}
+
+/* Button Styling */
+.toggleable-button,
+.mod-button,
+.logout-button {
+    width: 100%;
+    padding: 0.6em;
+    border: none;
+    border-radius: 8px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s;
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+/* Logout Button */
+.logout-button {
+    background-color: #f44336;
+    color: white;
+}
+
+.logout-button:hover {
+    background-color: #d32f2f;
+    transform: scale(1.05);
+}
+
+/* Moderator Button */
+.mod-button {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.mod-button:hover {
+    background-color: #45a049;
+    transform: scale(1.05);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .toggleable-list.expanded .toggleable-profile-picture {
+        height: 60px;
+        width: 60px;
+    }
+
+    .toggleable-button,
+    .mod-button,
+    .logout-button {
+        padding: 0.5em;
+        font-size: 0.9em;
+    }
+}

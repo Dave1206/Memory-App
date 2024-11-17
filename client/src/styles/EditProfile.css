@@ -1,0 +1,39 @@
+.edit-profile-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5em;
+    padding: 20px;
+    background: #f5f5f5;
+    border-radius: 8px;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.profile-picture-section, .bio-section {
+    display: flex;
+    flex-direction: column;
+}
+
+.bio-section textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.button-container {
+    display: flex;
+    gap: 10px;
+}
+
+.settings-button {
+    padding: 8px 16px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+}
+
+.settings-button:hover {
+    background-color: #0056b3;
+}
