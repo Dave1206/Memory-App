@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEllipsisH, faChevronUp, faGavel } from '@fortawesome/free-solid-svg-icons';
 import EventCreator from './events/EventCreator';
 import { Link } from 'react-router-dom';
-import ToggleModMode from './Moderation/ToggleModMode';
+import ToggleModMode from './moderation/ToggleModMode';
 import '../styles/ToggleableList.css';
 
 function ToggleableList({ getEvents, user, onLogout }) {
@@ -23,11 +23,12 @@ function ToggleableList({ getEvents, user, onLogout }) {
 
             {isExpanded ? (
                 <Link to={`/profile/${user.id}`}>
-                    <img src={user.profile_picture} alt={`${user.username}'s profile} className="toggleable-profile-picture"`} />
+                    <img src={user.profile_picture} alt={`${user.username}'s profile}`}
+                         className="toggleable-profile-picture" />
                     {user.username}
                 </Link>
-            ) : (
-                <img src={user.profile_picture} alt={`${user.username}'s profile} className="toggleable-profile-picture"`} />
+            ) : (    
+                <img src={user.profile_picture} alt={`${user.username}'s profile}`} className="toggleable-profile-picture" />
             )}
 
             {isExpanded && (

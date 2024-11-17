@@ -7,7 +7,7 @@ import ActivityFeed from './ActivityFeed';
 import UserPreferences from './UserPreferences';
 import EditProfile from './EditProfile';
 import '../../styles/UserProfile.css';
-import ModOptionsButton from '../Moderation/ModOptionsButton';
+import ModOptionsButton from '../moderation/ModOptionsButton';
 
 function UserProfile({ user }) {
     const { userId } = useParams();

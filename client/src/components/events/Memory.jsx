@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLock } from '@fortawesome/free-solid-svg-icons';
 import MemoryModal from '../modals/MemoryModal';
 import InviteModal from '../modals/InviteModal';
-import ModOptionsButton from '../Moderation/ModOptionsButton';
+import ModOptionsButton from '../moderation/ModOptionsButton';
 import '../../styles/Memory.css';
 
 function Memory({

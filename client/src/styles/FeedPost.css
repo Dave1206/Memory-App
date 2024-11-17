@@ -1,3 +1,19 @@
+.feed-post{
+    display:flex;
+    flex-direction: column;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    position: relative;
+    gap: 10px;
+    transition: transform 0.3s ease;
+    user-select: none;
+}
+
+.feed-post:hover {
+    transform: translateY(-3px);
+}
+
 .feed-post-header {
     display: flex;
     align-items: center;
@@ -27,10 +43,16 @@
 
 .feed-post-content {
     padding: 10px 15px;
-    background-color: white;
-    border-radius: 8px;
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+    margin: 30px auto;
     transition: box-shadow 0.3s ease;
+}
+
+.feed-post-stats {
+    font-size: 0.9em;
+    color: #555;
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
 }
 
 .feed-post-content h3 {
@@ -59,32 +81,54 @@
 
 .like-button:hover {
     transform: scale(1.1); /* Grow slightly on hover */
+    color: #333;
 }
 
-.icon {
-    display: inline-block;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+.like-button.liked {
+    color: #e63946;
 }
 
-.icon.clicked {
-    animation: like-animation 0.6s ease forwards;
+.feed-post-stats {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.9em;
+    color: #555;
+    padding: 10px 0;
+    border-top: 1px solid #e0e0e0;
+    margin-top: 10px;
+}
+
+.feed-post-timestamp {
+    flex: 1;
+    text-align: left;
+    font-size: 0.85em;
+}
+
+.stats-counter{
+    display:flex;
+    justify-content: space-between;
+    margin-right: 5px;
+    padding: 2px;
+    gap: 5px;
+}
+
+.like-button.clicked {
+    animation: like-animation 0.6s ease forwards; /* Trigger animation on click */
 }
 
 @keyframes like-animation {
     0% {
         transform: scale(1);
-        box-shadow: none;
+
     }
     30% {
         transform: scale(1.4);
-        box-shadow: 0 0 10px rgba(230, 57, 70, 0.5), 0 0 20px rgba(230, 57, 70, 0.5);
     }
     60% {
         transform: scale(1.2);
-        box-shadow: 0 0 8px rgba(230, 57, 70, 0.3), 0 0 16px rgba(230, 57, 70, 0.3);
     }
     100% {
         transform: scale(1);
-        box-shadow: none;
     }
 }

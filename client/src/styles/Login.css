@@ -1,0 +1,78 @@
+/* Overall styling for the container */
+.login-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    font-family: 'Courier New', Courier, monospace; /* Retro feel */
+    background-color: #f5e6ca; /* Warm, nostalgic background */
+    color: #3d3b30; /* Subtle text color */
+    padding: 20px;
+}
+
+/* Form card styling */
+.login-card {
+    background-color: #fff8e1; /* Soft, off-white background */
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1); /* Soft shadow for depth */
+    max-width: 400px;
+    width: 100%;
+    text-align: center;
+}
+
+/* Title styling */
+.login-card h2 {
+    color: #8c7051; /* Warm heading color */
+    font-size: 1.8em;
+    margin-bottom: 20px;
+    font-weight: bold;
+}
+
+/* Input styling */
+.login-card input {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0;
+    border-radius: 8px;
+    border: 1px solid #c5a880; /* Soft border color */
+    background-color: #fdf3e1;
+    font-size: 1em;
+    color: #3d3b30;
+    outline: none;
+    box-shadow: inset 0px 2px 4px rgba(0, 0, 0, 0.1); /* Subtle inner shadow */
+    transition: background-color 0.3s ease;
+}
+
+/* Button styling */
+.login-card button {
+    padding: 12px 20px;
+    font-size: 1em;
+    font-weight: bold;
+    color: #ffffff;
+    background-color: #a6765e; /* Inviting, retro button color */
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin-top: 20px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2); /* Shadow for depth */
+}
+
+.login-card button:hover {
+    background-color: #8c5e45; /* Darken on hover */
+}
+
+/* Link styling */
+.login-card p {
+    color: #8c7051;
+    font-size: 0.9em;
+    cursor: pointer;
+    text-decoration: underline;
+    margin-top: 10px;
+}
+
+.login-card p:hover {
+    color: #6d5238; /* Darker color on hover */
+}

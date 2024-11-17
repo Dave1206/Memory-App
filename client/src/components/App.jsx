@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { useAxios } from './auth/AxiosProvider';
 import { useAuth } from "./auth/AuthContext";
-import Header from './Header';
 import Footer from './Footer';
 import Login from './auth/Login';
 import UserProfile from './profile/UserProfile';
@@ -49,7 +48,6 @@ function App() {
   return (
     <Router>
       <div className="wrapper">
-        <Header />
         <Routes>
           {/* Public routes */}
           <Route path="/login" element={!user ? <Login /> : <Navigate to="/events" />} />

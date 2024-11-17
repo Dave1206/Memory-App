@@ -8,12 +8,11 @@
     box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15);
     z-index: 1000;
     background-color: white;
-    overflow: hidden;
 }
 
 /* Compact (collapsed) state */
 .toggleable-list.compact {
-    width: 60px;
+    width: fit-content;
     padding: 5px;
     display: flex;
     justify-content: center;
@@ -56,8 +55,8 @@
     border-radius: 50%;
     object-fit: cover;
     margin-top: 10px;
-    height: 60px;
-    width: 60px;
+    height: 100px;
+    width: 100px;
     box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
     border: 2px solid rgba(255, 255, 255, 0.8);
     transition: transform 0.3s ease;

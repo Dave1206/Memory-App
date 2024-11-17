@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCrown, faCheckCircle, faHeart, faShare, faPlus, faBan, faTrashCan, faBook } from '@fortawesome/free-solid-svg-icons';
 import NotificationBadge from './NotificationBadge';
-import ModOptionsButton from './Moderation/ModOptionsButton';
+import ModOptionsButton from './moderation/ModOptionsButton';
 import EllipsisMenu from './EllipsisMenu';
 import '../styles/FeedPost.css';
 
@@ -104,14 +104,14 @@ function FeedPost({ post, onLike, onShare, onAddEvent, onRemove, onBlock, colorC
                 <span className='stats-counter'>
                     <FontAwesomeIcon icon={faShare} /> {post.shares_count}
                 </span>
-                <span className={`like-button ${post.has_liked ? 'liked' : ''} ${clickAnimation ? 'clicked' : ''}`} 
+                <span className="stats-counter"
                     onClick={handleLikeClick}
                     onAnimationEnd={handleAnimationEnd}>
                     <FontAwesomeIcon 
                         icon={faHeart} 
-                        className={post.has_liked ? 'liked' : ''} /> 
+                        className={`like-button ${post.has_liked ? 'liked' : ''} ${clickAnimation ? 'clicked' : ''}`} />  
+                        {post.likes_count}
                 </span>
-                <span className='stats-counter'>{post.likes_count}</span>
                 <NotificationBadge count={post.seen === 1 ? '' : 'new'} /> 
             </div>
         </div>
