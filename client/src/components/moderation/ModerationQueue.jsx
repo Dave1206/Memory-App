@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAxios } from '../auth/AxiosProvider';
-import '../styles/ModerationQueue.css';
+import '../../styles/ModerationQueue.css';
 
 function ModerationQueue() {
     const axiosInstance = useAxios();
@@ -42,7 +42,7 @@ function ModerationQueue() {
             <div className="queue-list">
                 {queue.map((picture) => (
                     <div key={picture.id} className="queue-item">
-                        <img src={picture.image_url} alt="Profile Picture Pending Approval" className="queue-image" />
+                        <img src={picture.image_url} alt="Pending Approval" className="queue-image" />
                         <div className="action-buttons">
                             <button 
                                 onClick={() => handleAction(picture.id, 'approve')}

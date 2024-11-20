@@ -9,16 +9,16 @@
 }
 
 .like-button:hover {
-    transform: scale(1.1); /* Grow slightly on hover */
+    transform: scale(1.1);
     color: #333;
 }
 
 .like-button.liked {
-    color: #e63946; /* Red for liked state */
+    color: #e63946;
 }
 
 .like-button.clicked {
-    animation: like-animation 0.6s ease forwards; /* Trigger animation on click */
+    animation: like-animation 0.6s ease forwards;
 }
 
 @keyframes like-animation {

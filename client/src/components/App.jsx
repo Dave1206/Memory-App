@@ -12,9 +12,11 @@ import ToggleableList from './ToggleableList';
 import Navbar from './Navbar';
 import Feed from './Feed';
 import '../styles/App.css';
+import ModeratorTools from './moderation/ModeratorTools';
 
 function App() {
   const { user, logout } = useAuth();
+  const { sessionExpired } = useAxios();
   const [events, setEvents] = useState([]);
   const [eventInvites, setEventInvites] = useState([]);
   const axiosInstance = useAxios();
@@ -45,6 +47,13 @@ function App() {
       prevEventInvites.filter((event) => event.event_id !== eventId)
     );
   };
+
+  useEffect(() => {
+    if (sessionExpired) {
+      alert('Your session has expired. Please log in again.');
+      <Navigate to="/login" />
+    }
+  }, [sessionExpired]);
 
   useEffect(() => {
     const timer = setTimeout(() => setIsCheckingSession(false), 500);
@@ -80,7 +89,6 @@ function App() {
             }
           />
 
-          {/* Profile route, extracting userId from the URL params */}
           <Route
             path="/profile/:userId"
             element={
@@ -96,13 +104,27 @@ function App() {
             }
           />
 
-          {/* Feed route */}
           <Route
             path="/feed"
             element={
               user ? (
                 <>
                   <Feed user={user} />
+                  <ToggleableList getEvents={getEvents} user={user} onLogout={logout} />
+                  <Navbar events={eventInvites} userId={user?.id} />
+                </>
+              ) : (
+                <Navigate to="/login" />
+              )
+            }
+          />
+
+          <Route
+            path="/moderator-tools"
+            element={
+              user ? (
+                <>
+                  <ModeratorTools user={user} />
                   <ToggleableList getEvents={getEvents} user={user} onLogout={logout} />
                   <Navbar events={eventInvites} userId={user?.id} />
                 </>

@@ -1,19 +1,18 @@
 import React, { useState, useRef } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import '../../styles/MemoryModal.css';
 
 function MemoryModal({ show, onClose, onCreate, eventId }) {
     const [newMemory, setNewMemory] = useState("");
     const [isEmojiToolbarVisible, setIsEmojiToolbarVisible] = useState(false);
-    const textAreaRef = useRef(null);  // Reference to the text area
-    const maxCharacters = 200;  // Set character limit here
+    const textAreaRef = useRef(null);
+    const maxCharacters = 200;
 
-    // Define a set of emojis for the toolbar
     const emojis = ["😊", "😢", "😂", "😎", "🎉", "❤️", "👍", "🙌", "💡"];
 
-    // Calculate length treating each emoji as a single character
     const calculateLength = (str) => [...str].length;
 
-    // Handle adding an emoji at the cursor position
     const addEmoji = (emoji) => {
         const textArea = textAreaRef.current;
         const cursorPosition = textArea.selectionStart;
@@ -23,7 +22,6 @@ function MemoryModal({ show, onClose, onCreate, eventId }) {
         if (calculateLength(updatedMemory) <= maxCharacters) {
             setNewMemory(updatedMemory);
 
-            // Set cursor position after the inserted emoji
             setTimeout(() => {
                 textArea.selectionStart = textArea.selectionEnd = cursorPosition + emoji.length;
                 textArea.focus();
@@ -31,26 +29,22 @@ function MemoryModal({ show, onClose, onCreate, eventId }) {
         }
     };
 
-    // Handle changes in the textarea with character limit enforcement
     const handleChange = (e) => {
         const inputText = e.target.value;
         if (calculateLength(inputText) <= maxCharacters) {
             setNewMemory(inputText);
         } else {
-            // Trim the text to the max length if exceeded
             const trimmedText = [...inputText].slice(0, maxCharacters).join('');
             setNewMemory(trimmedText);
         }
     };
 
-    // Function to handle sharing the memory
     const handleCreate = () => {
         onCreate(newMemory);
         setNewMemory("");
         onClose();
     };
 
-    // Close the modal when clicking outside the modal container
     const handleBackdropClick = (e) => {
         if (e.target === e.currentTarget) {
             onClose();
@@ -67,17 +61,15 @@ function MemoryModal({ show, onClose, onCreate, eventId }) {
                 <div className='modal-left-column'>
                     <h2>What do you remember of this event?</h2>
 
-                    {/* Toggle button for emoji toolbar */}
                     <button 
                         type="button" 
                         className="emoji-toggle-button" 
                         onClick={() => setIsEmojiToolbarVisible(!isEmojiToolbarVisible)}
                         aria-label="Toggle Emoji Toolbar"
                     >
-                        {isEmojiToolbarVisible ? "🔽" : "😊"}
+                        {isEmojiToolbarVisible ? <FontAwesomeIcon icon={faChevronDown} /> : "😊"}
                     </button>
 
-                    {/* Expandable emoji toolbar */}
                     {isEmojiToolbarVisible && (
                         <div className="emoji-toolbar">
                             {emojis.map((emoji) => (
@@ -93,7 +85,6 @@ function MemoryModal({ show, onClose, onCreate, eventId }) {
                         </div>
                     )}
 
-                    {/* Text area with character limit */}
                     <textarea
                         ref={textAreaRef}
                         name="memory"
@@ -102,15 +93,13 @@ function MemoryModal({ show, onClose, onCreate, eventId }) {
                         onChange={handleChange}
                     />
 
-                    {/* Character counter */}
                     <div className="character-counter">
                         {calculateLength(newMemory)}/{maxCharacters} characters
                     </div>
 
-                    {/* Action buttons */}
                     <div className="button-container">
-                        <button onClick={handleCreate}>Share Memory</button>
-                        <button onClick={onClose}>Cancel</button>
+                        <button className='modal-button' onClick={handleCreate}>Share Memory</button>
+                        <button className='modal-button'  onClick={onClose}>Cancel</button>
                     </div>
                 </div>
                 

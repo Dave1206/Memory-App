@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useAxios } from '../auth/AxiosProvider'; // Assuming you have an AxiosProvider
+import { useAxios } from '../auth/AxiosProvider';
 import '../../styles/Modal.css';
 
 function CreateModal({ show, onClose, onCreate, userId }) {
     const axiosInstance = useAxios();
-    const [friends, setFriends] = useState([]); // State for friends list
+    const [friends, setFriends] = useState([]); 
     const [newEvent, setNewEvent] = useState({ 
         title: "", 
         description: "", 
@@ -17,11 +17,10 @@ function CreateModal({ show, onClose, onCreate, userId }) {
     const maxTitle = 50;
 
     useEffect(() => {
-        // Fetch the user's friends only once when the component mounts
         const fetchFriends = async () => {
             try {
                 const response = await axiosInstance.get(`/friends/${userId}`);
-                setFriends(response.data); // Assume response.data is an array of friend objects
+                setFriends(response.data);
             } catch (error) {
                 console.error("Error fetching friends:", error);
             }
@@ -35,7 +34,7 @@ function CreateModal({ show, onClose, onCreate, userId }) {
         setNewEvent({ 
             title: "", 
             description: "", 
-            invites: [userId],
+            invites: [],
             eventType: "regular",
             revealDate: Date,
             visibility: 'public',
@@ -43,19 +42,17 @@ function CreateModal({ show, onClose, onCreate, userId }) {
         onClose();
     };
 
-    // Update the invites array in newEvent when a friend is selected or deselected
     const handleFriendSelect = (friendId) => {
         setNewEvent(prevEvent => {
             const isAlreadyInvited = prevEvent.invites.includes(friendId);
             const updatedInvites = isAlreadyInvited
-                ? prevEvent.invites.filter(id => id !== friendId) // Remove if already invited
-                : [...prevEvent.invites, friendId]; // Add if not yet invited
+                ? prevEvent.invites.filter(id => id !== friendId) 
+                : [...prevEvent.invites, friendId]; 
 
             return { ...prevEvent, invites: updatedInvites };
         });
     };
 
-    // Close the modal when clicking outside the modal container
     const handleBackdropClick = (e) => {
         if (e.target === e.currentTarget) {
             onClose();
@@ -136,7 +133,6 @@ function CreateModal({ show, onClose, onCreate, userId }) {
                     </div>
                 </div>
                 <div className='modal-right-column'>
-                    {/* Show friends list for selection when visibility is "private" */}
                     {newEvent.visibility === 'private' && (
                         <div className="friend-select">
                             <h3>Invites</h3>

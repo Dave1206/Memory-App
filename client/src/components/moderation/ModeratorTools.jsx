@@ -118,7 +118,7 @@ function ModeratorTools() {
                         </>
                     )}
                 </section>
-                <section>
+                <section className='mod-notes-section'>
                     <h3>Moderator Notes</h3>
                     <div className="mod-notes">
                         {modNotes.map((note, index) => (

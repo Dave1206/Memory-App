@@ -18,7 +18,7 @@ function EllipsisMenu({ isOpen, buttonItems, onToggle, toggleClass = '', menuCla
                             className="ellipsis-menu-button"
                             onClick={() => {
                                 button.onClick();
-                                onToggle(); // Close menu after clicking any item
+                                onToggle();
                             }}
                             disabled={button.isDisabled}
                         >

@@ -19,7 +19,7 @@ function Event({ event, handleClick, updateEvents, selected }) {
     const colors = ['color1', 'color2', 'color3', 'color4', 'color5', 'color6', 'color7', 'color8', 'color9'];
     const [color] = useState(() => colors[Math.floor(Math.random() * colors.length)]);
     const axiosInstance = useAxios();
-    const descriptionMax = 70;
+    const descriptionMax = 150;
     const { user } = useAuth();
     
     const buttonItems = [
@@ -102,7 +102,7 @@ function Event({ event, handleClick, updateEvents, selected }) {
     return (
         <>
         <Modal show={showDeleteModal} onClose={() => setShowDeleteModal(false)} onConfirm={() => console.log("Delete event")} />
-        <Eventmodal show={showEventModal} onClose={() => setShowEventModal(false)} event={event} creator={creator.username} />
+        <Eventmodal show={showEventModal} onClose={() => setShowEventModal(false)} event={event} creator={creator} />
             <div 
                 onClick={() => handleClick(event)} 
                 className={`event-container ${selected ? 'selected' : ''} ${color}`}
@@ -113,7 +113,7 @@ function Event({ event, handleClick, updateEvents, selected }) {
                         src={creator.profile_picture} 
                         alt="Profile" 
                     />
-                {/* Top-left: Profile Picture and Username */}
+
                 <div className="event-header-left">
                     
                     <Link 
@@ -133,7 +133,6 @@ function Event({ event, handleClick, updateEvents, selected }) {
                     />
                 </div>
 
-                {/* Event Content */}
                 <div className="event-content">
                     <h3 className={`${color}`}>{event.title}</h3>
                     <p className={`${color}`}>
@@ -141,7 +140,11 @@ function Event({ event, handleClick, updateEvents, selected }) {
                             <>
                                 {event.description.substring(0, descriptionMax)}
                                 <span 
-                                    onClick={() => setShowEventModal(true)} 
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowEventModal(true);
+                                        }
+                                    } 
                                     className="read-more"
                                 >
                                     ... Read more
@@ -153,11 +156,11 @@ function Event({ event, handleClick, updateEvents, selected }) {
                     </p>
                 </div>
 
-                {/* Bottom-right: Like Button, Shares, and Memories Count */}
                 <div className="event-footer">
                     <div className="stats">
                         <div className='stats-counter'>
-                            <LikeButton onLike={(e) => {e.stopPropagation(); handleLike();}} />
+                            <LikeButton 
+                                onLike={handleLike} />
                         </div>
                         <div className={`stats-counter ${color}`}>
                             <FontAwesomeIcon 

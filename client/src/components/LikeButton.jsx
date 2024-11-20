@@ -1,4 +1,3 @@
-// LikeButton.jsx
 import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faHeart } from '@fortawesome/free-solid-svg-icons';
@@ -8,7 +7,8 @@ function LikeButton({ isLiked, likeCount, onLike }) {
     const [clickAnimation, setClickAnimation] = useState(false);
     const [liked, setLiked] = useState(isLiked);
 
-    const handleLikeClick = () => {
+    const handleLikeClick = (e) => {
+        e.stopPropagation();
         if (!liked) {
             setClickAnimation(true);
         }

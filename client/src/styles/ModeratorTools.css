@@ -1,43 +1,64 @@
 /* Main container adjustment */
 .moderator-tools {
     width: 100%;
-    height: calc(100vh - 250px); /* Adjusted for header and footer */
+    height: 100%; 
     padding: 20px;
     border: 1px solid #ddd;
     border-radius: 8px;
     background-color: rgba(255, 255, 255, 0.253);
     display: flex;
-    flex-wrap: wrap;
-    gap: 20px; /* Increase gap for larger space between sections */
+    gap: 20px; 
     box-sizing: border-box;
-    overflow-y: auto;
 }
 
 /* Flexbox for responsive layout */
 .moderator-tools-group {
-    flex: 1 1 48%; /* Two columns on medium to large screens */
+    flex: 1 1 48%; 
     display: flex;
     flex-direction: column;
     padding: 10px;
     align-items: center;
     box-sizing: border-box;
     max-height: 100%;
-    gap: 15px; /* Add spacing between sections within the group */
+    gap: 15px; 
 }
 
 .audit-log-wrapper,
 #ban-user-section,
+.mod-notes-section,
 #picture-mod-queue-section {
     width: 100%;
-    max-height: calc(50% - 20px); /* Adjusted for better spacing */
-    overflow-y: auto;
-    margin-top: 20px; /* Additional margin to avoid overlap */
+    max-height: calc(50% - 20px);
+    margin-top: 20px;
+}
+
+#ban-user-section{
+    display:flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.ban-user-form{
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    height: 100%;
+}
+
+.ban-user-form input{
+    min-height: 25px;
+}
+
+#reason-input{
+    flex: 1;
+    width: 100%;
+    resize: none;
 }
 
 /* Individual Section Styles */
-.audit-log, .mod-notes {
+.audit-log, .mod-notes, #picture-mod-queue-section {
     max-height: 180px;
-    overflow-y: auto;
+    overflow-y: scroll;
 }
 
 .audit-log-entry, .mod-note {
@@ -45,30 +66,32 @@
     border-bottom: 1px solid #ddd;
 }
 
+.mod-button{
+    justify-content: center;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .moderator-tools-group {
-        flex: 1 1 100%; /* Stacks vertically on small screens */
+        flex: 1 1 100%;
         align-items: flex-start;
-        margin-bottom: 20px; /* Add bottom margin for more spacing */
+        margin-bottom: 20px;
     }
 
     .moderator-tools {
         flex-direction: column;
-        height: calc(100vh - 250px); /* Adjust height for smaller screens */
+        overflow-y: scroll;
     }
 
-    #ban-user-section,
-    .audit-log-wrapper,
-    #picture-mod-queue-section {
+    .moderator-tools section {
         width: 100%;
-        margin-top: 20px; /* Additional space between sections */
+        margin-top: 20px;
     }
 
     .ban-user-form input,
     textarea,
     .mod-button,
     .admin-button {
-        width: 100%; /* Full width on small screens */
+        width: 100%;
     }
 }

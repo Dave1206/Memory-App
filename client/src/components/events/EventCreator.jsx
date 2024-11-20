@@ -12,7 +12,7 @@ function EventCreator({ getEvents, userId }) {
     const createEvent = async (newEvent) => {
         try {
             await axiosInstance.post("/events", { newEvent });
-            getEvents(); // Refresh events after creating a new event
+            getEvents();
         } catch (err) {
             console.error("Error creating event", err.response?.data || err.message);
         }
