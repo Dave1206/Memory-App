@@ -12,10 +12,8 @@ function Memory({
     event,
     eventId,
     userId,
-    hasShared,
     memories,
     getMemories,
-    updateSharedState,
 }) {
     const [showModal, setShowModal] = useState(false);
     const [showInviteModal, setShowInviteModal] = useState(false);
@@ -30,7 +28,7 @@ function Memory({
         try {
             await axiosInstance.post(`/events/${eventId}/memories`, { content: newMemory });
             getMemories(eventId);
-            updateSharedState(true);
+            event.has_shared_memory = true;
         } catch (err) {
             console.error("Error sharing memory:", err.response?.data || err.message);
         }
@@ -60,7 +58,7 @@ function Memory({
                         Invite others to share
                     </button>
                 )}
-                {!hasShared && (
+                {!event.has_shared_memory && (
                     <button className='share-button' onClick={() => setShowModal(true)}>
                         Share Memory
                     </button>
@@ -81,7 +79,7 @@ function Memory({
                 eventId={eventId}
             />
 
-            {!hasShared ? (
+            {!event.has_shared_memory ? (
                 <div>
                     <h3>Share your memory to reveal others' memories.</h3>
                     <div className="memory-container">

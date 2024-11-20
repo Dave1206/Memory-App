@@ -4,7 +4,7 @@ import Memory from './Memory';
 import Event from './Event';
 import SearchAndFilter from '../SearchAndFilter';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronRight } from '@fortawesome/free-solid-svg-icons';
+import { faChevronUp, faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import '../../styles/Eventlist.css';
 
 function EventList({ events, getEvents, userId }) {
@@ -12,20 +12,16 @@ function EventList({ events, getEvents, userId }) {
     const [memories, setMemories] = useState([]);
     const [filteredEvents, setFilteredEvents] = useState(events);
     const [shared, setShared] = useState(false);
-    const [expanded, setExpanded] = useState(false);
+    const [isDescriptionVisible, setDescriptionVisible] = useState(false);
 
     const [searchTerm, setSearchTerm] = useState("");
     const [filters, setFilters] = useState({});
-    const [sortOrder, setSortOrder] = useState("asc"); // 'asc' or 'desc'
+    const [sortOrder, setSortOrder] = useState("asc");
     const axiosInstance = useAxios();
 
     useEffect(() => {
         setFilteredEvents(events);
     }, [events]);
-
-    const handleToggleExpand = () => {
-        setExpanded(!expanded);
-    };
 
     const getMemories = async (eventId) => {
         try {
@@ -47,18 +43,31 @@ function EventList({ events, getEvents, userId }) {
     }, [getEvents]);
 
     const handleClick = (event) => {
-        if (selectedEvent !== event) {
-            setSelectedEvent(event);
-            setShared(event.has_shared);
-            getMemories(event.event_id);
-        } else {
-            setSelectedEvent(null);
-        }
+        setSelectedEvent(event);
+        setShared(event.has_shared_memory);
+        getMemories(event.event_id);
     };
 
-    useEffect(() => {
-        updateEvents();
-    }, [updateEvents]);
+    const toggleDescription = () => {
+        setDescriptionVisible((prev) => !prev);
+    };
+
+    const filterOptions = [
+        {
+            key: 'filterByType',
+            label: '--Event Type--',
+            options: [
+                { value: 'regular', label: 'Regular' },
+                { value: 'time_capsule', label: 'Time Capsule' },
+            ]
+        }
+    ];
+
+    const sortOptions = [
+        { value: 'creation_date', label: 'Creation Date' },
+        { value: 'memories_shared', label: 'Number of Memories' },
+        { value: 'event_type', label: 'Event Type' }
+    ];
 
     useEffect(() => {
         let updatedEvents = [...events];
@@ -91,96 +100,70 @@ function EventList({ events, getEvents, userId }) {
         setFilteredEvents(updatedEvents);
     }, [searchTerm, filters, sortOrder, events]);
 
-    const filterOptions = [
-        {
-            key: 'filterByType',
-            label: '--Event Type--',
-            options: [
-                { value: 'regular', label: 'Regular' },
-                { value: 'time_capsule', label: 'Time Capsule' },
-            ]
-        }
-    ];
-
-    const sortOptions = [
-        { value: 'creation_date', label: 'Creation Date' },
-        { value: 'memories_shared', label: 'Number of Memories' },
-        { value: 'event_type', label: 'Event Type' }
-    ];
-
     return (
-        <div className={`event-wrapper ${expanded ? 'expanded' : ''}`}>
-            <SearchAndFilter
-                onSearch={setSearchTerm}
-                onFilterChange={(newFilters) => setFilters(newFilters)}
-                onSortOrderChange={setSortOrder}
-                filterOptions={filterOptions}
-                sortOptions={sortOptions}
-            />
-
-            <div className={`event-list-container ${expanded ? 'expanded' : ''}`}>
-                <div className={`event-list ${expanded ? 'expanded' : ''}`}>
-                    {filteredEvents.map((event) => (
-                        <div className="event-item-wrapper" key={event.event_id}>
-                            <Event
-                                id={event.event_id}
-                                userId={userId}
-                                handleClick={() => handleClick(event)}
-                                event={event}
-                                updateEvents={updateEvents}
-                                selected={selectedEvent ? event.event_id === selectedEvent.event_id : null}
-                            />
-                        </div>
-                    ))}
-                </div>
-                <button className="expand-button" onClick={handleToggleExpand}>
-                    <FontAwesomeIcon
-                        icon={faChevronRight}
-                        style={{
-                            transform: expanded ? 'rotate(180deg)' : 'rotate(0)'
-                        }}
+        <div className="event-wrapper">
+            {!selectedEvent ? (
+                <>
+                    <SearchAndFilter
+                        onSearch={setSearchTerm}
+                        onFilterChange={(newFilters) => setFilters(newFilters)}
+                        onSortOrderChange={setSortOrder}
+                        filterOptions={filterOptions}
+                        sortOptions={sortOptions}
                     />
-                </button>
-            </div>
 
-            {selectedEvent ? (
-                selectedEvent.reveal_date < Date.now() ? (
-                    <div className="selected-event">
-                        <h2>Selected Event: {selectedEvent.title}</h2>
-                        <Memory
-                            key={selectedEvent.event_id}
-                            eventId={selectedEvent.event_id}
-                            userId={userId}
-                            event={selectedEvent}
-                            hasShared={shared}
-                            getMemories={getMemories}
-                            updateSharedState={updateSharedState}
-                            memories={memories}
-                        />
+                    <div className="event-list-container">
+                        <div className="event-list">
+                            {filteredEvents.map((event) => (
+                                <div className="event-item-wrapper" key={event.event_id}>
+                                    <Event
+                                        id={event.event_id}
+                                        userId={userId}
+                                        handleClick={() => handleClick(event)}
+                                        event={event}
+                                        updateEvents={updateEvents}
+                                        selected={false}
+                                    />
+                                </div>
+                            ))}
+                        </div>
                     </div>
-                ) : (
-                    <div className="selected-event">
-                        <h2>Selected Event: {selectedEvent.title}</h2>
-                        <h2>{`This time capsule will open on ${new Date(selectedEvent.reveal_date).toLocaleDateString('en-GB', {
-                            year: 'numeric',
-                            month: '2-digit',
-                            day: '2-digit'
-                        })}`}</h2> 
-                        <Memory
-                            key={selectedEvent.event_id}
-                            eventId={selectedEvent.event_id}
-                            userId={userId}
-                            event={selectedEvent}
-                            hasShared={shared}
-                            getMemories={getMemories}
-                            updateSharedState={updateSharedState}
-                            memories={memories}
-                        />
-                    </div>
-                )
+                </>
             ) : (
                 <div className="selected-event">
-                    <h2>Once you select an event it will appear here.</h2>
+                    <button className="back-button" onClick={() => setSelectedEvent(null)}>
+                        Back to Events
+                    </button>
+                    <h2>{selectedEvent.title}</h2>
+                    <div>{`by ${selectedEvent.username}`}
+                        <div
+                            className="description-toggle-link"
+                            onClick={toggleDescription}
+                        >   description
+                            <span className="arrow">
+                                {isDescriptionVisible ? <FontAwesomeIcon icon={faChevronUp} /> : <FontAwesomeIcon icon={faChevronDown} />}
+                            </span>
+                        </div>
+                    </div>
+                    {isDescriptionVisible && (
+                        <div className="description">{selectedEvent.description}</div>
+                    )}
+                    {selectedEvent.reveal_date < Date.now() ? (
+                        <div className='memories-container'>
+                            <Memory
+                                key={selectedEvent.event_id}
+                                eventId={selectedEvent.event_id}
+                                userId={userId}
+                                event={selectedEvent}
+                                hasShared={shared}
+                                getMemories={getMemories}
+                                updateSharedState={updateSharedState}
+                                memories={memories}
+                            />
+                        </div>
+                    ) : (
+                        <h3>{`This time capsule will open on ${new Date(selectedEvent.reveal_date).toLocaleDateString()}`}</h3>
+                    )}
                 </div>
             )}
         </div>

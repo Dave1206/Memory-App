@@ -27,15 +27,20 @@
 }
 
 /* Header: Like button and ellipsis menu */
-.event-header {
+.event-header-left {
     position: absolute;
+    margin-left: 50px;
     top: 10px;
-    right: 10px;
+    left: 10px;
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 10px;
-    width: fit-content;
+    align-items: center;
+    gap: 8px;
+}
+
+.event-header-right {
+    position: absolute;
+    top:10px;
+    right:10px;
 }
 
 /* Event Content */
@@ -72,13 +77,13 @@
 .event-content h3 {
     font-family: 'Inter', sans-serif;
     font-size: 1.1rem;
-    color: var(--text-color);
     font-weight: bold;
     margin: 10px 0;
     border-bottom: 3px solid rgba(0, 0, 0, 0.05);
     display: flex;
     align-items: center;
     gap: 5px;
+    line-height: 1.4;
 }
 
 .time-capsule-icon {
@@ -90,13 +95,12 @@
 .event-content p {
     font-family: 'Inter', sans-serif;
     font-size: 0.95rem;
-    color: var(--text-color);
     margin-top: 8px;
+    line-height: 1.2;
 }
 
 /* Read more styling */
 .read-more {
-    color: var(--link-color);
     cursor: pointer;
     font-weight: bold;
 }
@@ -108,13 +112,28 @@
 /* Footer (username link and notification badge) */
 .event-footer {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
+    gap: 10px;
+}
+
+.stats {
+    display:flex;
+    align-items: center;
+    flex-direction: row-reverse;
+}
+
+.stats-counter{
+    font-size: 0.85rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 5px;
 }
 
 .creator-link {
+    font-family: 'Inter', sans-serif;
     font-size: 0.85em;
-    color: var(--link-color);
     text-decoration: none;
     font-weight: bold;
     transition: color 0.3s ease;
@@ -122,6 +141,10 @@
 
 .creator-link:hover {
     color: var(--link-hover-color);
+}
+
+.shared {
+    color: green;
 }
 
 /* Color variations with contrasting text color */

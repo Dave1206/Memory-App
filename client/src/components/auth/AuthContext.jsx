@@ -1,14 +1,13 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { useEffect, createContext, useContext, useState } from "react";
 import axios from "axios";
 
-// Optional: Set up Axios base URL if backend is hosted at a different location
-axios.defaults.baseURL = process.env.REACT_APP_API_BASE_URL; // Replace with actual base URL
+axios.defaults.baseURL = process.env.REACT_APP_API_BASE_URL; 
 
 const AuthContext = createContext({});
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [isModMode, setIsModMode] = useState(false); // New state for mod mode
+  const [isModMode, setIsModMode] = useState(false); 
 
   // Toggle mod mode
   const toggleModMode = () => {
@@ -30,9 +29,9 @@ export const AuthProvider = ({ children }) => {
   // Logout function
   const logout = async () => {
     try {
-      await axios.post("/logout", { withCredentials: true });
+      await axios.post("/logout", {}, { withCredentials: true });
       setUser(null);
-      setIsModMode(false); // Disable mod mode on logout
+      setIsModMode(false);
     } catch (error) {
       console.error("Logout error:", error.response?.data || error.message);
     }
@@ -53,6 +52,19 @@ export const AuthProvider = ({ children }) => {
       throw error;
     }
   };
+
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const response = await axios.get('/auth/session', { withCredentials: true });
+        setUser(response.data.user);
+      } catch (err) {
+        console.error('No active session:', err.response?.data || err.message);
+        setUser(null);
+      }
+    };
+    checkSession();
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, login, logout, register, isModMode, toggleModMode }}>

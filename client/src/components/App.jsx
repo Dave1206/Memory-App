@@ -18,6 +18,7 @@ function App() {
   const [events, setEvents] = useState([]);
   const [eventInvites, setEventInvites] = useState([]);
   const axiosInstance = useAxios();
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
 
   const getEvents = useCallback(async () => {
     if (!axiosInstance) return;
@@ -44,6 +45,15 @@ function App() {
       prevEventInvites.filter((event) => event.event_id !== eventId)
     );
   };
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsCheckingSession(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isCheckingSession) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <Router>

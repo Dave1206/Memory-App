@@ -45,7 +45,7 @@ function MemoryModal({ show, onClose, onCreate, eventId }) {
 
     // Function to handle sharing the memory
     const handleCreate = () => {
-        onCreate(eventId, newMemory);
+        onCreate(newMemory);
         setNewMemory("");
         onClose();
     };
@@ -64,53 +64,56 @@ function MemoryModal({ show, onClose, onCreate, eventId }) {
     return (
         <div className="modal-backdrop" onClick={handleBackdropClick}>
             <div className="modal" onClick={(e) => e.stopPropagation()}>
-                <h2>What do you remember of this event?</h2>
+                <div className='modal-left-column'>
+                    <h2>What do you remember of this event?</h2>
 
-                {/* Toggle button for emoji toolbar */}
-                <button 
-                    type="button" 
-                    className="emoji-toggle-button" 
-                    onClick={() => setIsEmojiToolbarVisible(!isEmojiToolbarVisible)}
-                    aria-label="Toggle Emoji Toolbar"
-                >
-                    {isEmojiToolbarVisible ? "🔽" : "😊"}
-                </button>
+                    {/* Toggle button for emoji toolbar */}
+                    <button 
+                        type="button" 
+                        className="emoji-toggle-button" 
+                        onClick={() => setIsEmojiToolbarVisible(!isEmojiToolbarVisible)}
+                        aria-label="Toggle Emoji Toolbar"
+                    >
+                        {isEmojiToolbarVisible ? "🔽" : "😊"}
+                    </button>
 
-                {/* Expandable emoji toolbar */}
-                {isEmojiToolbarVisible && (
-                    <div className="emoji-toolbar">
-                        {emojis.map((emoji) => (
-                            <button
-                                key={emoji}
-                                type="button"
-                                className="emoji-button"
-                                onClick={() => addEmoji(emoji)}
-                            >
-                                {emoji}
-                            </button>
-                        ))}
+                    {/* Expandable emoji toolbar */}
+                    {isEmojiToolbarVisible && (
+                        <div className="emoji-toolbar">
+                            {emojis.map((emoji) => (
+                                <button
+                                    key={emoji}
+                                    type="button"
+                                    className="emoji-button"
+                                    onClick={() => addEmoji(emoji)}
+                                >
+                                    {emoji}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Text area with character limit */}
+                    <textarea
+                        ref={textAreaRef}
+                        name="memory"
+                        placeholder="Your memory"
+                        value={newMemory}
+                        onChange={handleChange}
+                    />
+
+                    {/* Character counter */}
+                    <div className="character-counter">
+                        {calculateLength(newMemory)}/{maxCharacters} characters
                     </div>
-                )}
 
-                {/* Text area with character limit */}
-                <textarea
-                    ref={textAreaRef}
-                    name="memory"
-                    placeholder="Your memory"
-                    value={newMemory}
-                    onChange={handleChange}
-                />
-
-                {/* Character counter */}
-                <div className="character-counter">
-                    {calculateLength(newMemory)}/{maxCharacters} characters
+                    {/* Action buttons */}
+                    <div className="button-container">
+                        <button onClick={handleCreate}>Share Memory</button>
+                        <button onClick={onClose}>Cancel</button>
+                    </div>
                 </div>
-
-                {/* Action buttons */}
-                <div className="button-container">
-                    <button onClick={handleCreate}>Share Memory</button>
-                    <button onClick={onClose}>Cancel</button>
-                </div>
+                
             </div>
         </div>
     );

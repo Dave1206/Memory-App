@@ -220,8 +220,13 @@ app.post("/login", passport.authenticate("local"), (req, res) => {
   res.status(200).json({ message: "Login successful", user: req.user });
 });
 
-app.post("/logout", (req, res) => {
+app.post("/logout", isAuthenticated, (req, res) => {
   const userId = req.user?.id;
+
+  if (!userId) {
+    console.error("User is not authenticated or userId is undefined.");
+    return res.status(400).json({ message: "Cannot log out because user is not authenticated." });
+  }
 
   req.logout(async (err) => {
     if (err) {
@@ -239,12 +244,22 @@ app.post("/logout", (req, res) => {
 
     req.session.destroy((destroyErr) => {
       if (destroyErr) {
-        return res.status(500).json({ message: "Error destroying session." });
+        console.error("Error destroying session:", destroyErr);
+        return res.status(500).json({ message: "Error destroying session:", destroyErr });
+      } else {
       }
       res.clearCookie("connect.sid");
       res.status(200).json({ message: "Logout successful" });
     });
   });
+});
+
+app.get('/auth/session', isAuthenticated, (req, res) => {
+  if (req.user) {
+    res.json({ user: req.user });
+  } else {
+    res.status(401).json({ message: 'No active session' });
+  }
 });
 
 //events routes
@@ -433,10 +448,16 @@ app.post("/events/:event_id/memories", isAuthenticated, async (req, res) => {
   try {
     const { event_id } = req.params;
     const { content } = req.body;
+    const userId = req.user.id;
 
     const invite = await db.query(
       "SELECT * FROM event_participation WHERE event_id = $1 AND user_id = $2",
-      [event_id, req.user.id]
+      [event_id, userId]
+    );
+
+    const eventTitle = await db.query(
+      "SELECT title FROM events WHERE event_id = $1",
+      [event_id]
     );
 
     if (invite.rows[0].has_shared_memory) {
@@ -445,15 +466,15 @@ app.post("/events/:event_id/memories", isAuthenticated, async (req, res) => {
 
     await db.query(
       "INSERT INTO memories (event_id, user_id, content) VALUES ($1, $2, $3)",
-      [event_id, req.user.id, content]
+      [event_id, userId, content]
     );
 
     await db.query(
       "UPDATE event_participation SET has_shared_memory = true WHERE event_id = $1 AND user_id = $2",
-      [event_id, req.user.id]
+      [event_id, userId]
     );
 
-    await logActivity(user_id, 'shared_memory', `Shared a memory for event: ${event_id}`, memoryId, 'memory');
+    await logActivity(userId, 'shared_memory', `Shared a memory for event: ${eventTitle.rows[0]}`, event_id, 'memory');
 
     res.send("Memory shared successfully");
   } catch (err) {

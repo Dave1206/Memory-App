@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAxios } from '../auth/AxiosProvider';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faHeart, faTrashCan, faShare, faBan } from '@fortawesome/free-solid-svg-icons';
+import { faBook, faTrashCan, faShare, faBan } from '@fortawesome/free-solid-svg-icons';
 import Modal from '../modals/Modal';
 import Eventmodal from '../modals/EventModal';
 import { Link } from 'react-router-dom';
 import '../../styles/Event.css';
 import EllipsisMenu from '../EllipsisMenu';
 import NotificationBadge from '../NotificationBadge';
+import LikeButton from '../LikeButton';
 import { useAuth } from '../auth/AuthContext';
 
 function Event({ event, handleClick, updateEvents, selected }) {
@@ -53,13 +54,14 @@ function Event({ event, handleClick, updateEvents, selected }) {
     }, [fetchCreator]);
 
     const handleMenuToggle = (e) => {
+        e.stopPropagation();
         setShowMenu(!showMenu);
     };
 
     const handleLike = async () => {
         try {
             await axiosInstance.post(`/events/${event.event_id}/like`);
-            updateEvents(event.event_id);
+            event.has_liked = !event.has_liked;
         } catch (err) {
             console.error('Error liking event:', err);
         }
@@ -101,40 +103,74 @@ function Event({ event, handleClick, updateEvents, selected }) {
         <>
         <Modal show={showDeleteModal} onClose={() => setShowDeleteModal(false)} onConfirm={() => console.log("Delete event")} />
         <Eventmodal show={showEventModal} onClose={() => setShowEventModal(false)} event={event} creator={creator.username} />
-        <div 
-            onClick={() => handleClick(event)} 
-            className={`event-container ${selected ? 'selected' : ''} ${color}`}
-            onMouseLeave={() => setShowMenu(false)}
-        >
-            <div className="event-header">
-                <div className="like-button" onClick={handleLike}>
-                    <FontAwesomeIcon icon={faHeart} />
-                </div>
-                    <EllipsisMenu 
-                        buttonItems={buttonItems}
-                        onToggle={handleMenuToggle}
-                        isOpen={showMenu}
+            <div 
+                onClick={() => handleClick(event)} 
+                className={`event-container ${selected ? 'selected' : ''} ${color}`}
+                onMouseLeave={() => setShowMenu(false)}
+            >
+                <img 
+                        className="creator-profile-pic" 
+                        src={creator.profile_picture} 
+                        alt="Profile" 
                     />
-            </div>
-            <div className="event-content">
-                <h3>{event.title}</h3>
-                <Link to={`/profile/${event.created_by}`} className="creator-link"><img className='creator-profile-pic' src={creator.profile_picture} alt="Profile" /></Link>
-                <p>
-                    {event.description.length > descriptionMax ? (
-                        <>
-                            {event.description.substring(0, descriptionMax)}
-                            <span onClick={() => setShowEventModal(true)} className="read-more">... Read more</span>
-                        </>
-                    ) : (
-                        event.description
-                    )}
-                </p>
+                {/* Top-left: Profile Picture and Username */}
+                <div className="event-header-left">
+                    
+                    <Link 
+                        to={`/profile/${event.created_by}`} 
+                        className={`creator-link ${color}`}
+                    >
+                        {creator.username}
+                    </Link>
+                    
+                </div>
+
+                <div className='event-header-right'>
+                    <EllipsisMenu 
+                        isOpen={showMenu}
+                        onToggle={handleMenuToggle}
+                        buttonItems={buttonItems} 
+                    />
+                </div>
+
+                {/* Event Content */}
+                <div className="event-content">
+                    <h3 className={`${color}`}>{event.title}</h3>
+                    <p className={`${color}`}>
+                        {event.description.length > descriptionMax ? (
+                            <>
+                                {event.description.substring(0, descriptionMax)}
+                                <span 
+                                    onClick={() => setShowEventModal(true)} 
+                                    className="read-more"
+                                >
+                                    ... Read more
+                                </span>
+                            </>
+                        ) : (
+                            event.description
+                        )}
+                    </p>
+                </div>
+
+                {/* Bottom-right: Like Button, Shares, and Memories Count */}
                 <div className="event-footer">
-                    <Link to={`/profile/${event.created_by}`} className="creator-link">{creator.username}</Link>
+                    <div className="stats">
+                        <div className='stats-counter'>
+                            <LikeButton onLike={(e) => {e.stopPropagation(); handleLike();}} />
+                        </div>
+                        <div className={`stats-counter ${color}`}>
+                            <FontAwesomeIcon 
+                                className={event.has_shared_event? 'shared' : ''} 
+                                icon={faShare} />
+                        </div>
+                        <div className={`stats-counter ${color}`}>
+                            <FontAwesomeIcon icon={faBook} /> {event.memories_count}
+                        </div>
+                    </div>
                     {event.seen === false && <NotificationBadge count="new" />}
                 </div>
             </div>
-        </div>
         </>
     );
 }

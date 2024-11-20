@@ -1,168 +1,181 @@
-/* Wrapper styling for the whole component */
 .event-wrapper {
-    display: flex;
-    justify-content: space-between;
-    padding: 20px;
-    gap: 20px;
-    width: 87.5vw;
-    z-index: 1;
-    position: relative;
-    margin: 50px auto;
-    transition: all 0.8s ease;
-}
-
-.event-wrapper.expanded .selected-event {
-  display: none;
-}
-
-/* Scrollable event list */
-.event-list-container {
-  position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  height: 65vh;
-  width: 310px;
-  border-radius: 8px;
-  box-shadow: inset 0px 4px 12px rgba(110, 110, 110, 0.548);
-  padding: 10px 0;
-  transition: width 0.8s ease;
+  justify-content: space-between;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 
-.event-list-container.expanded {
-  width: 100%;
-  margin-bottom: 20px;
+.event-list-container {
+  width: 95%;
+  flex: 1;
+  margin: 25px 0 35px;
+  overflow-y: auto;
+  border-radius: 8px;
+  box-shadow: inset 0px 4px 12px rgba(110, 110, 110, 0.15);
+  padding: 10px;
 }
 
 .event-list {
-  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  width: 100%;
+}
+
+.event-list-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.event-list-container::-webkit-scrollbar-thumb {
+  background-color: #bbb;
+  border-radius: 4px;
+}
+
+/* Styling for the selected event container */
+.selected-event {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  align-items: center;
+  justify-content: space-evenly;
+  background-color: rgba(255, 255, 255, 0.1); 
+  border-radius: 12px;
+  padding: 20px 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); 
+  width: 90%;
+  min-height: 85%;
+  max-height: 86%;
+  max-width: 800px;
+  margin: 20px auto;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  animation: fadeIn 0.5s ease-in-out;
   overflow-y: scroll;
-  transition: width 0.3s ease;
-  height: 100%;
-  width: 100%;
-  padding: 10px;
-  margin-bottom: 0;
+  scrollbar-width: none;
 }
 
-.event-list.expanded {
-  width: 100%;
-  height: 100%;
-  flex-wrap: wrap;
-  flex-direction: row;
-  gap: 10px;
-  padding: 10px;
-}
-
-.event-list::-webkit-scrollbar {
-  width: 8px;
-}
-
-.event-list::-webkit-scrollbar-thumb {
-  background-color: #bbb;
-  border-radius: 4px;
-}
-/* Styling for the selected event */
-.selected-event {
-    padding: 10px 0;
-    border-radius: 8px;
-    box-shadow: inset 0px 4px 12px rgba(110, 110, 110, 0.548);
-    position: relative;
-    margin-bottom: 0;
-    overflow-y: scroll;
-    height: 65vh;
-    width: 65%; 
-}
-
-.selected-event::-webkit-scrollbar {
-  width: 8px;
-}
-
-.selected-event::-webkit-scrollbar-thumb {
-  background-color: #bbb;
-  border-radius: 4px;
-}
-
-/* Button Styling */
-.event-button-container {
-  display: flex;
-  justify-content: center;
-  gap: 5%;
-}
-
-
-/* Expand button styling */
-.expand-button {
-  position: absolute;
-  right: 0px;
-  top: 50%;
-  transform: translateY(-50%);
-  padding: 0.5em;
-  background-color: transparent;
-  color: white;
-  font-size: 1.2em;
+/* Back button styling */
+.back-button {
+  align-self: flex-start;
+  margin-left: 20px;
+  background-color: #ff6b6b;
+  color: #fff;
   border: none;
-  border-radius: 10%;
+  border-radius: 8px;
+  padding: 10px 15px;
+  font-size: 1rem;
   cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.3s ease;
-  z-index: 5;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
-.expand-button:hover {
-  background-color: transparent;
+.back-button:hover {
+  background-color: #e63946;
+  transform: scale(1.05);
 }
 
-.expand-button:focus {
-  outline: none;
+/* Event title styling */
+.selected-event h2 {
+  font-size: 1.8rem;
+  color: #ffffff; 
+  margin-bottom: 10px;
+  text-align: center;
+  font-weight: bold;
 }
 
-/* Responsive adjustments */
+.selected-event h3 {
+  font-size: 1.2rem;
+  color: #ffffff;
+  margin: 10px 0;
+  text-align: center;
+}
+
+/* Description toggle link */
+.description-toggle-link {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  text-decoration: underline;
+  font-size: .9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: color 0.3s ease;
+  box-shadow: none;
+  margin-left: 10px;
+}
+
+.description-toggle-link:hover {
+  color: #0056b3;
+  text-decoration: none;
+  background: none;
+  box-shadow: none;
+}
+
+.description-toggle-link .arrow {
+  font-size: .7rem;
+  font-weight: bold;
+}
+
+/* Description container */
+.description {
+  margin: 30px 30px 0;
+  padding: 10px;
+  border-radius: 6px;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  font-size: 1rem;
+  line-height: 1.4;
+  animation: fadeIn 0.3s ease;
+}
+.memories-container{
+  display:flex;
+  flex-direction: column;
+  width: 90%;
+}
+
+@keyframes fadeIn {
+  from {
+      opacity: 0;
+      transform: translateY(-10px);
+  }
+  to {
+      opacity: 1;
+      transform: translateY(0);
+  }
+}
+
+/* Media query for mobile responsiveness */
 @media (max-width: 768px) {
-  .event-wrapper {
-      flex-direction: column;
-      width: 80vw;
-      margin-bottom: 0;
+  .selected-event {
+      width: 95%;
+      padding: 15px 0;
+      gap: 15px;
   }
-
-  .event-list {
-      max-height: 100%;
-      min-height: 100%;
-      width: 100%;
-      align-items: center;
-  }
-
-  .event-list-container{
-    width: 80vw;
-    max-height: 30vh;
-    min-height: 30vh;
-    margin-bottom: 0;
-    margin-top: 50px;
-  }
-
-  .event-list-container.expanded {
-    min-height: 67vh;
-    max-height: 67vh;
-    margin-bottom: 0;
-  }
-
-  .event-list.expanded {
-    min-height: 100%;
-    max-height: 100%;
+  
+  .event-list{
     justify-content: center;
   }
 
-  .selected-event {
-      max-height: 30vh;
-      min-height: 30vh;
-      width: 100%;
-      margin-bottom: 0;
+  .back-button {
+      font-size: 0.9rem;
+      padding: 8px 12px;
   }
 
-  .expand-button {
-    right: 20px;
-    top: auto;
-    bottom: -5px;
-    transform: rotate(90deg);
-}
+  .selected-event h2 {
+      font-size: 1.5rem;
+  }
+
+  .selected-event h3 {
+      font-size: 1rem;
+  }
+  .event-wrapper {
+      height: 100vh;
+  }
+
+  .event-list-container{
+      padding: 10px 0;
+  }
 }

@@ -1,33 +1,65 @@
-/* Main wrapper for search and filter */
+/* Main container for toggle button and search-filter */
+.search-filter-container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: fit-content;
+    align-self: flex-start;
+}
+
+/* Toggle button for expanding/collapsing the search-filter */
+.toggle-button {
+    background: none;
+    border: none;
+    font-size: 1.5em;
+    color: #ffaf60;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: transform 0.3s ease, background-color 0.3s ease;
+}
+
+.toggle-button:hover {
+    background-color: rgba(255, 175, 96, 0.2);
+}
+
 .search-filter-wrapper {
     display: flex;
-    align-items: center;
-    align-self: left;
+    flex-wrap: wrap;
     gap: 10px;
     padding: 15px;
     background-color: rgba(51, 51, 51, 0.8);
     border-radius: 8px;
     box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
-    flex-wrap: wrap;
-    width: 60%;
-    max-width: 800px;
-    margin: 0 auto;
-    position: absolute;
-    top: 10px;
-    z-index: 1;
+    width: 100%;
+    margin-top: 10px;
 }
 
-/* Search bar styling */
+/* Search bar container */
+.search-bar-container {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+}
+
+.search-icon {
+    position: absolute;
+    left: 8px;
+    color: #ffaf60;
+    pointer-events: none;
+}
+
 .search-bar {
     flex: 1;
-    padding: 8px 12px;
+    padding: 8px 8px 8px 28px;
     border: 1px solid #ccc;
     border-radius: 6px;
     background-color: #222;
     color: #e6dbbd;
     outline: none;
     transition: border-color 0.3s ease;
-    min-width: 150px;
 }
 
 .search-bar:focus,
@@ -42,24 +74,17 @@
     border-radius: 6px;
     background-color: #222;
     color: #e6dbbd;
-    min-width: 120px;
     cursor: pointer;
     transition: border-color 0.3s ease;
 }
 
-.filter-dropdown:focus,
-.filter-dropdown:hover {
-    border-color: #ffaf60;
-}
-
-/* Sort controls container */
+/* Sort controls */
 .sort-controls {
     display: flex;
     align-items: center;
     gap: 5px;
 }
 
-/* Sort dropdown */
 .sort-dropdown {
     padding: 8px;
     border: 1px solid #ccc;
@@ -67,53 +92,29 @@
     background-color: #222;
     color: #e6dbbd;
     cursor: pointer;
-    min-width: 120px;
-    transition: border-color 0.3s ease;
 }
 
-.sort-dropdown:focus,
-.sort-dropdown:hover {
-    border-color: #ffaf60;
-}
-
-/* Sort order button */
 .sort-order-button {
     background: none;
-    border: none;
+    border: 1px solid white;
     color: #ffaf60;
     cursor: pointer;
     font-size: 1.2em;
     display: flex;
     align-items: center;
-    padding: 4px;
-    transition: color 0.3s ease;
+    width: fit-content;
+    padding:0;
+    margin: 10px;
 }
 
-.sort-order-button:hover {
-    color: #ffc48a;
-}
-
-/* Media queries for responsiveness */
+/* Responsive adjustments */
 @media (max-width: 768px) {
     .search-filter-wrapper {
         flex-direction: column;
         align-items: flex-start;
-        padding: 10px;
-        gap: 5px;
-    }
-
-    .filter-dropdown,
-    .sort-dropdown {
-        width: 100%;
     }
 
     .sort-controls {
-        width: 100%;
         justify-content: space-between;
     }
-
-    .sort-order-button {
-        font-size: 1em;
-    }
 }
-

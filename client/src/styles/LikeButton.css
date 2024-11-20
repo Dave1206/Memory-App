@@ -5,6 +5,7 @@
     font-size: 1.2em;
     transition: transform 0.2s ease;
     cursor: pointer;
+    color: #555;
 }
 
 .like-button:hover {

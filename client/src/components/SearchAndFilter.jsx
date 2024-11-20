@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSortUp, faSortDown } from '@fortawesome/free-solid-svg-icons';
+import { faFilter, faSortUp, faSortDown, faSearch } from '@fortawesome/free-solid-svg-icons';
 import '../styles/SearchAndFilter.css';
 
 function SearchAndFilter({ onSearch, onFilterChange, onSortOrderChange, filterOptions, sortOptions }) {
     const [searchTerm, setSearchTerm] = useState("");
     const [filters, setFilters] = useState({});
     const [sortOrder, setSortOrder] = useState("asc");
+    const [isExpanded, setIsExpanded] = useState(false);
 
     const handleSearch = (event) => {
         const value = event.target.value;
@@ -37,49 +38,60 @@ function SearchAndFilter({ onSearch, onFilterChange, onSortOrderChange, filterOp
         : sortOptions;
 
     return (
-        <div className="search-filter-wrapper">
-            <input
-                type="text"
-                placeholder="Search..."
-                value={searchTerm}
-                onChange={handleSearch}
-                className="search-bar"
-            />
-
-            {filterOptions.map((filter) => (
-                <select
-                    key={filter.key}
-                    value={filters[filter.key] || ""}
-                    onChange={(e) => handleFilterChange(filter.key, e.target.value)}
-                    className="filter-dropdown"
-                >
-                    <option value="">{filter.label}</option>
-                    {filter.options.map((option) => (
-                        <option key={option.value} value={option.value}>
-                            {option.label}
-                        </option>
+        <div className="search-filter-container">
+            <button
+                className="toggle-button"
+                onClick={() => setIsExpanded(!isExpanded)}
+                aria-expanded={isExpanded}
+            >
+                <FontAwesomeIcon icon={faFilter} />
+            </button>
+            {isExpanded && (
+                <div className="search-filter-wrapper">
+                    <div className="search-bar-container">
+                        <FontAwesomeIcon icon={faSearch} className="search-icon" />
+                        <input
+                            type="text"
+                            placeholder="Search..."
+                            value={searchTerm}
+                            onChange={handleSearch}
+                            className="search-bar"
+                        />
+                    </div>
+                    {filterOptions.map((filter) => (
+                        <select
+                            key={filter.key}
+                            value={filters[filter.key] || ""}
+                            onChange={(e) => handleFilterChange(filter.key, e.target.value)}
+                            className="filter-dropdown"
+                        >
+                            <option value="">{filter.label}</option>
+                            {filter.options.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                    {option.label}
+                                </option>
+                            ))}
+                        </select>
                     ))}
-                </select>
-            ))}
-
-            <div className="sort-controls">
-                <select
-                    value={filters.sortBy || ""}
-                    onChange={(e) => handleSortChange(e.target.value)}
-                    className="sort-dropdown"
-                >
-                    <option value="">--Sort By--</option>
-                    {filteredSortOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                            {option.label}
-                        </option>
-                    ))}
-                </select>
-
-                <button onClick={toggleSortOrder} className="sort-order-button">
-                    <FontAwesomeIcon icon={sortOrder === "asc" ? faSortUp : faSortDown} />
-                </button>
-            </div>
+                    <div className="sort-controls">
+                        <select
+                            value={filters.sortBy || ""}
+                            onChange={(e) => handleSortChange(e.target.value)}
+                            className="sort-dropdown"
+                        >
+                            <option value="">--Sort By--</option>
+                            {filteredSortOptions.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                    {option.label}
+                                </option>
+                            ))}
+                        </select>
+                        <button onClick={toggleSortOrder} className="sort-order-button">
+                            <FontAwesomeIcon icon={sortOrder === "asc" ? faSortUp : faSortDown} />
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
