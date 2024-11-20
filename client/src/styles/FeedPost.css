@@ -21,6 +21,19 @@
     position: relative;
     margin-bottom: 10px;
     padding: 10px;
+    flex-wrap: wrap;
+}
+
+.feed-post-header h3{
+    word-wrap: break-word;
+    hyphens:auto;
+    font-weight: bold;
+}
+
+.opted-in-icon{
+    position: absolute;
+    top:0;
+    right: 50px;
 }
 
 .profile-picture {
@@ -35,65 +48,48 @@
 }
 
 .feed-post-username {
-    margin-left: 70px; /* Offset for profile picture */
+    margin: 0 50px; /* Offset for profile picture */
     font-weight: bold;
     font-size: 1.2em;
-    color: var(--primary-text-color, #3e3d3a);
 }
 
 .feed-post-content {
     padding: 10px 15px;
     margin: 30px auto;
     transition: box-shadow 0.3s ease;
+    word-wrap: break-word;
+    hyphens:auto;
 }
 
 .feed-post-stats {
     font-size: 0.9em;
-    color: #555;
     display: flex;
     justify-content: space-between;
     margin-top: 10px;
 }
 
+.shared {
+    color :green;
+}
+
 .feed-post-content h3 {
     margin: 0;
     font-size: 1.3em;
-    color: var(--primary-heading-color, #333);
 }
 
 .feed-post-content p {
     font-size: 1em;
-    color: var(--secondary-text-color, #555);
 }
 
 .feed-post:hover .feed-post-content {
     box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.2);
 }
 
-.like-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2em;
-    transition: transform 0.2s ease;
-    cursor: pointer;
-}
-
-.like-button:hover {
-    transform: scale(1.1); /* Grow slightly on hover */
-    color: #333;
-}
-
-.like-button.liked {
-    color: #e63946;
-}
-
 .feed-post-stats {
     display: flex;
     align-items: center;
     justify-content: space-between;
     font-size: 0.9em;
-    color: #555;
     padding: 10px 0;
     border-top: 1px solid #e0e0e0;
     margin-top: 10px;
@@ -111,24 +107,4 @@
     margin-right: 5px;
     padding: 2px;
     gap: 5px;
-}
-
-.like-button.clicked {
-    animation: like-animation 0.6s ease forwards; /* Trigger animation on click */
-}
-
-@keyframes like-animation {
-    0% {
-        transform: scale(1);
-
-    }
-    30% {
-        transform: scale(1.4);
-    }
-    60% {
-        transform: scale(1.2);
-    }
-    100% {
-        transform: scale(1);
-    }
 }

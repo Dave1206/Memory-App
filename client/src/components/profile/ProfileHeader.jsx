@@ -1,11 +1,11 @@
 import React from 'react';
+import '../../styles/ProfileHeader.css';
 
 function ProfileHeader({ user }) {
     return (
         <div className="profile-header">
-            <img src={user.profile_picture} alt={`${user.username}'s profile`} className="profile-picture" />
+            <img src={user.profile_picture} alt={`${user.username}'s profile`} />
             <h1>{user.username}</h1>
-            <p>{user.bio}</p>
         </div>
     );
 }

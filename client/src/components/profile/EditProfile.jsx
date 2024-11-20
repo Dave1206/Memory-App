@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { useAxios } from '../auth/AxiosProvider';
 import '../../styles/EditProfile.css';
 
-function EditProfile({ user, profileUser, onSave }) {
-    const [bio, setBio] = useState(profileUser.bio || '');
+function EditProfile({ user, onSave }) {
+    const [bio, setBio] = useState(user.bio || '');
     const [selectedFile, setSelectedFile] = useState(null);
     const [uploadStatus, setUploadStatus] = useState('');
     const axiosInstance = useAxios();
@@ -35,7 +35,7 @@ function EditProfile({ user, profileUser, onSave }) {
             }
 
             // Update the bio
-            const bioResponse = await axiosInstance.put(`/user/${profileUser.id}/bio`, { bio });
+            const bioResponse = await axiosInstance.put(`/user/${user.id}/bio`, { bio });
             if (bioResponse.status === 200) {
                 onSave(); // Refresh profile data after saving
             }
@@ -46,7 +46,7 @@ function EditProfile({ user, profileUser, onSave }) {
     };
 
     const handleCancel = () => {
-        setBio(profileUser.bio); // Reset bio to original state
+        setBio(user.bio); // Reset bio to original state
         setSelectedFile(null);   // Clear selected file
         setUploadStatus('');     // Clear status message
     };

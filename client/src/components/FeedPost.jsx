@@ -2,15 +2,14 @@ import React, { useState } from 'react';
 import { useAuth } from './auth/AuthContext';
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCrown, faCheckCircle, faHeart, faShare, faPlus, faBan, faTrashCan, faBook } from '@fortawesome/free-solid-svg-icons';
+import { faCrown, faCheckCircle, faShare, faPlus, faBan, faTrashCan, faBook } from '@fortawesome/free-solid-svg-icons';
 import NotificationBadge from './NotificationBadge';
 import ModOptionsButton from './moderation/ModOptionsButton';
 import EllipsisMenu from './EllipsisMenu';
+import LikeButton from './LikeButton';
 import '../styles/FeedPost.css';
 
-function FeedPost({ post, onLike, onShare, onAddEvent, onRemove, onBlock, colorClass }) {
-    const [clickAnimation, setClickAnimation] = useState(false);
-    const [liked, setLiked] = useState(post.has_liked);
+function FeedPost({ post, onLike, onShare, onAddEvent, onRemoveEvent, onBlock, colorClass }) {
     const [showMenu, setShowMenu] = useState(false);
     const { user, isModMode } = useAuth();
 
@@ -27,7 +26,7 @@ function FeedPost({ post, onLike, onShare, onAddEvent, onRemove, onBlock, colorC
         },
         {
             content: <><FontAwesomeIcon icon={faTrashCan} /> Unsubscribe</>,
-            onClick: () => onRemove(post.event_id),
+            onClick: () => onRemoveEvent(post.event_id),
             isDisabled: post.event_status !== 'opted_in',
         },
         {
@@ -36,18 +35,6 @@ function FeedPost({ post, onLike, onShare, onAddEvent, onRemove, onBlock, colorC
             isDisabled: false,
         },
     ];
-
-    const handleLikeClick = () => {
-        if (!liked) {
-            setClickAnimation(true); 
-        }
-        setLiked(!liked);
-        onLike(post.event_id);
-    };
-
-    const handleAnimationEnd = () => {
-        setClickAnimation(false);
-    };
 
     const handleToggleMenu = () => setShowMenu(!showMenu);
     
@@ -69,11 +56,12 @@ function FeedPost({ post, onLike, onShare, onAddEvent, onRemove, onBlock, colorC
                         <FontAwesomeIcon icon={faCheckCircle} />
                     </span>
                 ) : post.created_by === user.id ? (
-                    <span title="This is"><FontAwesomeIcon icon={faCrown} /></span>
+                    <span className='opted-in-icon' title="This is your event"><FontAwesomeIcon icon={faCrown} /></span>
                 ) : ''}
                 
                 {post.created_by !== user.id &&
                 <EllipsisMenu 
+                    colorClass={colorClass}
                     buttonItems={buttonItems} 
                     onToggle={handleToggleMenu}
                     isOpen={showMenu}    
@@ -102,16 +90,15 @@ function FeedPost({ post, onLike, onShare, onAddEvent, onRemove, onBlock, colorC
                     <FontAwesomeIcon icon={faBook} /> {post.memories_count}
                 </span>
                 <span className='stats-counter'>
-                    <FontAwesomeIcon icon={faShare} /> {post.shares_count}
-                </span>
-                <span className="stats-counter"
-                    onClick={handleLikeClick}
-                    onAnimationEnd={handleAnimationEnd}>
                     <FontAwesomeIcon 
-                        icon={faHeart} 
-                        className={`like-button ${post.has_liked ? 'liked' : ''} ${clickAnimation ? 'clicked' : ''}`} />  
-                        {post.likes_count}
+                        className={post.has_shared_event ? 'shared' : ''}
+                        icon={faShare} /> {post.shares_count}
                 </span>
+                <LikeButton
+                    isLiked={post.has_liked}
+                    likeCount={post.likes_count}
+                    onLike={() => onLike(post.event_id)}
+                />  
                 <NotificationBadge count={post.seen === 1 ? '' : 'new'} /> 
             </div>
         </div>

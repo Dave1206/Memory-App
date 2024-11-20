@@ -3,7 +3,9 @@ import React from "react";
 function Footer() {
 
     return(
-        <div>copyright 2024</div>
+        <footer>
+            <p>copyright 2024</p>
+        </footer>
     )
 }
 

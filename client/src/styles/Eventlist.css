@@ -121,7 +121,6 @@
 @media (max-width: 768px) {
   .event-wrapper {
       flex-direction: column;
-      flex-basis: 100%;
       width: 80vw;
       margin-bottom: 0;
   }

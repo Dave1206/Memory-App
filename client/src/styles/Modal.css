@@ -1,3 +1,109 @@
+/* Modal backdrop styles */
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+/* Modal container styles */
+.modal {
+    background-color: white;
+    width: fit-content;
+    max-width: 500px;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.2);
+    position: relative;
+    display: flex;
+    gap: 15px;
+    justify-content: space-around;
+}
+
+.modal-left-column{
+    display:flex;
+    flex-direction: column;
+    text-align: left;
+    width:fit-content;
+}
+
+.modal-right-column{
+    display:flex;
+    flex-direction: column;
+    justify-content: center;
+    width: fit-content;
+}
+
+/* Modal title */
+.modal h2 {
+    font-size: 1.5rem;
+    margin: 0;
+    color: #333;
+}
+
+/* Textarea styling */
+.modal textarea {
+    width: 100%;
+    height: 150px;
+    resize: none;
+    padding: 10px;
+    font-size: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color 0.3s ease;
+}
+
+.modal textarea:focus {
+    border-color: #42a5f5;
+}
+
+/* Button styles */
+.modal-button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+/* Primary action button */
+.modal-button:first-of-type {
+    background-color: #42a5f5;
+    color: white;
+    margin-right: 10px;
+}
+
+.modal-button:first-of-type:hover {
+    background-color: #1e88e5;
+}
+
+/* Secondary action (cancel) button */
+.modal-button:last-of-type {
+    background-color: #e0e0e0;
+    color: #333;
+}
+
+.modal-button:last-of-type:hover {
+    background-color: #bdbdbd;
+}
+
+/* Button container styling for alignment */
+.button-container {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 15px;
+}
+
 .friend-select {
     margin-top: 10px;
     padding: 10px;
@@ -26,7 +132,7 @@
     margin-right: 8px;
 }
 
-.create-modal .friend-select {
+.modal .friend-select {
     margin-top: 10px;
     padding: 10px;
     background-color: #f9f9f9;
@@ -34,23 +140,23 @@
     border-radius: 4px;
 }
 
-.create-modal .friend-select ul {
+.modal .friend-select ul {
     list-style-type: none;
     padding: 0;
     margin: 0;
 }
 
-.create-modal .friend-select li {
+.modal .friend-select li {
     padding: 5px 0;
 }
 
-.create-modal .friend-select label {
+.modal .friend-select label {
     cursor: pointer;
     display: flex;
     align-items: center;
 }
 
-.create-modal .friend-select input[type="checkbox"] {
+.modal .friend-select input[type="checkbox"] {
     margin-right: 8px;
 }
 

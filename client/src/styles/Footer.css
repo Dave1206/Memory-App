@@ -2,7 +2,7 @@ footer {
     width: 100%;
     padding: 20px 60px;
     color: var(--text-color);
-    position: fixed;
+    position: absolute;
     bottom: 0;
     left: 0;
     display: flex;

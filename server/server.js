@@ -34,7 +34,7 @@ app.use(express.static("public"));
 app.use(express.json());
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: process.env.FRONTEND_URL,
     credentials: true,
   })
 );
@@ -52,6 +52,7 @@ app.use(
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
+    rolling: true,
     cookie: {
       maxAge: 1000 * 60 * 30,
       httpOnly: true,
@@ -251,7 +252,7 @@ app.get("/events", isAuthenticated, async(req, res) => {
   const userId = req.user.id;
   try {
     const eventOptIns = await db.query(
-      `SELECT e.*, u.username, ep.has_shared_memory, ep.seen, ep.status, ep.last_checked
+      `SELECT e.*, u.username, ep.has_shared_event, ep.has_shared_memory, ep.seen, ep.status, ep.last_checked
       FROM events e
       JOIN users u ON e.created_by = u.id
       JOIN event_participation ep ON e.event_id = ep.event_id 
@@ -1360,6 +1361,6 @@ app.delete('/admin/clear-audit-logs', isAuthenticated, isAdmin, async (req, res)
   }
 });
 
-app.listen(port, () => {
+app.listen(port, '0.0.0.0', () => {
     console.log(`Server running on port ${port}`);
   });

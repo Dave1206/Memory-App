@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAxios } from '../auth/AxiosProvider';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faHeart, faEllipsisV, faShare, faUserPlus, faBan } from '@fortawesome/free-solid-svg-icons';
+import { faHeart, faTrashCan, faShare, faBan } from '@fortawesome/free-solid-svg-icons';
 import Modal from '../modals/Modal';
 import Eventmodal from '../modals/EventModal';
 import { Link } from 'react-router-dom';
 import '../../styles/Event.css';
 import EllipsisMenu from '../EllipsisMenu';
 import NotificationBadge from '../NotificationBadge';
+import { useAuth } from '../auth/AuthContext';
 
 function Event({ event, handleClick, updateEvents, selected }) {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -18,6 +19,25 @@ function Event({ event, handleClick, updateEvents, selected }) {
     const [color] = useState(() => colors[Math.floor(Math.random() * colors.length)]);
     const axiosInstance = useAxios();
     const descriptionMax = 70;
+    const { user } = useAuth();
+    
+    const buttonItems = [
+        {
+            content: <><FontAwesomeIcon icon={faShare} /> Share Event</>,
+            onClick: () => handleShare(),
+            isDisabled: event.has_shared_event,
+        },
+        {
+            content: <><FontAwesomeIcon icon={faTrashCan} /> Unsubscribe</>,
+            onClick: () => handleRemoveParticipationOrEvent(),
+            isDisabled: event.status !== 'opted_in',
+        },
+        {
+            content: <><FontAwesomeIcon icon={faBan} /> Block User</>,
+            onClick: () => handleBlockUser(),
+            isDisabled: false,
+        },
+    ];
 
     const fetchCreator = useCallback(async () => {
         try {
@@ -33,7 +53,6 @@ function Event({ event, handleClick, updateEvents, selected }) {
     }, [fetchCreator]);
 
     const handleMenuToggle = (e) => {
-        e.stopPropagation();
         setShowMenu(!showMenu);
     };
 
@@ -46,6 +65,38 @@ function Event({ event, handleClick, updateEvents, selected }) {
         }
     };
 
+    const handleShare = async () => {
+        try {
+            await axiosInstance.post(`/events/${event.event_id}/share`);
+            updateEvents();
+        } catch (error) {
+            console.error('Error sharing the event:', error);
+        }
+    };
+
+    const handleRemoveParticipationOrEvent = async () => {
+        try {
+            await axiosInstance.post(`/deleteevent/${event.event_id}`);
+
+            updateEvents();
+        } catch (error) {
+            console.error('Error removing participation or event:', error);
+        }
+    };
+
+    const handleBlockUser = async (e) => {
+        e.stopPropagation();
+        try {
+            await axiosInstance.post('/block-user', {
+                userId: user.id,
+                blockedId: event.created_by,
+            });
+            alert('User has been blocked.');
+        } catch (err) {
+            console.error('Error blocking user:', err);
+        }
+    };
+
     return (
         <>
         <Modal show={showDeleteModal} onClose={() => setShowDeleteModal(false)} onConfirm={() => console.log("Delete event")} />
@@ -53,12 +104,17 @@ function Event({ event, handleClick, updateEvents, selected }) {
         <div 
             onClick={() => handleClick(event)} 
             className={`event-container ${selected ? 'selected' : ''} ${color}`}
+            onMouseLeave={() => setShowMenu(false)}
         >
             <div className="event-header">
                 <div className="like-button" onClick={handleLike}>
                     <FontAwesomeIcon icon={faHeart} />
                 </div>
-                    <EllipsisMenu />
+                    <EllipsisMenu 
+                        buttonItems={buttonItems}
+                        onToggle={handleMenuToggle}
+                        isOpen={showMenu}
+                    />
             </div>
             <div className="event-content">
                 <h3>{event.title}</h3>

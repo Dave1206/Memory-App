@@ -19,6 +19,11 @@
     padding-bottom: 8px;
 }
 
+.friends-section{
+    overflow-y: scroll;
+    scrollbar-width: none;
+}
+
 /* Friends list items */
 .friends-list {
     display: flex;
@@ -67,7 +72,7 @@
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    border: 2px solid #333; /* border to match background */
+    border: 2px solid #333;
     transition: background-color 0.3s ease;
 }
 
@@ -86,7 +91,6 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 2px;
 }
 
 .friend-username {
@@ -129,25 +133,6 @@
 .toggle-section-button:focus {
     outline: none;
 }
-
-/* Responsive styling */
-@media (max-width: 768px) {
-    .friends-list-wrapper {
-        width: 90%;
-    }
-
-    .friends-list-item {
-        padding: 6px;
-        font-size: 0.95rem;
-    }
-
-    .friends-list-heading h2 {
-        font-size: 1.3rem;
-    }
-}
-
-
-
 /* Profile picture with status dot */
 .friend-profile-picture {
     width: 30px;
@@ -183,4 +168,20 @@
     background-color: #bbb; /* muted gray for "turned off" look */
     box-shadow: inset 1px 1px 3px rgba(0, 0, 0, 0.3), /* inner shadow */
                 1px 1px 2px rgba(255, 255, 255, 0.2); /* subtle outer shadow */
+}
+
+/* Responsive styling */
+@media (max-width: 768px) {
+    .friends-list-wrapper {
+        width: 90%;
+    }
+
+    .friends-list-item {
+        padding: 6px;
+        font-size: 0.95rem;
+    }
+
+    .friends-list-heading h2 {
+        font-size: 1.3rem;
+    }
 }

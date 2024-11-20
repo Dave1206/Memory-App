@@ -1,6 +1,6 @@
 // EventCreator.js
 import React, { useState } from "react";  
-import EventModal from "../modals/EventModal";
+import CreateModal from "../modals/CreateModal";
 import '../../styles/EventCreator.css';
 import { useAxios } from '../auth/AxiosProvider';
 
@@ -23,7 +23,7 @@ function EventCreator({ getEvents, userId }) {
             <button className="event-button" onClick={() => setShowModal(true)}>
                 Create new event
             </button>
-            <EventModal
+            <CreateModal
                 show={showModal}
                 onClose={() => setShowModal(false)}
                 onCreate={createEvent}

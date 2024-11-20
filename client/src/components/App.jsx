@@ -76,7 +76,7 @@ function App() {
             element={
               user ? (
                 <>
-                  <UserProfile />  {/* UserId will be extracted within UserProfile */}
+                  <UserProfile user={user} />
                   <ToggleableList getEvents={getEvents} user={user} onLogout={logout} />
                   <Navbar events={eventInvites} userId={user?.id} onEventUpdate={handleEventInvite} />
                 </>

@@ -68,9 +68,12 @@ function FriendList({ userId }) {
                                 className="friends-list-item" 
                                 key={friend.id}
                             >
-                                <img src={friend.profile_picture || '/default-avatar.jpg'} alt="Profile" className="friend-profile-picture" />
+                                <div className='profile-image-container'>
+                                    <img src={friend.profile_picture || '/default-avatar.jpg'} alt="Profile" className="friend-profile-picture" />
+                                    <p className="status-dot online"></p>
+                                </div>
                                 <p className="friend-username">{friend.username}</p>
-                                <p className="status-dot online"></p>
+                                
                             </div>
                         ))}
                     </div>
@@ -94,12 +97,17 @@ function FriendList({ userId }) {
                                 className="friends-list-item" 
                                 key={friend.id}
                             >
-                                <img src={friend.profile_picture || '/default-avatar.jpg'} alt="Profile" className="friend-profile-picture" />
-                                <p className="friend-username">{friend.username}</p>
-                                <p className="status-dot offline"></p>
-                                <p className="last-online">
+                                <div className='profile-image-container'>
+                                    <img src={friend.profile_picture || '/default-avatar.jpg'} alt="Profile" className="friend-profile-picture" />
+                                    <p className="status-dot offline"></p>
+                                </div>
+                                <div className='friend-info'>
+                                    <p className="friend-username">{friend.username}</p>
+                                    <p className="last-online">
+                                
                                     <FontAwesomeIcon icon={faClock} /> {formatLastOnline(friend.last_online)}
-                                </p>
+                                    </p>
+                                </div>
                             </div>
                         ))}
                     </div>

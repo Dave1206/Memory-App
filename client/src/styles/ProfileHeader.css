@@ -1,0 +1,16 @@
+.profile-header{
+    height: 100px;
+    width: fit-content;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    gap: 20px;
+}
+
+.profile-header img{
+    height: 100px;
+    width: 100px;
+    position: relative;
+    border-radius: 12px;
+}

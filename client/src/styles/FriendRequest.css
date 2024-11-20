@@ -21,10 +21,14 @@
     background: transparent;
     cursor: pointer;
     transition: color 0.3s ease;
+    box-shadow: none;
+    padding: 5px;
 }
 
 .add-friend-icon:hover {
     color: #45a049;
+    box-shadow: none;
+    background: transparent;
 }
 
 /* Expanded State */

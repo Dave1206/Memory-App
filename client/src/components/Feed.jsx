@@ -156,7 +156,7 @@ function Feed() {
             await axiosInstance.post(`/events/${postId}/like`);
             updatePostInFeed(postId, (prevPost) => ({
                 has_liked: !prevPost.has_liked,
-                likes_count: prevPost.has_liked ? prevPost.likes_count - 1 : prevPost.likes_count + 1,
+                likes_count: prevPost.has_liked ? Number(prevPost.likes_count) - 1 : Number(prevPost.likes_count) + 1,
             }));
         } catch (error) {
             console.error('Error liking the event:', error);
@@ -167,7 +167,8 @@ function Feed() {
         try {
             await axiosInstance.post(`/events/${postId}/share`);
             updatePostInFeed(postId, (prevPost) => ({
-                shares_count: prevPost.shares_count + 1,
+                has_shared_event: !prevPost.has_shared_event,
+                shares_count: Number(prevPost.shares_count) + 1,
             }));
         } catch (error) {
             console.error('Error sharing the event:', error);

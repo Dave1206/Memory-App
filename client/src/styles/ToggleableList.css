@@ -7,7 +7,7 @@
     border-radius: 12px;
     box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15);
     z-index: 1000;
-    background-color: white;
+    background-color: rgb(163, 160, 141);
 }
 
 /* Compact (collapsed) state */
@@ -17,6 +17,8 @@
     display: flex;
     justify-content: center;
     align-items: center;
+    background-color: transparent;
+    box-shadow: none;
 }
 
 /* Expanded state */
@@ -37,17 +39,21 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgba(250, 235, 215, 0.6);
+    background-color: rgba(0, 0, 0, 0.3);
     transition: background-color 0.3s ease, transform 0.2s ease;
     position: absolute;
-    left: -15px;
-    bottom: 0px;
+    right: 0;
+    top: 0px;
     box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
 }
 
 .toggleable-toggle-button:hover {
-    background-color: rgba(180, 169, 154, 0.6);
+    background-color: rgba(0, 0, 0, 0.6);
     transform: scale(1.1);
+}
+
+.toggleable-toggle-button:focus {
+    outline: none;
 }
 
 /* Profile Picture Styling */
@@ -67,7 +73,7 @@
     width: 80px;
 }
 
-.toggleable-profile-picture:hover {
+.toggleable-list.expanded .toggleable-profile-picture:hover {
     transform: scale(1.05);
 }
 
@@ -79,7 +85,7 @@
 }
 
 /* Button Styling */
-.toggleable-button,
+.event-button,
 .mod-button,
 .logout-button {
     width: 100%;
@@ -123,6 +129,9 @@
     .toggleable-list.expanded .toggleable-profile-picture {
         height: 60px;
         width: 60px;
+    }
+    .toggleable-list.compact .toggleable-profile-picture {
+        display:none;
     }
 
     .toggleable-button,

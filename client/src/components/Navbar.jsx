@@ -74,7 +74,7 @@ function Navbar({ userId, events, onEventUpdate }) {
                         className={`nav-item ${index === activeRoute ? "active" : ""}`}
                         onClick={() => handleRouteClick(index, `/${item.name.toLowerCase()}`)}
                     >
-                        <img src={`./assets/${item.name.toLowerCase()}.png`} alt={`${item.name} icon`} />
+                        <img src={`/assets/${item.name.toLowerCase()}.png`} alt={`${item.name} icon`} />
                         {item.name}
                         {item.notifications > 0 && <NotificationBadge count={parseInt(item.notifications, 10)} />}
                     </div>
@@ -84,8 +84,8 @@ function Navbar({ userId, events, onEventUpdate }) {
                     className={`nav-dropdown-toggle ${activeDropdown === 3 ? "active" : ""}`}
                     onClick={() => handleDropdownClick(3)}
                 >
-                    <img src="./assets/friends.png" alt="Friends icon" />
-                    Friends
+                    <img src="/assets/friends.png" alt="Friends icon" />
+                    <p>Friends</p>
                     {navItems[3]?.notifications > 0 && <NotificationBadge count={parseInt(navItems[3].notifications, 10)} />}
                 </div>
                 
@@ -93,8 +93,8 @@ function Navbar({ userId, events, onEventUpdate }) {
                     className={`nav-dropdown-toggle ${activeDropdown === 4 ? "active" : ""}`}
                     onClick={() => handleDropdownClick(4)}
                 >
-                    <img src="./assets/alerts.png" alt="Alerts icon" />
-                    Alerts
+                    <img src="/assets/alerts.png" alt="Alerts icon" />
+                    <p>Alerts</p>
                     {navItems[4]?.notifications > 0 && <NotificationBadge count={parseInt(navItems[4].notifications, 10)} />}
                 </div>
 

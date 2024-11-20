@@ -4,10 +4,10 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEllipsisV } from '@fortawesome/free-solid-svg-icons';
 import '../styles/EllipsisMenu.css';
 
-function EllipsisMenu({ isOpen, buttonItems, onClose, toggleClass = '', menuClass = '' }) {
+function EllipsisMenu({ isOpen, buttonItems, onToggle, toggleClass = '', menuClass = '', colorClass }) {
     return (
         <div className={`ellipsis-menu-container ${toggleClass}`}>
-            <button className="ellipsis-menu-toggle" onClick={onClose}>
+            <button className={`ellipsis-menu-toggle ${colorClass}`} onClick={onToggle}>
                 <FontAwesomeIcon icon={faEllipsisV} />
             </button>
             {isOpen && (
@@ -18,7 +18,7 @@ function EllipsisMenu({ isOpen, buttonItems, onClose, toggleClass = '', menuClas
                             className="ellipsis-menu-button"
                             onClick={() => {
                                 button.onClick();
-                                onClose(); // Close menu after clicking any item
+                                onToggle(); // Close menu after clicking any item
                             }}
                             disabled={button.isDisabled}
                         >
