@@ -5,9 +5,14 @@ import { faEllipsisV } from '@fortawesome/free-solid-svg-icons';
 import '../styles/EllipsisMenu.css';
 
 function EllipsisMenu({ isOpen, buttonItems, onToggle, toggleClass = '', menuClass = '', colorClass }) {
+    const handleToggle = (event) => {
+        event.stopPropagation();
+        onToggle();
+    };
+    
     return (
         <div className={`ellipsis-menu-container ${toggleClass}`}>
-            <button className={`ellipsis-menu-toggle ${colorClass}`} onClick={onToggle}>
+            <button className={`ellipsis-menu-toggle ${colorClass}`} onClick={handleToggle}>
                 <FontAwesomeIcon icon={faEllipsisV} />
             </button>
             {isOpen && (
@@ -16,7 +21,8 @@ function EllipsisMenu({ isOpen, buttonItems, onToggle, toggleClass = '', menuCla
                         <button
                             key={index}
                             className="ellipsis-menu-button"
-                            onClick={() => {
+                            onClick={(event) => {
+                                event.stopPropagation();
                                 button.onClick();
                                 onToggle();
                             }}

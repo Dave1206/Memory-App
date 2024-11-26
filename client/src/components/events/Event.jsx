@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAxios } from '../auth/AxiosProvider';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBook, faTrashCan, faShare, faBan } from '@fortawesome/free-solid-svg-icons';
+import { faBook, faTrashCan, faShare, faBan, faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons';
 import Modal from '../modals/Modal';
 import Eventmodal from '../modals/EventModal';
 import { Link } from 'react-router-dom';
@@ -16,6 +16,7 @@ function Event({ event, handleClick, updateEvents, selected }) {
     const [showEventModal, setShowEventModal] = useState(false);
     const [showMenu, setShowMenu] = useState(false);
     const [creator, setCreator] = useState('');
+    const [shared, setShared] = useState('');
     const colors = ['color1', 'color2', 'color3', 'color4', 'color5', 'color6', 'color7', 'color8', 'color9'];
     const [color] = useState(() => colors[Math.floor(Math.random() * colors.length)]);
     const axiosInstance = useAxios();
@@ -53,8 +54,7 @@ function Event({ event, handleClick, updateEvents, selected }) {
         fetchCreator();
     }, [fetchCreator]);
 
-    const handleMenuToggle = (e) => {
-        e.stopPropagation();
+    const handleMenuToggle = () => {
         setShowMenu(!showMenu);
     };
 
@@ -70,7 +70,8 @@ function Event({ event, handleClick, updateEvents, selected }) {
     const handleShare = async () => {
         try {
             await axiosInstance.post(`/events/${event.event_id}/share`);
-            updateEvents();
+            setShared(true);
+            event.has_shared_event = true;
         } catch (error) {
             console.error('Error sharing the event:', error);
         }
@@ -79,7 +80,6 @@ function Event({ event, handleClick, updateEvents, selected }) {
     const handleRemoveParticipationOrEvent = async () => {
         try {
             await axiosInstance.post(`/deleteevent/${event.event_id}`);
-
             updateEvents();
         } catch (error) {
             console.error('Error removing participation or event:', error);
@@ -139,19 +139,33 @@ function Event({ event, handleClick, updateEvents, selected }) {
                         {event.description.length > descriptionMax ? (
                             <>
                                 {event.description.substring(0, descriptionMax)}
-                                <span 
+                                <span>
+                                    . . .
+                                </span>
+                                <FontAwesomeIcon 
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         setShowEventModal(true);
                                         }
                                     } 
-                                    className="read-more"
-                                >
-                                    ... Read more
-                                </span>
+                                    className='view-event-icon' 
+                                    icon={faMagnifyingGlass} 
+                                />
                             </>
                         ) : (
-                            event.description
+                            <>
+                                {event.description}
+                                <FontAwesomeIcon 
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowEventModal(true);
+                                        }
+                                    } 
+                                    className='view-event-icon' 
+                                    icon={faMagnifyingGlass} 
+                                />
+                            </>
+
                         )}
                     </p>
                 </div>
@@ -164,7 +178,7 @@ function Event({ event, handleClick, updateEvents, selected }) {
                         </div>
                         <div className={`stats-counter ${color}`}>
                             <FontAwesomeIcon 
-                                className={event.has_shared_event? 'shared' : ''} 
+                                className={shared ? 'shared' : ''} 
                                 icon={faShare} />
                         </div>
                         <div className={`stats-counter ${color}`}>

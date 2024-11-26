@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useAuth } from "./AuthContext"; // Import the useAuth hook from AuthContext
 
-const Register = () => {
+const Register = ({ handleClick }) => {
   const { register } = useAuth(); // Access the register function from AuthContext
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -100,6 +100,7 @@ const Register = () => {
         </div>
         <button type="submit">Register</button>
       </form>
+      <p onClick={handleClick}>Already registered? Login.</p>
       {error && <p style={{ color: "red" }}>{error}</p>}
       {success && <p style={{ color: "green" }}>{success}</p>}
     </div>
