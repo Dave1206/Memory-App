@@ -267,7 +267,7 @@ app.get("/events", isAuthenticated, async(req, res) => {
   const userId = req.user.id;
   try {
     const eventOptIns = await db.query(
-      `SELECT e.*, u.username, ep.has_shared_event, ep.has_shared_memory, ep.seen, ep.status, ep.last_checked
+      `SELECT e.*, u.username, ep.has_shared_event, ep.has_shared_memory, ep.interaction_count, ep.status, ep.last_checked
       FROM events e
       JOIN users u ON e.created_by = u.id
       JOIN event_participation ep ON e.event_id = ep.event_id 
@@ -275,18 +275,11 @@ app.get("/events", isAuthenticated, async(req, res) => {
     );
 
     const eventInvites = await db.query(
-      `SELECT e.*, u.username, ep.has_shared_memory, ep.seen, ep.status, ep.last_checked
+      `SELECT e.*, u.username, ep.has_shared_memory, ep.interaction_count, ep.status, ep.last_checked
       FROM events e
       JOIN users u ON e.created_by = u.id
       JOIN event_participation ep ON e.event_id = ep.event_id 
       WHERE ep.user_id = $1 AND ep.status = 'invited'`, [userId]
-    );
-
-    await db.query(
-      `UPDATE event_participation 
-       SET last_checked = NOW() 
-       WHERE user_id = $1 AND seen = FALSE`,
-      [userId]
     );
 
     const events = {
@@ -581,8 +574,8 @@ app.post('/events/:eventId/share', isAuthenticated, async (req, res) => {
     }
 
       const query = `
-            INSERT INTO event_participation (user_id, event_id, has_shared_event, seen)
-            VALUES ($1, $2, true, true)
+            INSERT INTO event_participation (user_id, event_id, has_shared_event)
+            VALUES ($1, $2, true)
             ON CONFLICT (user_id, event_id)
             DO UPDATE SET has_shared_event = true;
         `;
@@ -667,11 +660,11 @@ app.get('/feed', isAuthenticated, async (req, res) => {
       SELECT e.event_id, e.title, e.description, e.creation_date, u.username, e.created_by, u.profile_picture, e.visibility,
             COUNT(likes.event_id) AS likes_count,
             COUNT(shares.event_id) AS shares_count,
+            COUNT(ep.interaction_count) AS interaction_count,
             (SELECT COUNT(*) FROM memories m WHERE m.event_id = e.event_id) AS memories_count,
             MAX(CASE WHEN ep.user_id = $1 THEN CAST(ep.has_liked AS INTEGER) ELSE 0 END) > 0 AS has_liked,
             MAX(CASE WHEN ep.user_id = $1 THEN CAST(ep.has_shared_event AS INTEGER) ELSE 0 END) > 0 AS has_shared_event,
-            MAX(CASE WHEN ep.user_id = $1 THEN ep.status ELSE NULL END) AS event_status,
-            MIN(CASE WHEN ep.user_id = $1 THEN CAST(ep.seen AS INTEGER) ELSE 1 END) AS seen
+            MAX(CASE WHEN ep.user_id = $1 THEN ep.status ELSE NULL END) AS event_status
       FROM events e
       JOIN users u ON e.created_by = u.id
       LEFT JOIN event_participation ep ON e.event_id = ep.event_id AND ep.user_id = $1
@@ -713,8 +706,8 @@ app.get('/feed', isAuthenticated, async (req, res) => {
       await db.query(`UPDATE users SET last_checked = NOW() WHERE id = $1`, [userId]);
       await db.query(
         `UPDATE event_participation 
-         SET seen = TRUE 
-         WHERE user_id = $1 AND seen = FALSE`,
+         SET interaction_count = interaction_count + 1
+         WHERE user_id = $1 AND interaction_count = 0`,
         [userId]
       );
 
@@ -722,6 +715,141 @@ app.get('/feed', isAuthenticated, async (req, res) => {
   } catch (err) {
       console.error("Error retrieving feed data:", err.message);
       res.status(500).json({ message: "Server error while retrieving feed data" });
+  }
+});
+
+app.get('/explore/trending', isAuthenticated, async (req, res) => {
+  const userId = req.user.id;
+  const { search, filters: rawFilters, sortOrder = 'desc', limit = 10, offset = 0 } = req.query;
+
+  let filters;
+  try {
+    filters = rawFilters ? JSON.parse(rawFilters) : {};
+  } catch (err) {
+    console.error('Invalid filters:', rawFilters);
+    return res.status(400).json({ error: 'Invalid filters format' });
+  }
+
+  const validSortFields = ['likes_count', 'shares_count', 'memories_count', 'hot_score'];
+  const selectedSortField = validSortFields.includes(filters.sortBy) ? filters.sortBy : 'hot_score';
+  const selectedSortOrder = sortOrder.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
+
+  let trendingQuery = `
+      SELECT e.event_id, e.title, e.description, e.creation_date, u.username, e.created_by, u.profile_picture, e.visibility,
+            COUNT(likes.event_id) AS likes_count,
+            COUNT(shares.event_id) AS shares_count,
+            (SELECT COUNT(*) FROM memories m WHERE m.event_id = e.event_id) AS memories_count,
+            EXTRACT(EPOCH FROM (NOW() - e.creation_date)) / 3600 AS age_in_hours,
+            (COUNT(likes.event_id) * 1.5 + COUNT(shares.event_id) * 1.2 + COUNT(m.event_id) * 1.0) /
+            (EXTRACT(EPOCH FROM (NOW() - e.creation_date)) / 3600 + 1) AS hot_score
+      FROM events e
+      JOIN users u ON e.created_by = u.id
+      LEFT JOIN event_participation likes ON e.event_id = likes.event_id AND likes.has_liked = TRUE
+      LEFT JOIN event_participation shares ON e.event_id = shares.event_id AND shares.has_shared_event = TRUE
+      LEFT JOIN memories m ON e.event_id = m.event_id
+      WHERE e.visibility = 'public'
+  `;
+
+  const queryParams = [];
+
+  if (search) {
+    trendingQuery += ` AND (e.title ILIKE $${queryParams.length + 1} OR e.description ILIKE $${queryParams.length + 1} OR u.username ILIKE $${queryParams.length + 1})`;
+    queryParams.push(`%${search}%`);
+  }
+
+  if (filters.type) {
+    trendingQuery += ` AND e.event_type = $${queryParams.length + 1}`;
+    queryParams.push(filters.type);
+  }
+
+  trendingQuery += `
+      GROUP BY e.event_id, u.username, u.profile_picture, e.title, e.description, e.creation_date, e.created_by, e.visibility
+      ORDER BY ${selectedSortField} ${selectedSortOrder}
+      LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
+  `;
+
+  queryParams.push(limit, offset);
+
+  try {
+    const trendingEvents = await db.query(trendingQuery, queryParams);
+    res.json(trendingEvents.rows);
+  } catch (err) {
+    console.error("Error retrieving trending events:", err.message);
+    res.status(500).json({ error: "Failed to fetch trending events." });
+  }
+});
+
+app.get('/explore/personalized', isAuthenticated, async (req, res) => {
+  const userId = req.user.id;
+  const { search, filters: rawFilters, sortOrder = 'desc', limit = 10, offset = 0 } = req.query;
+
+  let filters;
+  try {
+    filters = rawFilters ? JSON.parse(rawFilters) : {};
+  } catch (err) {
+    console.error('Invalid filters:', rawFilters);
+    return res.status(400).json({ error: 'Invalid filters format' });
+  }
+
+  const validSortFields = ['likes_count', 'shares_count', 'memories_count', 'interaction_count'];
+  const selectedSortField = validSortFields.includes(filters.sortBy) ? filters.sortBy : 'interaction_count';
+  const selectedSortOrder = sortOrder.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
+
+  let personalizedQuery = `
+      SELECT e.event_id, e.title, e.description, e.creation_date, u.username, e.created_by, u.profile_picture, e.visibility,
+            COUNT(likes.event_id) AS likes_count,
+            COUNT(shares.event_id) AS shares_count,
+            (SELECT COUNT(*) FROM memories m WHERE m.event_id = e.event_id) AS memories_count,
+            COUNT(ep.interaction_count) AS interaction_count,
+            ARRAY_AGG(DISTINCT t.tag_name) AS event_tags
+      FROM events e
+      JOIN users u ON e.created_by = u.id
+      LEFT JOIN event_participation ep ON e.event_id = ep.event_id AND ep.user_id = $1
+      LEFT JOIN event_participation likes ON e.event_id = likes.event_id AND likes.has_liked = TRUE
+      LEFT JOIN event_participation shares ON e.event_id = shares.event_id AND shares.has_shared_event = TRUE
+      LEFT JOIN event_tag_map etm ON e.event_id = etm.event_id
+      LEFT JOIN event_tags t ON etm.tag_id = t.tag_id
+      WHERE e.visibility = 'public'
+        AND EXISTS (
+          SELECT 1
+          FROM event_tag_map etm_user
+          JOIN event_tags t_user ON etm_user.tag_id = t_user.tag_id
+          WHERE etm_user.event_id IN (
+              SELECT event_id
+              FROM event_participation ep
+              WHERE ep.user_id = $1
+                AND ep.interaction_count > 0
+          )
+          AND t_user.tag_id = t.tag_id
+        )
+  `;
+
+  const queryParams = [userId];
+
+  if (search) {
+    personalizedQuery += ` AND (e.title ILIKE $${queryParams.length + 1} OR e.description ILIKE $${queryParams.length + 1} OR u.username ILIKE $${queryParams.length + 1})`;
+    queryParams.push(`%${search}%`);
+  }
+
+  if (filters.type) {
+    personalizedQuery += ` AND e.event_type = $${queryParams.length + 1}`;
+    queryParams.push(filters.type);
+  }
+
+  personalizedQuery += `
+      GROUP BY e.event_id, u.username, u.profile_picture, e.title, e.description, e.creation_date, e.created_by, e.visibility
+      ORDER BY ${selectedSortField} ${selectedSortOrder}
+      LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
+  `;
+
+  queryParams.push(limit, offset);
+
+  try {
+    const personalizedEvents = await db.query(personalizedQuery, queryParams);
+    res.json(personalizedEvents.rows);
+  } catch (err) {
+    console.error("Error retrieving personalized events:", err.message);
+    res.status(500).json({ error: "Failed to fetch personalized events." });
   }
 });
 
@@ -752,7 +880,7 @@ app.get('/notifications/:userId', isAuthenticated, async (req, res) => {
         [userId, 'pending']);
       
       const fetchInvites = await db.query (
-        'SELECT * FROM event_participation WHERE user_id = $1 AND seen = false',
+        `SELECT * FROM event_participation WHERE user_id = $1 AND status = 'invited'`,
         [userId]
       );
 

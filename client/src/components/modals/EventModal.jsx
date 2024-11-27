@@ -14,7 +14,7 @@ function EventModal({ show, onClose, event, creator }) {
     }
 
     return (
-<div className="modal-backdrop" onClick={handleBackdropClick}>
+        <div className="modal-backdrop" onClick={handleBackdropClick}>
             <div className="modal" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-left-column">
                     <div className="modal-header">
@@ -33,7 +33,7 @@ function EventModal({ show, onClose, event, creator }) {
 
                     <div className="modal-footer">
                         <span className="event-memories-count">
-                            {event.memories_count === 1 ? `${event.memories_count} memory.` : `${event.memmories_count} memories`}
+                            {event.memories_count === 1 ? `${event.memories_count} memory.` : `${event.memories_count} memories`}
                         </span>
                         <div className="button-container">
                             <button className="modal-button" onClick={onClose}>
@@ -41,8 +41,7 @@ function EventModal({ show, onClose, event, creator }) {
                             </button>
                         </div>
                     </div>
-                </div>
-                
+                </div>  
             </div>
         </div>
     );

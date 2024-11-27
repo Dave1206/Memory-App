@@ -11,6 +11,7 @@ import ForgotPassword from './auth/ForgotPassword';
 import ToggleableList from './ToggleableList';
 import Navbar from './Navbar';
 import Feed from './Feed';
+import Explore from './Explore';
 import '../styles/App.css';
 import ModeratorTools from './moderation/ModeratorTools';
 
@@ -110,6 +111,21 @@ function App() {
               user ? (
                 <>
                   <Feed user={user} />
+                  <ToggleableList getEvents={getEvents} user={user} onLogout={logout} />
+                  <Navbar events={eventInvites} userId={user?.id} />
+                </>
+              ) : (
+                <Navigate to="/login" />
+              )
+            }
+          />
+
+          <Route
+            path="/explore"
+            element={
+              user ? (
+                <>
+                  <Explore />
                   <ToggleableList getEvents={getEvents} user={user} onLogout={logout} />
                   <Navbar events={eventInvites} userId={user?.id} />
                 </>

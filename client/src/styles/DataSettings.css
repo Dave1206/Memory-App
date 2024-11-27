@@ -1,0 +1,18 @@
+.data-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .data-settings label {
+    display: flex;
+    flex-direction: column;
+    font-weight: bold;
+  }
+  
+  .description {
+    font-size: 0.85em;
+    color: gray;
+    margin-top: 5px;
+  }
+  
