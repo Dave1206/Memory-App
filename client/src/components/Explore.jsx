@@ -127,8 +127,6 @@ function Explore() {
                 assignColors(data, colorsRef);
     
                 if (data.length < 10) setHasMore(false);
-    
-                // Update offset
                 if (isTrending) setTrendingOffset((prev) => prev + 10);
                 else setPersonalizedOffset((prev) => prev + 10);
             } catch (error) {
@@ -192,9 +190,8 @@ function Explore() {
 
     const updatePostInFeed = (postId, updateData, isTrending) => {
         const setPosts = isTrending ? setTrendingPosts : setPersonalizedPosts;
-        const posts = isTrending ? trendingPosts : personalizedPosts;
-
-        setPosts(posts.map((post) =>
+        setPosts((prevPosts) =>
+            prevPosts.map((post) =>
                 post.event_id === postId
                     ? typeof updateData === 'function'
                         ? { ...post, ...updateData(post) }
@@ -202,9 +199,10 @@ function Explore() {
                     : post
             )
         );
-    };
+    };    
    
-    const handleLike = async (postId, isTrending) => {
+    const handleLike = async (postId, type) => {
+        const isTrending = type === 'trending';
         try {
             await axiosInstance.post(`/events/${postId}/like`);
             updatePostInFeed(postId, (prevPost) => ({
@@ -216,7 +214,8 @@ function Explore() {
         }
     };
 
-    const handleShare = async (postId, isTrending) => {
+    const handleShare = async (postId, type) => {
+        const isTrending = type === 'trending';
         try {
             await axiosInstance.post(`/events/${postId}/share`);
             updatePostInFeed(postId, (prevPost) => ({
@@ -228,7 +227,8 @@ function Explore() {
         }
     };
 
-    const handleOptIn = async (postId, isTrending) => {
+    const handleOptIn = async (postId, type) => {
+        const isTrending = type === 'trending';
         try {
             await axiosInstance.post(`/events/${postId}/opt-in`);
             updatePostInFeed(postId, { event_status: 'opted_in' }, isTrending);
@@ -237,7 +237,8 @@ function Explore() {
         }
     };
 
-    const handleRemoveParticipationOrEvent = async (postId, isTrending) => {
+    const handleRemoveParticipationOrEvent = async (postId, type) => {
+        const isTrending = type === 'trending';
         try {
             const response = await axiosInstance.post(`/deleteevent/${postId}`);
             const { isCreator } = response.data;
@@ -278,13 +279,13 @@ function Explore() {
             />
             <div className="explore-tabs">
                 <button
-                    className={`tab-button ${activeTab === "trending" ? "active-tab" : ""}`}
+                    className={`explore-tab-button ${activeTab === "trending" ? "active-explore-tab" : ""}`}
                     onClick={() => handleTabClick("trending")}
                 >
                     What's Hot
                 </button>
                 <button
-                    className={`tab-button ${activeTab === "personalized" ? "active-tab" : ""}`}
+                    className={`explore-tab-button ${activeTab === "personalized" ? "active-explore-tab" : ""}`}
                     onClick={() => handleTabClick("personalized")}
                 >
                     For You
@@ -298,10 +299,10 @@ function Explore() {
                                 key={post.event_id}
                                 post={post}
                                 colorClass={trendingColorsRef.current[post.event_id]}
-                                onLike={handleLike}
-                                onShare={handleShare}
-                                onAddEvent={handleOptIn}
-                                onRemoveEvent={handleRemoveParticipationOrEvent}
+                                onLike={() => handleLike(post.event_id, 'trending')}
+                                onShare={() => handleShare(post.event_id, 'trending')}
+                                onAddEvent={() => handleOptIn(post.event_id, 'trending')}
+                                onRemoveEvent={() => handleRemoveParticipationOrEvent(post.event_id, 'trending')}
                                 onBlock={handleBlockUser}
                             />
                         ))}
@@ -316,6 +317,11 @@ function Explore() {
                                     key={post.event_id}
                                     post={post}
                                     colorClass={personalizedColorsRef.current[post.event_id]}
+                                    onLike={() => handleLike(post.event_id, 'personalized')}
+                                    onShare={() => handleShare(post.event_id, 'personalized')}
+                                    onAddEvent={() => handleOptIn(post.event_id, 'personalized')}
+                                    onRemoveEvent={() => handleRemoveParticipationOrEvent(post.event_id, 'trending')}
+                                    onBlock={handleBlockUser}
                                 />
                             ))
                         ) : (
