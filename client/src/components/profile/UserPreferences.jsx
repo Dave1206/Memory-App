@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import PrivacySettings from './PrivacySettings.jsx';
+import DataSettings from './DataSettings.jsx';
 import NotificationSettings from './NotificationSettings.jsx';
 import AccountSettings from './AccountSettings.jsx';
 import '../../styles/UserPreferences.css';
@@ -24,6 +25,12 @@ function UserPreferences({ user }) {
                 </button>
                 <button
                     className={`tab-button ${activeTab === "notifications" ? "active" : ""}`}
+                    onClick={() => setActiveTab("data")}
+                >
+                    Data
+                </button>
+                <button
+                    className={`tab-button ${activeTab === "notifications" ? "active" : ""}`}
                     onClick={() => setActiveTab("notifications")}
                 >
                     Notifications
@@ -33,6 +40,7 @@ function UserPreferences({ user }) {
             <div className="preferences-content">
                 {activeTab === "account" && <AccountSettings user={user} />}
                 {activeTab === "privacy" && <PrivacySettings user={user} />}
+                {activeTab === "data" && <DataSettings user={user} />}
                 {activeTab === "notifications" && <NotificationSettings user={user} />}
             </div>
         </div>

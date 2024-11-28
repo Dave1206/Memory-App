@@ -6,7 +6,7 @@ import '../styles/SearchAndFilter.css';
 function SearchAndFilter({ onSearch, onFilterChange, onSortOrderChange, filterOptions, sortOptions }) {
     const [searchTerm, setSearchTerm] = useState("");
     const [filters, setFilters] = useState({});
-    const [sortOrder, setSortOrder] = useState("asc");
+    const [sortOrder, setSortOrder] = useState("desc");
     const [isExpanded, setIsExpanded] = useState(false);
 
     const handleSearch = (event) => {

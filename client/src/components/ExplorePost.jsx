@@ -63,7 +63,7 @@ function ExplorePost({ post, onLike, onShare, onAddEvent, onRemoveEvent, onBlock
                 <p className={`${colorClass}`}>{post.description}</p>
             </div>
 
-            <div className="explore-post-stats">
+            <div className={`explore-post-stats ${colorClass}`}>
                 <span className="explore-post-timestamp">
                     {new Date(post.creation_date).toLocaleString('en-US', {
                         year: 'numeric',

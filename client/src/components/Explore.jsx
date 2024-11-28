@@ -6,11 +6,12 @@ import SearchAndFilter from './SearchAndFilter';
 import ExplorePost from './ExplorePost';
 
 function Explore() {
+    const [activeTab, setActiveTab] = useState("trending");
     const [trendingPosts, setTrendingPosts] = useState([]);
     const [personalizedPosts, setPersonalizedPosts] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [filters, setFilters] = useState({});
-    const [sortOrder, setSortOrder] = useState("asc");
+    const [sortOrder, setSortOrder] = useState("desc");
     const [trendingOffset, setTrendingOffset] = useState(0);
     const [personalizedOffset, setPersonalizedOffset] = useState(0);
     const [loadingTrending, setLoadingTrending] = useState(false);
@@ -24,6 +25,10 @@ function Explore() {
     const personalizedColorsRef = useRef({});
     const trendingContainerRef = useRef(null);
     const personalizedContainerRef = useRef(null);
+
+    const handleTabClick = (tab) => {
+        setActiveTab(tab);
+    };
 
     const filterOptions = [
         {
@@ -52,7 +57,43 @@ function Explore() {
         });
     }, []);
 
-    const fetchPosts = useCallback(
+    const initialFetchPosts = useCallback(async () => {
+        try {
+            const [trendingResponse, personalizedResponse] = await Promise.all([
+                axiosInstance.get("/explore/trending", {
+                    params: {
+                        search: searchTerm,
+                        filters: JSON.stringify(filters),
+                        sortOrder,
+                        limit: 10,
+                        offset: 0,
+                    },
+                }),
+                axiosInstance.get("/explore/personalized", {
+                    params: {
+                        search: searchTerm,
+                        filters: JSON.stringify(filters),
+                        sortOrder,
+                        limit: 10,
+                        offset: 0,
+                    },
+                }),
+            ]);
+
+            setTrendingPosts(trendingResponse.data);
+            setPersonalizedPosts(personalizedResponse.data);
+            assignColors(trendingResponse.data, trendingColorsRef);
+            assignColors(personalizedResponse.data, personalizedColorsRef);
+            setTrendingOffset(10);
+            setPersonalizedOffset(10);
+            setHasMoreTrending(trendingResponse.data.length === 10);
+            setHasMorePersonalized(personalizedResponse.data.length === 10);
+        } catch (error) {
+            console.error("Error during initial fetch:", error);
+        }
+    }, [axiosInstance, searchTerm, filters, sortOrder, assignColors]);
+
+    const loadMorePosts = useCallback(
         async (type) => {
             const isTrending = type === "trending";
             const setPosts = isTrending ? setTrendingPosts : setPersonalizedPosts;
@@ -61,9 +102,9 @@ function Explore() {
             const offset = isTrending ? trendingOffset : personalizedOffset;
             const colorsRef = isTrending ? trendingColorsRef : personalizedColorsRef;
             const endpoint = isTrending ? "/explore/trending" : "/explore/personalized";
-
+    
             if ((isTrending && loadingTrending) || (!isTrending && loadingPersonalized)) return;
-
+    
             setLoading(true);
             try {
                 const response = await axiosInstance.get(endpoint, {
@@ -72,26 +113,26 @@ function Explore() {
                         filters: JSON.stringify(filters),
                         sortOrder,
                         limit: 10,
-                        offset
+                        offset,
                     },
                 });
-
+    
                 const data = response.data;
-
+    
                 setPosts((prevPosts) => {
                     const newPosts = [...prevPosts, ...data];
-                    const uniquePosts = Array.from(new Map(newPosts.map(post => [post.event_id, post])).values());
-                    return uniquePosts;
+                    return Array.from(new Map(newPosts.map(post => [post.event_id, post])).values());
                 });
-
+    
                 assignColors(data, colorsRef);
-
+    
                 if (data.length < 10) setHasMore(false);
-
+    
+                // Update offset
                 if (isTrending) setTrendingOffset((prev) => prev + 10);
                 else setPersonalizedOffset((prev) => prev + 10);
             } catch (error) {
-                console.error(`Error loading ${type} posts:`, error);
+                console.error(`Error loading more ${type} posts:`, error);
             } finally {
                 setLoading(false);
             }
@@ -108,11 +149,11 @@ function Explore() {
             loadingPersonalized,
         ]
     );
+    
 
     useEffect(() => {
-        fetchPosts("trending");
-        fetchPosts("personalized");
-    }, [fetchPosts, searchTerm, filters, sortOrder]);
+        initialFetchPosts();
+    }, [initialFetchPosts]);
 
     useEffect(() => {
         function debounce(func, delay) {
@@ -132,7 +173,7 @@ function Explore() {
                 if (containerRef.current) {
                     const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
                     if (scrollTop + clientHeight >= scrollHeight - 200 && hasMore && !loading) {
-                        fetchPosts(type);
+                        loadMorePosts(type);
                     }
                 }
             }, 300);
@@ -147,7 +188,84 @@ function Explore() {
             if (trendingContainer) trendingContainer.removeEventListener("scroll", handleScroll("trending"));
             if (personalizedContainer) personalizedContainer.removeEventListener("scroll", handleScroll("personalized"));
         };
-    }, [fetchPosts, hasMoreTrending, hasMorePersonalized, loadingTrending, loadingPersonalized]);
+    }, [loadMorePosts, hasMoreTrending, hasMorePersonalized, loadingTrending, loadingPersonalized]);
+
+    const updatePostInFeed = (postId, updateData, isTrending) => {
+        const setPosts = isTrending ? setTrendingPosts : setPersonalizedPosts;
+        const posts = isTrending ? trendingPosts : personalizedPosts;
+
+        setPosts(posts.map((post) =>
+                post.event_id === postId
+                    ? typeof updateData === 'function'
+                        ? { ...post, ...updateData(post) }
+                        : { ...post, ...updateData }
+                    : post
+            )
+        );
+    };
+   
+    const handleLike = async (postId, isTrending) => {
+        try {
+            await axiosInstance.post(`/events/${postId}/like`);
+            updatePostInFeed(postId, (prevPost) => ({
+                has_liked: !prevPost.has_liked,
+                likes_count: prevPost.has_liked ? Number(prevPost.likes_count) - 1 : Number(prevPost.likes_count) + 1,
+            }), isTrending);
+        } catch (error) {
+            console.error('Error liking the event:', error);
+        }
+    };
+
+    const handleShare = async (postId, isTrending) => {
+        try {
+            await axiosInstance.post(`/events/${postId}/share`);
+            updatePostInFeed(postId, (prevPost) => ({
+                has_shared_event: !prevPost.has_shared_event,
+                shares_count: Number(prevPost.shares_count) + 1,
+            }), isTrending);
+        } catch (error) {
+            console.error('Error sharing the event:', error);
+        }
+    };
+
+    const handleOptIn = async (postId, isTrending) => {
+        try {
+            await axiosInstance.post(`/events/${postId}/opt-in`);
+            updatePostInFeed(postId, { event_status: 'opted_in' }, isTrending);
+        } catch (error) {
+            console.error('Error opting into the event:', error);
+        }
+    };
+
+    const handleRemoveParticipationOrEvent = async (postId, isTrending) => {
+        try {
+            const response = await axiosInstance.post(`/deleteevent/${postId}`);
+            const { isCreator } = response.data;
+
+            if (isCreator) {
+                const setPosts = isTrending ? setTrendingPosts : setPersonalizedPosts;
+                const posts = isTrending ? trendingPosts : personalizedPosts;
+
+                setPosts(posts.filter((post) => post.event_id !== postId));
+            } else {
+                updatePostInFeed(postId, { event_status: null }, isTrending);
+            }
+        } catch (error) {
+            console.error('Error removing participation or event:', error);
+        }
+    };
+
+    const handleBlockUser = async (blockedId, e) => {
+        e.stopPropagation();
+        try {
+            await axiosInstance.post('/block-user', {
+                blockedId: blockedId,
+            });
+            alert('User has been blocked.');
+        } catch (err) {
+            console.error('Error blocking user:', err);
+        }
+    };
 
     return (
         <div className="explore-wrapper">
@@ -158,22 +276,40 @@ function Explore() {
                 filterOptions={filterOptions}
                 sortOptions={sortOptions}
             />
+            <div className="explore-tabs">
+                <button
+                    className={`tab-button ${activeTab === "trending" ? "active-tab" : ""}`}
+                    onClick={() => handleTabClick("trending")}
+                >
+                    What's Hot
+                </button>
+                <button
+                    className={`tab-button ${activeTab === "personalized" ? "active-tab" : ""}`}
+                    onClick={() => handleTabClick("personalized")}
+                >
+                    For You
+                </button>
+            </div>
             <div className="explore-sections">
-                <div className="explore-section">
-                    <h2>What's Hot</h2>
+                {activeTab === "trending" && (
                     <div className="explore-container" ref={trendingContainerRef}>
                         {trendingPosts.map((post) => (
                             <ExplorePost
                                 key={post.event_id}
                                 post={post}
                                 colorClass={trendingColorsRef.current[post.event_id]}
+                                onLike={handleLike}
+                                onShare={handleShare}
+                                onAddEvent={handleOptIn}
+                                onRemoveEvent={handleRemoveParticipationOrEvent}
+                                onBlock={handleBlockUser}
                             />
                         ))}
                     </div>
-                </div>
-                <div className="explore-section">
-                    <h2>For You</h2>
-                    <div className="explore-container" ref={personalizedContainerRef}>
+                )}
+
+                {activeTab === "personalized" && (
+                   <div className="explore-container" ref={personalizedContainerRef}>
                         {personalizedPosts.length ? (
                             personalizedPosts.map((post) => (
                                 <ExplorePost
@@ -186,7 +322,7 @@ function Explore() {
                             <p>You must enable metadata and location-based recommendations to populate this section.</p>
                         )}
                     </div>
-                </div>
+                )}
             </div>
         </div>
     );

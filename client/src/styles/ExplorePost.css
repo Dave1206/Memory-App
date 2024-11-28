@@ -3,7 +3,6 @@
     padding: 15px;
     border-radius: 8px;
     box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-    background-color: var(--background-color);
     margin-bottom: 20px;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
@@ -37,7 +36,7 @@
     font-size: 1rem;
     font-weight: bold;
     text-decoration: none;
-    color: var(--link-color);
+    margin-left: 35px;
 }
 
 .explore-post-username:hover {
@@ -62,10 +61,9 @@
     align-items: center;
     gap: 5px;
     font-size: 0.85rem;
-    color: var(--text-color);
 }
 
 .explore-post-timestamp {
     font-size: 0.85rem;
-    color: #666;
+    flex: 1;
 }

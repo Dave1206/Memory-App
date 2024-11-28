@@ -719,7 +719,6 @@ app.get('/feed', isAuthenticated, async (req, res) => {
 });
 
 app.get('/explore/trending', isAuthenticated, async (req, res) => {
-  const userId = req.user.id;
   const { search, filters: rawFilters, sortOrder = 'desc', limit = 10, offset = 0 } = req.query;
 
   let filters;
