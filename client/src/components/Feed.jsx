@@ -5,8 +5,9 @@ import '../styles/Feed.css';
 
 import SearchAndFilter from './SearchAndFilter';
 import FeedPost from './FeedPost';
+import SelectedEvent from './events/SelectedEvent';
 
-function Feed() {
+function Feed({ getEvents }) {
     const [feed, setFeed] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [filters, setFilters] = useState({});
@@ -14,6 +15,7 @@ function Feed() {
     const [offset, setOffset] = useState(0);
     const [loading, setLoading] = useState(false);
     const [hasMore, setHasMore] = useState(true);
+    const [selectedEvent, setSelectedEvent] = useState(null);
     const axiosInstance = useAxios();
     const { user } = useAuth();
 
@@ -212,6 +214,14 @@ function Feed() {
         }
     };
 
+    const handleSelectEvent = (event) => {
+        setSelectedEvent(event);
+    };
+
+    const handleBackButton = () => {
+        setSelectedEvent(null);
+    };
+
     if (feed.length === 0 && !loading) return (
         <div className='feed-wrapper'>
             <SearchAndFilter
@@ -226,7 +236,8 @@ function Feed() {
     );
 
     return (
-        <div className="feed-wrapper">
+        !selectedEvent ? (
+            <div className="feed-wrapper">
             <SearchAndFilter
                 onSearch={setSearchTerm}
                 onFilterChange={setFilters}
@@ -239,6 +250,7 @@ function Feed() {
                 <div className="feed-container" ref={feedContainerRef}>
                     {feed.map((post) => (
                         <FeedPost 
+                            handleClick={() => handleSelectEvent(post)}
                             key={post.event_id}
                             post={post}
                             onLike={handleLike}
@@ -252,6 +264,13 @@ function Feed() {
                 </div>
             </div>
         </div>
+        ) : (
+            <SelectedEvent
+                event={selectedEvent}
+                handleBackButton={handleBackButton}
+                getEvents={getEvents}
+            />
+        )
     );
 }
 

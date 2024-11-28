@@ -9,7 +9,7 @@ import EllipsisMenu from './EllipsisMenu';
 import LikeButton from './LikeButton';
 import '../styles/FeedPost.css';
 
-function FeedPost({ post, onLike, onShare, onAddEvent, onRemoveEvent, onBlock, colorClass }) {
+function FeedPost({ post, onLike, onShare, onAddEvent, onRemoveEvent, onBlock, colorClass, handleClick }) {
     const [showMenu, setShowMenu] = useState(false);
     const { user, isModMode } = useAuth();
 
@@ -41,6 +41,7 @@ function FeedPost({ post, onLike, onShare, onAddEvent, onRemoveEvent, onBlock, c
     return (
         <div className={`feed-post ${colorClass}`} 
             onMouseLeave={() => setShowMenu(false)}
+            onClick={handleClick}
             >
             {isModMode && (user.role === 'moderator' || user.role === 'admin') &&
             <ModOptionsButton />

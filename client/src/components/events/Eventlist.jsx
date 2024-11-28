@@ -1,35 +1,22 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useAxios } from '../auth/AxiosProvider';
-import Memory from './Memory';
 import Event from './Event';
 import SearchAndFilter from '../SearchAndFilter';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronUp, faChevronDown } from '@fortawesome/free-solid-svg-icons';
+import SelectedEvent from './SelectedEvent';
 import '../../styles/Eventlist.css';
 
 function EventList({ events, getEvents, userId }) {
     const [selectedEvent, setSelectedEvent] = useState(null);
-    const [memories, setMemories] = useState([]);
     const [filteredEvents, setFilteredEvents] = useState(events);
-    const [shared, setShared] = useState(false);
-    const [isDescriptionVisible, setDescriptionVisible] = useState(false);
-
     const [searchTerm, setSearchTerm] = useState("");
     const [filters, setFilters] = useState({});
     const [sortOrder, setSortOrder] = useState("asc");
-    const axiosInstance = useAxios();
 
     useEffect(() => {
         setFilteredEvents(events);
     }, [events]);
 
-    const getMemories = async (eventId) => {
-        try {
-            const response = await axiosInstance.get(`/events/${eventId}/memories`);
-            setMemories(response.data);
-        } catch (err) {
-            console.log("Error fetching memories: " + (err.response?.data || err.message));
-        }
+    const handleBackButton = () => {
+        setSelectedEvent(null);
     };
 
     const updateEvents = useCallback(() => {
@@ -37,19 +24,8 @@ function EventList({ events, getEvents, userId }) {
         setSelectedEvent(null);
     }, [getEvents]);
 
-    const updateSharedState = useCallback((newValue) => {
-        setShared(newValue);
-        getEvents();
-    }, [getEvents]);
-
-    const handleClick = (event) => {
+    const handleSelectEvent = (event) => {
         setSelectedEvent(event);
-        setShared(event.has_shared_memory);
-        getMemories(event.event_id);
-    };
-
-    const toggleDescription = () => {
-        setDescriptionVisible((prev) => !prev);
     };
 
     const filterOptions = [
@@ -119,7 +95,7 @@ function EventList({ events, getEvents, userId }) {
                                     <Event
                                         id={event.event_id}
                                         userId={userId}
-                                        handleClick={() => handleClick(event)}
+                                        handleClick={() => handleSelectEvent(event)}
                                         event={event}
                                         updateEvents={updateEvents}
                                         selected={false}
@@ -130,41 +106,11 @@ function EventList({ events, getEvents, userId }) {
                     </div>
                 </>
             ) : (
-                <div className="selected-event">
-                    <button className="back-button" onClick={() => setSelectedEvent(null)}>
-                        Back to Events
-                    </button>
-                    <h2>{selectedEvent.title}</h2>
-                    <div>{`by ${selectedEvent.username}`}
-                        <div
-                            className="description-toggle-link"
-                            onClick={toggleDescription}
-                        >   description
-                            <span className="arrow">
-                                {isDescriptionVisible ? <FontAwesomeIcon icon={faChevronUp} /> : <FontAwesomeIcon icon={faChevronDown} />}
-                            </span>
-                        </div>
-                    </div>
-                    {isDescriptionVisible && (
-                        <div className="description">{selectedEvent.description}</div>
-                    )}
-                    {selectedEvent.reveal_date < Date.now() ? (
-                        <div className='memories-container'>
-                            <Memory
-                                key={selectedEvent.event_id}
-                                eventId={selectedEvent.event_id}
-                                userId={userId}
-                                event={selectedEvent}
-                                hasShared={shared}
-                                getMemories={getMemories}
-                                updateSharedState={updateSharedState}
-                                memories={memories}
-                            />
-                        </div>
-                    ) : (
-                        <h3>{`This time capsule will open on ${new Date(selectedEvent.reveal_date).toLocaleDateString()}`}</h3>
-                    )}
-                </div>
+                <SelectedEvent 
+                    event={selectedEvent}
+                    handleBackButton={handleBackButton}
+                    getEvents={getEvents}
+                />
             )}
         </div>
     );

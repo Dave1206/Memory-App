@@ -8,7 +8,7 @@ import EllipsisMenu from './EllipsisMenu';
 import NotificationBadge from './NotificationBadge';
 import '../styles/ExplorePost.css';
 
-function ExplorePost({ post, onLike, onShare, onAddEvent, onRemoveEvent, onBlock, colorClass }) {
+function ExplorePost({ post, handleClick, onLike, onShare, onAddEvent, onRemoveEvent, onBlock, colorClass }) {
     const [showMenu, setShowMenu] = useState(false);
     const { user } = useAuth();
 
@@ -39,7 +39,9 @@ function ExplorePost({ post, onLike, onShare, onAddEvent, onRemoveEvent, onBlock
 
     return (
         <div className={`explore-post ${colorClass}`}
-            onMouseLeave={() => setShowMenu(false)}>
+            onMouseLeave={() => setShowMenu(false)}
+            onClick={handleClick}
+            >
             <div className="explore-post-header">
                 <img src={post.profile_picture || '/default-avatar.jpg'} alt="Profile" className="profile-picture" />
                 <div className="explore-post-header-details">

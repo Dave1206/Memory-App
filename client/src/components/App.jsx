@@ -110,7 +110,7 @@ function App() {
             element={
               user ? (
                 <>
-                  <Feed user={user} />
+                  <Feed user={user} getEvents={getEvents} />
                   <ToggleableList getEvents={getEvents} user={user} onLogout={logout} />
                   <Navbar events={eventInvites} userId={user?.id} />
                 </>
@@ -125,7 +125,7 @@ function App() {
             element={
               user ? (
                 <>
-                  <Explore />
+                  <Explore getEvents={getEvents} />
                   <ToggleableList getEvents={getEvents} user={user} onLogout={logout} />
                   <Navbar events={eventInvites} userId={user?.id} />
                 </>

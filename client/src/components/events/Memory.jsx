@@ -10,7 +10,6 @@ import '../../styles/Memory.css';
 
 function Memory({
     event,
-    eventId,
     userId,
     memories,
     getMemories,
@@ -26,8 +25,8 @@ function Memory({
 
     const shareMemory = async (newMemory) => {
         try {
-            await axiosInstance.post(`/events/${eventId}/memories`, { content: newMemory });
-            getMemories(eventId);
+            await axiosInstance.post(`/events/${event.event_id}/memories`, { content: newMemory });
+            getMemories(event.event_id);
             event.has_shared_memory = true;
         } catch (err) {
             console.error("Error sharing memory:", err.response?.data || err.message);
@@ -76,7 +75,7 @@ function Memory({
                 show={showModal}
                 onCreate={shareMemory}
                 onClose={() => setShowModal(false)}
-                eventId={eventId}
+                eventId={event.event_id}
             />
 
             {!event.has_shared_memory ? (

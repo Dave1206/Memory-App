@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useAxios } from './auth/AxiosProvider';
 import '../styles/Explore.css';
-
 import SearchAndFilter from './SearchAndFilter';
 import ExplorePost from './ExplorePost';
+import SelectedEvent from './events/SelectedEvent';
 
-function Explore() {
+function Explore({ getEvents }) {
+    const [selectedEvent, setSelectedEvent] = useState(null);
     const [activeTab, setActiveTab] = useState("trending");
     const [trendingPosts, setTrendingPosts] = useState([]);
     const [personalizedPosts, setPersonalizedPosts] = useState([]);
@@ -268,7 +269,16 @@ function Explore() {
         }
     };
 
+    const handleSelectEvent = (event) => {
+        setSelectedEvent(event);
+    };
+
+    const handleBackButton = () => {
+        setSelectedEvent(null);
+    };
+
     return (
+        !selectedEvent ? (
         <div className="explore-wrapper">
             <SearchAndFilter
                 onSearch={setSearchTerm}
@@ -298,6 +308,7 @@ function Explore() {
                             <ExplorePost
                                 key={post.event_id}
                                 post={post}
+                                handleClick={() => handleSelectEvent(post)}
                                 colorClass={trendingColorsRef.current[post.event_id]}
                                 onLike={() => handleLike(post.event_id, 'trending')}
                                 onShare={() => handleShare(post.event_id, 'trending')}
@@ -316,6 +327,7 @@ function Explore() {
                                 <ExplorePost
                                     key={post.event_id}
                                     post={post}
+                                    handleClick={() => handleSelectEvent(post)}
                                     colorClass={personalizedColorsRef.current[post.event_id]}
                                     onLike={() => handleLike(post.event_id, 'personalized')}
                                     onShare={() => handleShare(post.event_id, 'personalized')}
@@ -330,7 +342,13 @@ function Explore() {
                     </div>
                 )}
             </div>
-        </div>
+        </div> ) : (
+            <SelectedEvent 
+                event={selectedEvent}
+                handleBackButton={handleBackButton}
+                getEvents={getEvents}
+            />
+        )
     );
 }
 
