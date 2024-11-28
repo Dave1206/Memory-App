@@ -657,7 +657,7 @@ app.get('/feed', isAuthenticated, async (req, res) => {
   const selectedSortOrder = sortOrder.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
   let feedQuery = `
-      SELECT e.event_id, e.title, e.description, e.creation_date, u.username, e.created_by, u.profile_picture, e.visibility,
+      SELECT e.event_id, e.title, e.description, e.creation_date, e.event_type, e.reveal_date, u.username, e.created_by, u.profile_picture, e.visibility, ep.has_shared_memory,
             COUNT(likes.event_id) AS likes_count,
             COUNT(shares.event_id) AS shares_count,
             COUNT(ep.interaction_count) AS interaction_count,
@@ -694,7 +694,7 @@ app.get('/feed', isAuthenticated, async (req, res) => {
   }
 
   feedQuery += `
-      GROUP BY e.event_id, u.username, u.profile_picture, e.title, e.description, e.creation_date, e.created_by, e.visibility
+      GROUP BY e.event_id, u.username, u.profile_picture, e.title, e.description, e.creation_date, e.created_by, e.visibility, e.event_type, e.reveal_date, ep.has_shared_memory
       ORDER BY ${selectedSortField} ${selectedSortOrder}
       LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
   `;
@@ -720,7 +720,7 @@ app.get('/feed', isAuthenticated, async (req, res) => {
 
 app.get('/explore/trending', isAuthenticated, async (req, res) => {
   const { search, filters: rawFilters, sortOrder = 'desc', limit = 10, offset = 0 } = req.query;
-
+  const userId = req.user.id;
   let filters;
   try {
     filters = rawFilters ? JSON.parse(rawFilters) : {};
@@ -734,7 +734,7 @@ app.get('/explore/trending', isAuthenticated, async (req, res) => {
   const selectedSortOrder = sortOrder.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
   let trendingQuery = `
-      SELECT e.event_id, e.title, e.description, e.creation_date, u.username, e.created_by, u.profile_picture, e.visibility,
+      SELECT e.event_id, e.title, e.description, e.creation_date, e.event_type, e.reveal_date, u.username, e.created_by, u.profile_picture, e.visibility, ep.has_liked, ep.has_shared_event, ep.has_shared_memory, ep.status,
             COUNT(likes.event_id) AS likes_count,
             COUNT(shares.event_id) AS shares_count,
             (SELECT COUNT(*) FROM memories m WHERE m.event_id = e.event_id) AS memories_count,
@@ -743,13 +743,14 @@ app.get('/explore/trending', isAuthenticated, async (req, res) => {
             (EXTRACT(EPOCH FROM (NOW() - e.creation_date)) / 3600 + 1) AS hot_score
       FROM events e
       JOIN users u ON e.created_by = u.id
+      LEFT JOIN event_participation ep ON e.event_id = ep.event_id AND ep.user_id = $1
       LEFT JOIN event_participation likes ON e.event_id = likes.event_id AND likes.has_liked = TRUE
       LEFT JOIN event_participation shares ON e.event_id = shares.event_id AND shares.has_shared_event = TRUE
       LEFT JOIN memories m ON e.event_id = m.event_id
       WHERE e.visibility = 'public'
   `;
 
-  const queryParams = [];
+  const queryParams = [userId];
 
   if (search) {
     trendingQuery += ` AND (e.title ILIKE $${queryParams.length + 1} OR e.description ILIKE $${queryParams.length + 1} OR u.username ILIKE $${queryParams.length + 1})`;
@@ -762,7 +763,7 @@ app.get('/explore/trending', isAuthenticated, async (req, res) => {
   }
 
   trendingQuery += `
-      GROUP BY e.event_id, u.username, u.profile_picture, e.title, e.description, e.creation_date, e.created_by, e.visibility
+      GROUP BY e.event_id, u.username, u.profile_picture, e.title, e.description, e.creation_date, e.created_by, e.visibility, ep.has_liked, ep.has_shared_event, ep.has_shared_memory, ep.status, e.event_type, e.reveal_date
       ORDER BY ${selectedSortField} ${selectedSortOrder}
       LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
   `;
@@ -795,7 +796,7 @@ app.get('/explore/personalized', isAuthenticated, async (req, res) => {
   const selectedSortOrder = sortOrder.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
   let personalizedQuery = `
-      SELECT e.event_id, e.title, e.description, e.creation_date, u.username, e.created_by, u.profile_picture, e.visibility,
+      SELECT e.event_id, e.title, e.description, e.creation_date, e.event_type, e.reveal_date, u.username, e.created_by, u.profile_picture, e.visibility, ep.has_liked, ep.has_shared_event, ep.has_shared_memory, ep.status,
             COUNT(likes.event_id) AS likes_count,
             COUNT(shares.event_id) AS shares_count,
             (SELECT COUNT(*) FROM memories m WHERE m.event_id = e.event_id) AS memories_count,
@@ -836,7 +837,7 @@ app.get('/explore/personalized', isAuthenticated, async (req, res) => {
   }
 
   personalizedQuery += `
-      GROUP BY e.event_id, u.username, u.profile_picture, e.title, e.description, e.creation_date, e.created_by, e.visibility
+      GROUP BY e.event_id, u.username, u.profile_picture, e.title, e.description, e.creation_date, e.created_by, e.visibility, ep.has_liked, ep.has_shared_event, ep.has_shared_memory, ep.status, e.event_type, e.reveal_date
       ORDER BY ${selectedSortField} ${selectedSortOrder}
       LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
   `;
