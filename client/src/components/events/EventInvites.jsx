@@ -2,7 +2,7 @@ import React from 'react';
 import { useAxios } from '../auth/AxiosProvider';
 
 function EventInvites({ events, onUpdate }) {
-    const axiosInstance = useAxios();
+    const { axiosInstance } = useAxios();
 
     const acceptInvite = async (eventId) => {
         try {

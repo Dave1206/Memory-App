@@ -3,19 +3,19 @@ import { useAxios } from "../auth/AxiosProvider";
 import "../../styles/DataSettings.css";
 
 function DataSettings({ user }) {
-  const axiosInstance = useAxios();
-  const [preferences, setPreferences] = useState({
-    metadataEnabled: true,
-    locationEnabled: false,
-  });
+  const { axiosInstance } = useAxios();
+  const [metadataEnabled, setMetadataEnabled] = useState(true);
+  const [locationEnabled, setLocationEnabled] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
+  const [hasChanges, setHasChanges] = useState(false);
 
   useEffect(() => {
     const fetchPreferences = async () => {
       try {
         const response = await axiosInstance.get(`/user/preferences/${user.id}`);
-        const { metadataEnabled, locationEnabled } = response.data.preferences;
-        setPreferences({ metadataEnabled, locationEnabled });
+        const { data_settings } = response.data;
+        setMetadataEnabled(data_settings.metadata_enabled);
+        setLocationEnabled(data_settings.location_enabled);
       } catch (error) {
         console.error("Error fetching preferences:", error);
         setStatusMessage("Error loading preferences.");
@@ -25,14 +25,27 @@ function DataSettings({ user }) {
   }, [axiosInstance, user.id]);
 
   const handleSave = async () => {
+    const dataSettings = {
+      metadata_enabled: metadataEnabled,
+      location_enabled: locationEnabled
+    };
+
     try {
-      await axiosInstance.put(`/user/preferences/${user.id}`, preferences);
+      await axiosInstance.put(`/user/preferences/${user.id}`, {
+        dataSettings
+    });
       setStatusMessage("Preferences updated successfully.");
+      setHasChanges(false);
     } catch (error) {
       console.error("Error saving preferences:", error);
       setStatusMessage("Failed to update preferences.");
     }
   };
+
+  const handleCheckboxChange = (setter) => {
+    setter((prev) => !prev);
+    setHasChanges(true); 
+};
 
   return (
     <div className="data-settings-wrapper">
@@ -40,34 +53,30 @@ function DataSettings({ user }) {
       <div className="data-settings">
         <label>
           <input
+            id="metaDataSetting"
             type="checkbox"
-            checked={preferences.metadataEnabled}
-            onChange={(e) =>
-              setPreferences((prev) => ({
-                ...prev,
-                metadataEnabled: e.target.checked,
-              }))
-            }
+            checked={metadataEnabled}
+            onChange={() => handleCheckboxChange(setMetadataEnabled)}
           />
           Enable Metadata-Based Recommendations
         </label>
 
         <label>
           <input
+            id="locationDataSetting"
             type="checkbox"
-            checked={preferences.locationEnabled}
-            onChange={(e) =>
-              setPreferences((prev) => ({
-                ...prev,
-                locationEnabled: e.target.checked,
-              }))
-            }
+            checked={locationEnabled}
+            onChange={() => handleCheckboxChange(setLocationEnabled)}
           />
           Enable Location-Based Recommendations
         </label>
 
-        <button className="settings-button save-button" onClick={handleSave}>
-          Save Preferences
+        <button 
+            className="settings-button save-button" 
+            onClick={handleSave}
+            disabled={!hasChanges}
+        >
+          Save Changes
         </button>
         <p aria-live="polite">{statusMessage}</p>
       </div>

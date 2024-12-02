@@ -3,7 +3,7 @@ import { useAxios } from '../auth/AxiosProvider';
 
 function ActivityFeed({ userId }) {
     const [activities, setActivities] = useState([]);
-    const axiosInstance = useAxios();
+    const { axiosInstance } = useAxios();
 
     useEffect(() => {
         const fetchActivities = async () => {

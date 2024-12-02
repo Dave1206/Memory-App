@@ -4,12 +4,13 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronUp, faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import { useAxios } from "../auth/AxiosProvider";
 import { useAuth } from "../auth/AuthContext";
+import '../../styles/SelectedEvent.css';
 
 function SelectedEvent({ event, handleBackButton, getEvents }) {
     const [memories, setMemories] = useState([]);
     const [isDescriptionVisible, setDescriptionVisible] = useState(false);
     const [hasSharedMemory, setHasSharedMemory] = useState(false);
-    const axiosInstance = useAxios();
+    const { axiosInstance } = useAxios();
     const { user } = useAuth();
 
     const getMemories = useCallback(
@@ -57,7 +58,7 @@ function SelectedEvent({ event, handleBackButton, getEvents }) {
             {isDescriptionVisible && (
                 <div className="description">{event.description}</div>
             )}
-            {event.reveal_date < Date.now() ? (
+            {new Date(event.reveal_date) < Date.now() ? (
                 <div className='memories-container'>
                     <Memory
                         key={event.event_id}
@@ -73,7 +74,7 @@ function SelectedEvent({ event, handleBackButton, getEvents }) {
             ) : (
                 <h3>{`This time capsule will open on ${new Date(event.reveal_date).toLocaleDateString()}`}</h3>
             )}
-            </div>
+        </div>
     )
 }
 

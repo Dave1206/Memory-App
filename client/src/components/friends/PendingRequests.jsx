@@ -3,7 +3,7 @@ import { useAxios } from '../auth/AxiosProvider.jsx'
 
 function PendingRequests({ userId }) {
     const [requests, setRequests] = useState([]);
-    const axiosInstance = useAxios();
+    const { axiosInstance } = useAxios();
 
     useEffect(() => {
         const fetchRequests = async () => {
@@ -15,7 +15,7 @@ function PendingRequests({ userId }) {
             }
         };
         fetchRequests();
-    }, [userId]);
+    }, [userId, axiosInstance]);
 
     const handleAccept = async (friendId) => {
         try {

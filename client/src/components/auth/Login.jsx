@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import Register from "./Register";
 import { useAuth } from "./AuthContext";
+import { useAxios } from "./AxiosProvider";
 import ForgotPassword from "./ForgotPassword";
 import '../../styles/Login.css';
 
@@ -10,10 +11,12 @@ const Login = () => {
   const [isRegistered, setIsRegistered] = useState(true);
   const [forgotPassword, setForgotPassword] = useState(false);
   const { login, user } = useAuth();
+  const { setSessionExpired } = useAxios();
 
   const handleSubmit = (e) => {
     e.preventDefault();
     login(email, password);
+    setSessionExpired(false);
   };
 
   return (

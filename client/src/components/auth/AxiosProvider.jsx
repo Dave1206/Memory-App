@@ -27,7 +27,7 @@ export const AxiosProvider = ({ children }) => {
   );
 
   return (
-    <AxiosContext.Provider value={axiosInstance}>
+    <AxiosContext.Provider value={{ axiosInstance, sessionExpired, setSessionExpired }}>
       {children}
     </AxiosContext.Provider>
   );

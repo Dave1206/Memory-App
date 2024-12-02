@@ -9,7 +9,7 @@ function FriendList({ userId }) {
     const [friends, setFriends] = useState([]);
     const [onlineExpanded, setOnlineExpanded] = useState(true);
     const [offlineExpanded, setOfflineExpanded] = useState(false);
-    const axiosInstance = useAxios();
+    const { axiosInstance } = useAxios();
     const navigate = useNavigate();
 
     const navigateToProfile = (friendId) => {

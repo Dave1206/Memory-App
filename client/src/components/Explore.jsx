@@ -20,7 +20,7 @@ function Explore({ getEvents }) {
     const [hasMoreTrending, setHasMoreTrending] = useState(true);
     const [hasMorePersonalized, setHasMorePersonalized] = useState(true);
 
-    const axiosInstance = useAxios();
+    const { axiosInstance } = useAxios();
 
     const trendingColorsRef = useRef({});
     const personalizedColorsRef = useRef({});

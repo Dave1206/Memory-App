@@ -5,7 +5,7 @@ import { faPencilAlt } from '@fortawesome/free-solid-svg-icons';
 import '../../styles/AccountSettings.css';
 
 function AccountSettings({ user }) {
-    const axiosInstance = useAxios();
+    const { axiosInstance } = useAxios();
     const [username, setUsername] = useState(user.username);
     const [email, setEmail] = useState(user.email);
     const [themePreference, setThemePreference] = useState('light');

@@ -6,7 +6,7 @@ function PrivacySettings({ user }) {
     const [privacySetting, setPrivacySetting] = useState("public");
     const [statusMessage, setStatusMessage] = useState('');
     const [hasChanges, setHasChanges] = useState(false);
-    const axiosInstance = useAxios();
+    const { axiosInstance } = useAxios();
     const userId = user.id;
 
     const handleSave = async () => {

@@ -15,7 +15,7 @@ function UserProfile({ user }) {
     const [activeTab, setActiveTab] = useState("profile");
     const [isBlocked, setIsBlocked] = useState(false);
     const [isPrivate, setIsPrivate] = useState(false);
-    const axiosInstance = useAxios();
+    const { axiosInstance } = useAxios();
 
     useEffect(() => {
         const fetchUserData = async () => {

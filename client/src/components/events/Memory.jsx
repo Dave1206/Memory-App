@@ -16,7 +16,7 @@ function Memory({
 }) {
     const [showModal, setShowModal] = useState(false);
     const [showInviteModal, setShowInviteModal] = useState(false);
-    const axiosInstance = useAxios();
+    const { axiosInstance } = useAxios();
     const { user } = useAuth();
 
     const currentDate = new Date();

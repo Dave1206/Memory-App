@@ -6,7 +6,7 @@ import { useAxios } from '../auth/AxiosProvider';
 
 function EventCreator({ getEvents, userId }) {
     const [showModal, setShowModal] = useState(false);
-    const axiosInstance = useAxios();
+    const { axiosInstance } = useAxios();
 
     // Create a new event and refresh events list
     const createEvent = async (newEvent) => {

@@ -9,12 +9,10 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isModMode, setIsModMode] = useState(false); 
 
-  // Toggle mod mode
   const toggleModMode = () => {
     setIsModMode(prevMode => !prevMode);
   };
 
-  // Login function
   const login = async (email, password) => {
     try {
       const response = await axios.post("/login", { email, password }, { withCredentials: true });
@@ -26,7 +24,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Logout function
   const logout = async () => {
     try {
       await axios.post("/logout", {}, { withCredentials: true });
@@ -37,7 +34,6 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Register function
   const register = async (username, email, password, confirmPassword) => {
     try {
       const response = await axios.post(
@@ -73,7 +69,6 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// Custom hook to use AuthContext
 export const useAuth = () => useContext(AuthContext);
 
 export default AuthContext;

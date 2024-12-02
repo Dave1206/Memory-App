@@ -8,7 +8,7 @@ function FriendRequest({ userId }) {
     const [friendUsername, setFriendUsername] = useState('');
     const [message, setMessage] = useState('');
     const [isExpanded, setIsExpanded] = useState(false);
-    const axiosInstance = useAxios();
+    const { axiosInstance } = useAxios();
 
     const toggleExpand = () => setIsExpanded(!isExpanded);
 

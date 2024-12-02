@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faGavel } from '@fortawesome/free-solid-svg-icons';
 
 function ModOptionsButton({ type, contentId, onContentRemoved }) {
-    const axiosInstance = useAxios();
+    const { axiosInstance } = useAxios();
     const { user } = useAuth();
 
     const handleRemoveContent = async () => {

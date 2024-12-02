@@ -6,7 +6,7 @@ import '../../styles/ModeratorTools.css';
 
 function ModeratorTools() {
     const { user } = useAuth();
-    const axiosInstance = useAxios();
+    const { axiosInstance } = useAxios();
     const [bannedUsername, setBannedUsername] = useState('');
     const [banDuration, setBanDuration] = useState('');
     const [banReason, setBanReason] = useState('');

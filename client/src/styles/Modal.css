@@ -16,10 +16,9 @@
 /* Modal container styles */
 .modal {
     background: linear-gradient(270deg, #a56e77 0%, #b18469 100%);
-    width: fit-content;
-    max-width: 500px;
-    padding: 20px;
-    margin: 20px;
+    max-width: 600px;
+    padding: 20px 20px 100px;
+    margin: 20px auto 100px;
     border-radius: 8px;
     box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.2);
     position: relative;
@@ -33,6 +32,8 @@
     flex-direction: column;
     text-align: left;
     width:fit-content;
+    justify-content: center;
+    flex: 1;
 }
 
 .modal-right-column{
@@ -40,6 +41,7 @@
     flex-direction: column;
     justify-content: center;
     width: fit-content;
+    flex:1;
 }
 
 /* Modal title */
@@ -67,6 +69,10 @@
     border-color: #42a5f5;
 }
 
+.title-input{
+    max-height:fit-content;
+}
+
 /* Button styles */
 .modal-button {
     padding: 10px 15px;
@@ -76,6 +82,63 @@
     cursor: pointer;
     transition: background-color 0.3s ease;
 }
+
+.tag-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px; /* Small gap between buttons */
+    margin-top: 10px;
+}
+
+.tag-buttons button {
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    padding: 5px 10px;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 5px; /* Space between icon and text */
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.tag-buttons button:hover {
+    background-color: #e0e0e0;
+    transform: scale(1.05);
+}
+
+.tag-selected {
+    background-color: #42a5f5;
+    color: white;
+    border-color: #2196f3;
+}
+
+.tag-selected:hover {
+    background-color: #1e88e5;
+}
+
+.tag-unselected {
+    background-color: #f0f0f0;
+    color: #333;
+}
+
+.tag-unselected:hover {
+    background-color: #d9d9d9;
+}
+
+/* Additional styles for compact design */
+textarea[name="custom-tags"] {
+    margin-top: 10px;
+    width: 100%;
+    height: 60px;
+    resize: none;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 0.9rem;
+}
+
 
 /* Primary action button */
 .modal-button:first-of-type {
@@ -104,12 +167,13 @@
     justify-content: flex-end;
     gap: 10px;
     margin-top: 15px;
+    position:absolute;
+    bottom: 30px;
 }
 
 .friend-select {
     margin-top: 10px;
     padding: 10px;
-    background-color: #f9f9f9;
     border: 1px solid #ddd;
     border-radius: 4px;
 }
@@ -134,32 +198,8 @@
     margin-right: 8px;
 }
 
-.modal .friend-select {
-    margin-top: 10px;
-    padding: 10px;
-    background-color: #f9f9f9;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-}
-
-.modal .friend-select ul {
-    list-style-type: none;
-    padding: 0;
-    margin: 0;
-}
-
-.modal .friend-select li {
-    padding: 5px 0;
-}
-
-.modal .friend-select label {
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-}
-
-.modal .friend-select input[type="checkbox"] {
-    margin-right: 8px;
+.location-input{
+    max-height:fit-content;
 }
 
 .character-counter {
@@ -182,4 +222,11 @@
 .emoji-button{
     background:none;
     padding: 0;
+}
+
+@media (max-width:768px) {
+    .modal{
+        flex-direction: column;
+        overflow-y: scroll;
+    }
 }

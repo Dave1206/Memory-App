@@ -6,7 +6,7 @@ function EditProfile({ user, onSave }) {
     const [bio, setBio] = useState(user.bio || '');
     const [selectedFile, setSelectedFile] = useState(null);
     const [uploadStatus, setUploadStatus] = useState('');
-    const axiosInstance = useAxios();
+    const { axiosInstance } = useAxios();
 
     const handleFileChange = (e) => {
         setSelectedFile(e.target.files[0]);

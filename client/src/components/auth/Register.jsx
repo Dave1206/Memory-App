@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { useAuth } from "./AuthContext"; // Import the useAuth hook from AuthContext
+import { useAuth } from "./AuthContext";
 
 const Register = ({ handleClick }) => {
-  const { register } = useAuth(); // Access the register function from AuthContext
+  const { register } = useAuth();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -15,7 +15,6 @@ const Register = ({ handleClick }) => {
     setError("");
     setSuccess("");
 
-    // Password requirements
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
       return;
@@ -41,7 +40,6 @@ const Register = ({ handleClick }) => {
       return;
     }
 
-    // Proceed with registration if all requirements are met
     try {
       await register(username, email, password, confirmPassword);
       setSuccess("Registration successful! You can now log in.");

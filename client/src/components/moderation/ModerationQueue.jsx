@@ -3,7 +3,7 @@ import { useAxios } from '../auth/AxiosProvider';
 import '../../styles/ModerationQueue.css';
 
 function ModerationQueue() {
-    const axiosInstance = useAxios();
+    const { axiosInstance } = useAxios();
     const [queue, setQueue] = useState([]);
     const [loading, setLoading] = useState(true);
 

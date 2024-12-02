@@ -4,7 +4,7 @@ import { useAxios } from '../auth/AxiosProvider';
 function ProfilePictureUpload() {
     const [selectedFile, setSelectedFile] = useState(null);
     const [uploadStatus, setUploadStatus] = useState('');
-    const axiosInstance = useAxios();
+    const { axiosInstance } = useAxios();
 
     const handleFileChange = (e) => {
         setSelectedFile(e.target.files[0]);

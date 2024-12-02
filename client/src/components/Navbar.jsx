@@ -12,7 +12,7 @@ function Navbar({ userId, events, onEventUpdate }) {
     const [activeRoute, setActiveRoute] = useState(0);
     const [activeDropdown, setActiveDropdown] = useState(null);
     const [navItems, setNavItems] = useState([]);
-    const axiosInstance = useAxios();
+    const { axiosInstance } = useAxios();
     const navigate = useNavigate();
 
     const invites = useMemo(() => events.filter(event => event.status === 'invited'), [events]);

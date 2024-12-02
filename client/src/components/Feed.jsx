@@ -16,7 +16,7 @@ function Feed({ getEvents }) {
     const [loading, setLoading] = useState(false);
     const [hasMore, setHasMore] = useState(true);
     const [selectedEvent, setSelectedEvent] = useState(null);
-    const axiosInstance = useAxios();
+    const { axiosInstance } = useAxios();
     const { user } = useAuth();
 
     const postColorsRef = useRef({});

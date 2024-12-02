@@ -7,8 +7,8 @@ function NotificationSettings({ user }) {
     const [frNotifications, setFrNotifications] = useState(true);
     const [eventInviteNotifications, setEventInviteNotifications] = useState(true);
     const [statusMessage, setStatusMessage] = useState('');
-    const [hasChanges, setHasChanges] = useState(false); // Track changes
-    const axiosInstance = useAxios();
+    const [hasChanges, setHasChanges] = useState(false);
+    const { axiosInstance } = useAxios();
     const userId = user.id;
 
     const handleSave = async () => {
@@ -23,7 +23,7 @@ function NotificationSettings({ user }) {
                 notificationSettings
             });
             setStatusMessage('Settings saved successfully.');
-            setHasChanges(false); // Reset changes tracking
+            setHasChanges(false);
         } catch (error) {
             setStatusMessage('Error saving settings.');
         }
@@ -31,7 +31,7 @@ function NotificationSettings({ user }) {
 
     const handleCheckboxChange = (setter) => {
         setter((prev) => !prev);
-        setHasChanges(true); // Mark as changed
+        setHasChanges(true); 
     };
 
     useEffect(() => {
@@ -86,7 +86,7 @@ function NotificationSettings({ user }) {
                 <button
                     className='settings-button save-button'
                     onClick={handleSave}
-                    disabled={!hasChanges} // Disable when no changes detected
+                    disabled={!hasChanges}
                 >
                     Save Changes
                 </button>

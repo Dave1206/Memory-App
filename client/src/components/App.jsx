@@ -17,10 +17,9 @@ import ModeratorTools from './moderation/ModeratorTools';
 
 function App() {
   const { user, logout } = useAuth();
-  const { sessionExpired } = useAxios();
+  const { axiosInstance, sessionExpired } = useAxios();
   const [events, setEvents] = useState([]);
   const [eventInvites, setEventInvites] = useState([]);
-  const axiosInstance = useAxios();
   const [isCheckingSession, setIsCheckingSession] = useState(true);
 
   const getEvents = useCallback(async () => {
@@ -150,7 +149,6 @@ function App() {
             }
           />
 
-          {/* Redirect to events if logged in, otherwise to login */}
           <Route path="/" element={user ? <Navigate to="/events" /> : <Navigate to="/login" />} />
         </Routes>
         <Footer />

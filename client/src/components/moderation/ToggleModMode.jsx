@@ -5,7 +5,7 @@ function ToggleModMode() {
   const { user, isModMode, toggleModMode } = useAuth();
 
   if (!user || (user.role !== "moderator" && user.role !== "admin")) {
-    return null; // Only show button to moderators and admins
+    return null;
   }
 
   return (

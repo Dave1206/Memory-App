@@ -13,6 +13,7 @@ import multer from "multer";
 import sharp from "sharp";
 import { moderateImageContent } from './contentModeration.js';
 import cloudinary from 'cloudinary';
+import axios from "axios";
 
 env.config();
 const app = express();
@@ -171,6 +172,37 @@ async function logActivity(userId, actionType, description, relatedId = null, re
   }
 }
 
+const fetchIP = async() => {
+  try{
+    const response = await axios.get('https://api64.ipify.org?format=json');
+    const data = response.data;
+    return data.ip;
+  } catch (error) {
+    console.error("Error fetching IP:", error.message)
+    return null;
+  }
+};
+
+const fetchUserLocation = async (ip) => {
+  try {
+    const response = await axios.get(`http://ip-api.com/json/${ip}`);
+    if (response.data.status === 'success') {
+      return {
+        city: response.data.city,
+        region: response.data.regionName,
+        country: response.data.country,
+        lat: response.data.lat,
+        lon: response.data.lon,
+      };
+    } else {
+      throw new Error(`Unable to fetch location data: ${response.data.message}`);
+    }
+  } catch (error) {
+    console.error('Error fetching user location:', error.message);
+    return null;
+  }
+};
+
 //auth routes
 app.post("/register", async (req, res) => {
   const { username, email, password, confirmPassword } = req.body;
@@ -198,11 +230,12 @@ app.post("/register", async (req, res) => {
 
     await db.query(
       `INSERT INTO user_preferences 
-      (user_id, account_settings, notification_settings, privacy_settings) 
+      (user_id, account_settings, notification_settings, privacy_settings, data_settings) 
       VALUES ($1, 
       '{"theme": "dark", "language": "en"}', 
       '{"friend_request": true, "feed_activity": true, "event_invites": true}', 
-      '{"profile_visibility": "public"}')`,
+      '{"profile_visibility": "public"}',
+      '{"metadata_enabled": true, "location_enabled": false}')`,
       [user.id]
     );
 
@@ -296,12 +329,12 @@ app.get("/events", isAuthenticated, async(req, res) => {
 
 app.post("/events", isAuthenticated, async(req,res) => {
   try {
-    const { title, description, invites, eventType, revealDate, visibility } = req.body.newEvent;
+    const { title, description, invites, eventType, revealDate, visibility, tags, location } = req.body.newEvent;
     const timeStamp = new Date(Date.now()+(1000*60*(-(new Date()).getTimezoneOffset()))).toISOString().replace('T',' ').replace('Z','');
     const newEvent = await db.query(
-      `INSERT INTO events (title, description, created_by, creation_date, event_type, reveal_date, visibility) 
-      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`, 
-      [title, description, req.user.id, timeStamp, eventType, revealDate, visibility]
+      `INSERT INTO events (title, description, created_by, creation_date, event_type, reveal_date, visibility, location) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`, 
+      [title, description, req.user.id, timeStamp, eventType, revealDate, visibility, location]
     );
     
     const eventId = newEvent.rows[0].event_id;
@@ -317,6 +350,20 @@ app.post("/events", isAuthenticated, async(req,res) => {
           "INSERT INTO event_participation (event_id, user_id, status) VALUES ($1, $2, $3)",
           [eventId, userId, 'invited']
         );
+      }
+    }
+
+    if (tags.length > 0) {
+      for (const tag of tags) {
+        let tagResult = await db.query(`SELECT tag_id FROM event_tags WHERE tag_name = $1`, [tag]);
+
+        if (tagResult.rows.length === 0) {
+          tagResult = await db.query(`INSERT INTO event_tags (tag_name) VALUES ($1) RETURNING tag_id`, [tag]);
+        }
+
+        const tagId = tagResult.rows[0].tag_id;
+
+        await db.query(`INSERT INTO event_tag_map (event_id, tag_id) VALUES ($1, $2)`, [eventId, tagId]);
       }
     }
 
@@ -413,6 +460,7 @@ app.post("/deleteevent/:event_id", isAuthenticated, async (req, res) => {
     if (isCreator) {
       await db.query("DELETE FROM event_participation WHERE event_id = $1", [event_id]);
       await db.query("DELETE FROM memories WHERE event_id = $1", [event_id]);
+      await db.query("DELETE FROM event_tag_map WHERE event_id = $1", [event_id]);
       await db.query("DELETE FROM events WHERE event_id = $1", [event_id]);
 
       await db.query("COMMIT");
@@ -637,6 +685,18 @@ app.get("/user/:userId", isAuthenticated, async (req, res) => {
     
   } catch (err) {
       console.error("Error fetching user data:", err.message);
+      res.status(500).send("Server Error");
+  }
+});
+
+app.get("/location", isAuthenticated, async (req, res) => {
+  try {
+    const clientIp = await fetchIP();
+    const locationData = await fetchUserLocation(clientIp);
+
+    res.json(locationData);
+  } catch (err) {
+      console.error("Error fetching user location:", err.message);
       res.status(500).send("Server Error");
   }
 });
@@ -947,7 +1007,33 @@ app.get('/user/preferences/:userId', isAuthenticated, async (req, res) => {
 app.put('/user/preferences/:userId', isAuthenticated, async (req, res) => {
   try {
       const { userId } = req.params;
-      const { accountSettings, notificationSettings, privacySettings } = req.body;
+      const { accountSettings, notificationSettings, privacySettings, dataSettings } = req.body;
+      const clientIp = await fetchIP();
+
+      if (dataSettings?.location_enabled) {
+        const locationData = await fetchUserLocation(clientIp);
+        if (locationData) {
+          await db.query(`
+            UPDATE users
+            SET
+              city = $1,
+              region = $2,
+              country = $3
+            WHERE id = $4
+            `,[locationData.city, locationData.region, locationData.country, userId]);
+        } else {
+          console.error("Location data is null, skipping update.");
+        }
+      } else {
+        await db.query(`
+          UPDATE users
+          SET 
+            city = NULL,
+            region = NULL,
+            country = NULL
+          WHERE id = $1
+          `, [userId]);
+      }
 
       await db.query(`
           UPDATE user_preferences
@@ -955,13 +1041,14 @@ app.put('/user/preferences/:userId', isAuthenticated, async (req, res) => {
               account_settings = COALESCE(account_settings || $1::jsonb, account_settings),
               notification_settings = COALESCE(notification_settings || $2::jsonb, notification_settings),
               privacy_settings = COALESCE(privacy_settings || $3::jsonb, privacy_settings),
+              data_settings = COALESCE(data_settings || $4::jsonb, data_settings),
               updated_at = CURRENT_TIMESTAMP
-          WHERE user_id = $4
-      `, [accountSettings, notificationSettings, privacySettings, userId]);
+          WHERE user_id = $5
+      `, [accountSettings, notificationSettings, privacySettings, dataSettings, userId]);
 
       res.send("Preferences saved");
   } catch (error) {
-      res.status(500).send("Error updating preferences");
+      res.status(500).send("Error updating preferences:", error.message);
   }
 });
 
@@ -1085,11 +1172,11 @@ app.post('/friends/accept',  isAuthenticated, async (req, res) => {
       await db.query(
           'UPDATE friends SET status = $1 WHERE friend_id = $2 AND user_id = $3',
           ['accepted', userId, friendId ]
-      );//Update the friends entry
+      );
       await db.query(
           'INSERT INTO friends (user_id, friend_id, status) VALUES ($1, $2, $3)',
           [userId, friendId, 'accepted']
-      );//insert the users entry
+      );
       await logActivity(userId, 'added_friend', `Became friends with ${friend.username}`, friendId, 'user');
       res.status(200).json({ message: 'Friend request accepted' });
   } catch (error) {
