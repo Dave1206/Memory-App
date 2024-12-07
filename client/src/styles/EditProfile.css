@@ -3,7 +3,7 @@
     flex-direction: column;
     gap: 1.5em;
     padding: 20px;
-    background: #f5f5f5;
+    background: #55555556;
     border-radius: 8px;
     max-width: 500px;
     margin: 0 auto;
@@ -19,7 +19,7 @@
     min-height: 100px;
 }
 
-.button-container {
+.settings-button-container {
     display: flex;
     gap: 10px;
 }

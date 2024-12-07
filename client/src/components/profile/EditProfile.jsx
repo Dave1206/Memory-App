@@ -81,7 +81,7 @@ function EditProfile({ user, onSave }) {
             </div>
 
             {/* Save and Cancel Buttons */}
-            <div className="button-container">
+            <div className="settings-button-container">
                 <button onClick={handleSave} className="settings-button">Save</button>
                 <button onClick={handleCancel} className="settings-button">Cancel</button>
             </div>

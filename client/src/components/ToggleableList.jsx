@@ -21,14 +21,12 @@ function ToggleableList({ getEvents, user, onLogout }) {
                 <FontAwesomeIcon icon={isExpanded ? faChevronUp : faEllipsisH} />
             </button>
 
-            {isExpanded ? (
+            {isExpanded && (
                 <Link to={`/profile/${user.id}`}>
                     <img src={user.profile_picture} alt={`${user.username}'s profile}`}
                          className="toggleable-profile-picture" />
                     {user.username}
                 </Link>
-            ) : (    
-                <img src={user.profile_picture} alt={`${user.username}'s profile}`} className="toggleable-profile-picture" />
             )}
 
             {isExpanded && (

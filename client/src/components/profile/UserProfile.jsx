@@ -26,10 +26,10 @@ function UserProfile({ user }) {
 
                 if (response.data.blocked) {
                     setIsBlocked(true);
-                    setIsPrivate(false); // If blocked, ignore privacy setting
+                    setIsPrivate(false);
                 } else if (response.data.private) {
                     setIsPrivate(true);
-                    setIsBlocked(false); // If private, ignore blocked setting
+                    setIsBlocked(false);
                 } else {
                     setProfileUser(response.data);
                     setIsBlocked(false);
@@ -37,7 +37,7 @@ function UserProfile({ user }) {
                 }
             } catch (err) {
                 console.error("Error fetching user data", err.response?.data || err.message);
-                setIsBlocked(true); // Assume blocked or inaccessible on server error
+                setIsBlocked(true);
             }
         };
         fetchUserData();
@@ -102,7 +102,6 @@ function UserProfile({ user }) {
                                 <ActivityFeed userId={profileUser.id} />
                             </section>
                             <section className="profile-friends">
-                                <h2>Friends</h2>
                                 <FriendsList userId={profileUser.id} />
                             </section>
                         </div>

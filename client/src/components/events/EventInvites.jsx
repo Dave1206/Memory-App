@@ -9,7 +9,7 @@ function EventInvites({ events, onUpdate }) {
             await axiosInstance.post(`/events/${eventId}/opt-in`, {
                 status: 'opted_in'
             });
-            onUpdate(eventId); // Notify parent to update invites
+            onUpdate(eventId);
         } catch (error) {
             console.error("Error accepting event invite:", error);
         }
@@ -20,7 +20,7 @@ function EventInvites({ events, onUpdate }) {
             await axiosInstance.post(`/events/${eventId}/reject`, {
                 status: 'rejected'
             });
-            onUpdate(eventId); // Notify parent to update invites
+            onUpdate(eventId);
         } catch (error) {
             console.error("Error rejecting event invite:", error);
         }
