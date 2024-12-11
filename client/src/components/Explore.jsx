@@ -4,9 +4,9 @@ import '../styles/Explore.css';
 import SearchAndFilter from './SearchAndFilter';
 import ExplorePost from './ExplorePost';
 import SelectedEvent from './events/SelectedEvent';
+import useInteractionTracking from '../hooks/useInteractionTracking';
 
 function Explore({ getEvents }) {
-    const [selectedEvent, setSelectedEvent] = useState(null);
     const [activeTab, setActiveTab] = useState("trending");
     const [trendingPosts, setTrendingPosts] = useState([]);
     const [personalizedPosts, setPersonalizedPosts] = useState([]);
@@ -19,6 +19,7 @@ function Explore({ getEvents }) {
     const [loadingPersonalized, setLoadingPersonalized] = useState(false);
     const [hasMoreTrending, setHasMoreTrending] = useState(true);
     const [hasMorePersonalized, setHasMorePersonalized] = useState(true);
+    const { selectedEvent, handleSelectEvent, handleBackButton} = useInteractionTracking(null, '/explore');
 
     const { axiosInstance } = useAxios();
 
@@ -267,14 +268,6 @@ function Explore({ getEvents }) {
         } catch (err) {
             console.error('Error blocking user:', err);
         }
-    };
-
-    const handleSelectEvent = (event) => {
-        setSelectedEvent(event);
-    };
-
-    const handleBackButton = () => {
-        setSelectedEvent(null);
     };
 
     return (

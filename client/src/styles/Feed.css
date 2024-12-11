@@ -35,7 +35,11 @@
 
 /* Hide scrollbar on Webkit */
 .feed-container::-webkit-scrollbar {
-    display: none;
+    width: 8px;
+}
+.feed-container::-webkit-scrollbar-thumb {
+    background-color: #777;
+    border-radius: 8px;
 }
 
 @media (max-width: 768px) {

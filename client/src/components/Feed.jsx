@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useAxios } from './auth/AxiosProvider';
 import { useAuth } from './auth/AuthContext';
 import '../styles/Feed.css';
+import useInteractionTracking from '../hooks/useInteractionTracking';
 
 import SearchAndFilter from './SearchAndFilter';
 import FeedPost from './FeedPost';
@@ -15,9 +16,9 @@ function Feed({ getEvents }) {
     const [offset, setOffset] = useState(0);
     const [loading, setLoading] = useState(false);
     const [hasMore, setHasMore] = useState(true);
-    const [selectedEvent, setSelectedEvent] = useState(null);
     const { axiosInstance } = useAxios();
     const { user } = useAuth();
+    const { selectedEvent, handleSelectEvent, handleBackButton } = useInteractionTracking(null, '/feed');
 
     const postColorsRef = useRef({});
     const feedContainerRef = useRef(null);
@@ -213,15 +214,7 @@ function Feed({ getEvents }) {
             console.error('Error blocking user:', err);
         }
     };
-
-    const handleSelectEvent = (event) => {
-        setSelectedEvent(event);
-    };
-
-    const handleBackButton = () => {
-        setSelectedEvent(null);
-    };
-
+    
     if (feed.length === 0 && !loading) return (
         <div className='feed-wrapper'>
             <SearchAndFilter

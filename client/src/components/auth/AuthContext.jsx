@@ -30,6 +30,8 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setIsModMode(false);
     } catch (error) {
+      setUser(null);
+      setIsModMode(false);
       console.error("Logout error:", error.response?.data || error.message);
     }
   };

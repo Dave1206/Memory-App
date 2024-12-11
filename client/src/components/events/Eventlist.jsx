@@ -3,30 +3,23 @@ import Event from './Event';
 import SearchAndFilter from '../SearchAndFilter';
 import SelectedEvent from './SelectedEvent';
 import '../../styles/Eventlist.css';
+import useInteractionTracking from '../../hooks/useInteractionTracking';
 
 function EventList({ events, getEvents, userId }) {
-    const [selectedEvent, setSelectedEvent] = useState(null);
     const [filteredEvents, setFilteredEvents] = useState(events);
     const [searchTerm, setSearchTerm] = useState("");
     const [filters, setFilters] = useState({});
     const [sortOrder, setSortOrder] = useState("asc");
+    const { selectedEvent, setSelectedEvent, handleSelectEvent, handleBackButton} = useInteractionTracking(null, '/events');
 
     useEffect(() => {
         setFilteredEvents(events);
     }, [events]);
 
-    const handleBackButton = () => {
-        setSelectedEvent(null);
-    };
-
     const updateEvents = useCallback(() => {
         getEvents();
         setSelectedEvent(null);
-    }, [getEvents]);
-
-    const handleSelectEvent = (event) => {
-        setSelectedEvent(event);
-    };
+    }, [getEvents, setSelectedEvent]);
 
     const filterOptions = [
         {
