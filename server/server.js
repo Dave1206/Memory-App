@@ -253,7 +253,7 @@ app.post("/login", passport.authenticate("local"), (req, res) => {
   res.status(200).json({ message: "Login successful", user: req.user });
 });
 
-app.post("/logout", isAuthenticated, (req, res) => {
+app.post("/logout", (req, res) => {
   const userId = req.user?.id;
 
   if (!userId) {
@@ -374,6 +374,70 @@ app.post("/events", isAuthenticated, async(req,res) => {
   } catch(err) {
     console.error(err.message);
     res.status(500).send("Server Error");
+  }
+});
+
+app.post('/events/:eventId/start-interaction', isAuthenticated, async (req, res) => {
+  const { eventId } = req.params;
+  const userId = req.user.id;
+  const interactionStart = new Date();
+
+  try {
+    await db.query(
+      `
+      INSERT INTO event_participation (user_id, event_id, interaction_count, interaction_start)
+      VALUES ($1, $2, 1, $3)
+      ON CONFLICT (user_id, event_id)
+      DO UPDATE SET
+        interaction_count = event_participation.interaction_count + 1,
+        interaction_start = $3
+      `,
+      [userId, eventId, interactionStart]
+    );
+    res.status(200).json({ message: 'Interaction started successfully' });
+  } catch (err) {
+    console.error('Error starting interaction:', err.message);
+    res.status(500).json({ error: 'Failed to start interaction' });
+  }
+});
+
+app.post('/events/:eventId/end-interaction', isAuthenticated, async (req, res) => {
+  const { eventId } = req.params;
+  const userId = req.user.id;
+  const interactionEnd = new Date();
+
+  try {
+    const { rows } = await db.query(
+      `
+      SELECT interaction_start, interaction_duration
+      FROM event_participation
+      WHERE user_id = $1 AND event_id = $2
+      `,
+      [userId, eventId]
+    );
+
+    if (rows.length === 0 || !rows[0].interaction_start) {
+      return res.status(400).json({ error: 'Interaction not started' });
+    }
+
+    const interactionStart = new Date(rows[0].interaction_start);
+
+    const interactionDuration = new Date(interactionEnd - interactionStart).toISOString().substr(11, 8);
+
+    await db.query(
+      `
+      UPDATE event_participation
+      SET interaction_end = $3,
+          interaction_duration = COALESCE(interaction_duration, '00:00:00')::interval + $4::interval
+      WHERE user_id = $1 AND event_id = $2
+      `,
+      [userId, eventId, interactionEnd, interactionDuration]
+    );
+
+    res.status(200).json({ message: 'Interaction ended successfully' });
+  } catch (err) {
+    console.error('Error ending interaction:', err.message);
+    res.status(500).json({ error: 'Failed to end interaction' });
   }
 });
 
@@ -779,8 +843,11 @@ app.get('/feed', isAuthenticated, async (req, res) => {
 });
 
 app.get('/explore/trending', isAuthenticated, async (req, res) => {
-  const { search, filters: rawFilters, sortOrder = 'desc', limit = 10, offset = 0 } = req.query;
+  const { search, filters: rawFilters, sortOrder = 'desc' } = req.query;
+  const limit = parseInt(req.query.limit, 10) || 10;
+  const offset = parseInt(req.query.offset, 10) || 0;
   const userId = req.user.id;
+
   let filters;
   try {
     filters = rawFilters ? JSON.parse(rawFilters) : {};
@@ -794,13 +861,32 @@ app.get('/explore/trending', isAuthenticated, async (req, res) => {
   const selectedSortOrder = sortOrder.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
   let trendingQuery = `
-      SELECT e.event_id, e.title, e.description, e.creation_date, e.event_type, e.reveal_date, u.username, e.created_by, u.profile_picture, e.visibility, ep.has_liked, ep.has_shared_event, ep.has_shared_memory, ep.status,
-            COUNT(likes.event_id) AS likes_count,
-            COUNT(shares.event_id) AS shares_count,
-            (SELECT COUNT(*) FROM memories m WHERE m.event_id = e.event_id) AS memories_count,
-            EXTRACT(EPOCH FROM (NOW() - e.creation_date)) / 3600 AS age_in_hours,
-            (COUNT(likes.event_id) * 1.5 + COUNT(shares.event_id) * 1.2 + COUNT(m.event_id) * 1.0) /
-            (EXTRACT(EPOCH FROM (NOW() - e.creation_date)) / 3600 + 1) AS hot_score
+      SELECT 
+          e.event_id, 
+          e.title, 
+          e.description, 
+          e.creation_date, 
+          e.event_type, 
+          e.reveal_date, 
+          u.username, 
+          e.created_by, 
+          u.profile_picture, 
+          e.visibility, 
+          ep.has_liked, 
+          ep.has_shared_event, 
+          ep.has_shared_memory, 
+          ep.status,
+          COUNT(likes.event_id) AS likes_count,
+          COUNT(shares.event_id) AS shares_count,
+          (SELECT COUNT(*) FROM memories m WHERE m.event_id = e.event_id) AS memories_count,
+          EXTRACT(EPOCH FROM (NOW() - e.creation_date)) / 3600 AS age_in_hours,
+          (
+            COUNT(likes.event_id) * 1.5 + 
+            COUNT(shares.event_id) * 1.2 + 
+            COUNT(m.event_id) * 1.0 + 
+            COALESCE(SUM(ep.interaction_count), 0) * 1.1 + 
+            COALESCE(SUM(EXTRACT(EPOCH FROM ep.interaction_duration)::NUMERIC), 0) * 0.5
+          ) / ((EXTRACT(EPOCH FROM (NOW() - e.creation_date)) / 3600)::NUMERIC + 1) AS hot_score
       FROM events e
       JOIN users u ON e.created_by = u.id
       LEFT JOIN event_participation ep ON e.event_id = ep.event_id AND ep.user_id = $1
@@ -823,9 +909,23 @@ app.get('/explore/trending', isAuthenticated, async (req, res) => {
   }
 
   trendingQuery += `
-      GROUP BY e.event_id, u.username, u.profile_picture, e.title, e.description, e.creation_date, e.created_by, e.visibility, ep.has_liked, ep.has_shared_event, ep.has_shared_memory, ep.status, e.event_type, e.reveal_date
+      GROUP BY 
+          e.event_id, 
+          u.username, 
+          u.profile_picture, 
+          e.title, 
+          e.description, 
+          e.creation_date, 
+          e.created_by, 
+          e.visibility, 
+          ep.has_liked, 
+          ep.has_shared_event, 
+          ep.has_shared_memory, 
+          ep.status, 
+          e.event_type, 
+          e.reveal_date
       ORDER BY ${selectedSortField} ${selectedSortOrder}
-      LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
+      LIMIT $${queryParams.length + 1}::int OFFSET $${queryParams.length + 2}::int
   `;
 
   queryParams.push(limit, offset);
@@ -855,13 +955,43 @@ app.get('/explore/personalized', isAuthenticated, async (req, res) => {
   const selectedSortField = validSortFields.includes(filters.sortBy) ? filters.sortBy : 'interaction_count';
   const selectedSortOrder = sortOrder.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
+  const preferencesQuery = `
+      SELECT data_settings->>'location_enabled' AS location_enabled,
+             data_settings->>'metadata_enabled' AS metadata_enabled,
+             city, region, country
+      FROM user_preferences
+      JOIN users ON users.id = user_preferences.user_id
+      WHERE user_preferences.user_id = $1
+  `;
+  let locationEnabled = false;
+  let userLocation = {};
+  try {
+    const preferencesResult = await db.query(preferencesQuery, [userId]);
+    if (preferencesResult.rows.length > 0) {
+      const { location_enabled, city, region, country } = preferencesResult.rows[0];
+      locationEnabled = location_enabled === 'true';
+      userLocation = { city, region, country };
+    }
+  } catch (err) {
+    console.error("Error fetching user preferences:", err.message);
+    return res.status(500).json({ error: "Failed to fetch user preferences." });
+  }
+
   let personalizedQuery = `
-      SELECT e.event_id, e.title, e.description, e.creation_date, e.event_type, e.reveal_date, u.username, e.created_by, u.profile_picture, e.visibility, ep.has_liked, ep.has_shared_event, ep.has_shared_memory, ep.status,
+      SELECT e.event_id, e.title, e.description, e.creation_date, e.event_type, e.reveal_date, e.location, u.username, e.created_by, u.profile_picture, e.visibility, ep.has_liked, ep.has_shared_event, ep.has_shared_memory, ep.status,
             COUNT(likes.event_id) AS likes_count,
             COUNT(shares.event_id) AS shares_count,
             (SELECT COUNT(*) FROM memories m WHERE m.event_id = e.event_id) AS memories_count,
             COUNT(ep.interaction_count) AS interaction_count,
-            ARRAY_AGG(DISTINCT t.tag_name) AS event_tags
+            ARRAY_AGG(DISTINCT t.tag_name) AS event_tags,
+            SUM(CASE WHEN t.tag_name IN (
+                SELECT t_user.tag_name
+                FROM event_participation ep_user
+                JOIN event_tag_map etm_user ON ep_user.event_id = etm_user.event_id
+                JOIN event_tags t_user ON etm_user.tag_id = t_user.tag_id
+                WHERE ep_user.user_id = $1
+                  AND ep_user.interaction_count > 0
+            ) THEN 1 ELSE 0 END) AS matching_tag_count
       FROM events e
       JOIN users u ON e.created_by = u.id
       LEFT JOIN event_participation ep ON e.event_id = ep.event_id AND ep.user_id = $1
@@ -870,21 +1000,16 @@ app.get('/explore/personalized', isAuthenticated, async (req, res) => {
       LEFT JOIN event_tag_map etm ON e.event_id = etm.event_id
       LEFT JOIN event_tags t ON etm.tag_id = t.tag_id
       WHERE e.visibility = 'public'
-        AND EXISTS (
-          SELECT 1
-          FROM event_tag_map etm_user
-          JOIN event_tags t_user ON etm_user.tag_id = t_user.tag_id
-          WHERE etm_user.event_id IN (
-              SELECT event_id
-              FROM event_participation ep
-              WHERE ep.user_id = $1
-                AND ep.interaction_count > 0
-          )
-          AND t_user.tag_id = t.tag_id
-        )
   `;
 
   const queryParams = [userId];
+
+  if (locationEnabled && userLocation.city && userLocation.region && userLocation.country) {
+    personalizedQuery += `
+      AND e.location = $${queryParams.length + 1} || ', ' || $${queryParams.length + 2} || ', ' || $${queryParams.length + 3}
+    `;
+    queryParams.push(userLocation.city, userLocation.region, userLocation.country);
+  }
 
   if (search) {
     personalizedQuery += ` AND (e.title ILIKE $${queryParams.length + 1} OR e.description ILIKE $${queryParams.length + 1} OR u.username ILIKE $${queryParams.length + 1})`;
@@ -897,7 +1022,7 @@ app.get('/explore/personalized', isAuthenticated, async (req, res) => {
   }
 
   personalizedQuery += `
-      GROUP BY e.event_id, u.username, u.profile_picture, e.title, e.description, e.creation_date, e.created_by, e.visibility, ep.has_liked, ep.has_shared_event, ep.has_shared_memory, ep.status, e.event_type, e.reveal_date
+      GROUP BY e.event_id, u.username, u.profile_picture, e.title, e.description, e.creation_date, e.created_by, e.visibility, ep.has_liked, ep.has_shared_event, ep.has_shared_memory, ep.status, e.event_type, e.reveal_date, e.location
       ORDER BY ${selectedSortField} ${selectedSortOrder}
       LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
   `;
