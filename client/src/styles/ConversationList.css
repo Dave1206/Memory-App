@@ -1,0 +1,31 @@
+.conversation-list {
+    max-height: 100%;
+    overflow-y: auto;
+    border-right: 1px solid #ddd;
+    padding: 10px;
+}
+
+.conversation-item {
+    padding: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: background-color 0.2s;
+}
+
+.conversation-item:hover {
+    background-color: #f7f7f7;
+}
+
+.conversation-item.unread {
+    font-weight: bold;
+}
+
+.unread-badge {
+    background-color: red;
+    color: white;
+    font-size: 0.8rem;
+    padding: 5px;
+    border-radius: 50%;
+}

@@ -7,9 +7,8 @@ function ResetPassword() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState("");
   const query = new URLSearchParams(useLocation().search);
-  const token = query.get("token"); // Retrieve token from URL
+  const token = query.get("token");
   const navigate = useNavigate();
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -20,7 +19,6 @@ function ResetPassword() {
     try {
       const response = await axios.post("/reset-password", { token, newPassword });
       setMessage(response.data.message);
-      // Redirect to login or success page
       navigate("/login");
     } catch (error) {
       setMessage(error.response.data.message);

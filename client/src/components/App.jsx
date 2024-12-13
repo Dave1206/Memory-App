@@ -9,6 +9,7 @@ import EventList from './events/Eventlist';
 import ResetPassword from './auth/ResetPassword';
 import ForgotPassword from './auth/ForgotPassword';
 import ToggleableList from './ToggleableList';
+import MessengerToggle from './messenger/MessengerToggle';
 import Navbar from './Navbar';
 import Feed from './Feed';
 import Explore from './Explore';
@@ -79,6 +80,7 @@ function App() {
             element={
               user ? (
                 <>
+                  <MessengerToggle />
                   <ToggleableList getEvents={getEvents} user={user} onLogout={logout} />
                   <Navbar events={eventInvites} userId={user?.id} onEventUpdate={handleEventInvite} />
                   <EventList events={events} getEvents={getEvents} userId={user?.id} />
@@ -94,6 +96,7 @@ function App() {
             element={
               user ? (
                 <>
+                  <MessengerToggle />
                   <UserProfile user={user} />
                   <ToggleableList getEvents={getEvents} user={user} onLogout={logout} />
                   <Navbar events={eventInvites} userId={user?.id} onEventUpdate={handleEventInvite} />
@@ -109,6 +112,7 @@ function App() {
             element={
               user ? (
                 <>
+                  <MessengerToggle />
                   <Feed user={user} getEvents={getEvents} />
                   <ToggleableList getEvents={getEvents} user={user} onLogout={logout} />
                   <Navbar events={eventInvites} userId={user?.id} />
@@ -124,6 +128,7 @@ function App() {
             element={
               user ? (
                 <>
+                  <MessengerToggle />
                   <Explore getEvents={getEvents} />
                   <ToggleableList getEvents={getEvents} user={user} onLogout={logout} />
                   <Navbar events={eventInvites} userId={user?.id} />
@@ -139,6 +144,7 @@ function App() {
             element={
               user ? (
                 <>
+                  <MessengerToggle />
                   <ModeratorTools user={user} />
                   <ToggleableList getEvents={getEvents} user={user} onLogout={logout} />
                   <Navbar events={eventInvites} userId={user?.id} />

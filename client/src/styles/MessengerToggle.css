@@ -1,0 +1,66 @@
+/* Container */
+.messenger-toggle {
+    position: fixed;
+    top: 20px;
+    right: 50px;
+    z-index: 1000;
+    border-radius: 50%;
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+}
+
+/* Compact (collapsed) state */
+.messenger-toggle.compact .messenger-toggle-button {
+    width: 25px;
+    height: 25px;
+    font-size: 1em;
+    background-color: #0078d7;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.messenger-toggle.compact .messenger-toggle-button:hover {
+    background-color: #005bb5;
+    transform: scale(1.1);
+}
+
+/* Expanded state */
+.messenger-toggle.expanded .messenger-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+/* Close Overlay Button */
+.messenger-toggle.expanded .close-overlay-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 0.5em 1em;
+    font-size: 1em;
+    background-color: #f44336;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    z-index: 10000;
+}
+
+.messenger-toggle.expanded .close-overlay-btn:hover {
+    background-color: #d32f2f;
+    transform: scale(1.05);
+}

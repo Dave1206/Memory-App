@@ -14,6 +14,8 @@ import sharp from "sharp";
 import { moderateImageContent } from './contentModeration.js';
 import cloudinary from 'cloudinary';
 import axios from "axios";
+import { WebSocketServer } from "ws";
+import { handleSendMessage, handleMarkSeen } from "./utils/websocketHandlers.js";
 
 env.config();
 const app = express();
@@ -1226,6 +1228,148 @@ app.get('/users/:userId/activities', isAuthenticated, async (req, res) => {
   }
 });
 
+//messenger routes
+app.get('/conversations', isAuthenticated, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const conversations = await db.query(`
+      SELECT c.conversation_id, c.title, c.creator_id, 
+             MAX(m.sent_at) AS last_message_time,
+             COUNT(ms.message_id) FILTER (WHERE ms.user_id = $1 AND ms.seen = FALSE) AS unread_messages,
+             json_agg(
+               json_build_object(
+                 'user_id', cp.user_id,
+                 'username', u.username,
+                 'profile_picture', u.profile_picture
+               )
+             ) AS participants
+      FROM conversations c
+      JOIN conversation_participants cp ON c.conversation_id = cp.conversation_id
+      JOIN users u ON cp.user_id = u.id
+      LEFT JOIN messages m ON c.conversation_id = m.conversation_id
+      LEFT JOIN message_status ms ON m.message_id = ms.message_id
+      WHERE cp.user_id = $1
+      GROUP BY c.conversation_id
+      ORDER BY last_message_time DESC
+    `, [userId]);
+    res.json(conversations.rows);
+  } catch (error) {
+    console.error("Error fetching conversations:", error);
+    res.status(500).json({ message: "Server error fetching conversations" });
+  }
+});
+
+app.post('/conversations', isAuthenticated, async (req, res) => {
+  const { participantIds, title } = req.body;
+  const userId = req.user.id;
+
+  try {
+    const result = await db.query(`
+      SELECT c.conversation_id
+      FROM conversations c
+      JOIN conversation_participants cp ON c.conversation_id = cp.conversation_id
+      WHERE cp.user_id = ANY($1) AND c.is_group = FALSE
+      GROUP BY c.conversation_id
+      HAVING COUNT(cp.user_id) = $2
+    `, [participantIds, participantIds.length]);
+
+    if (result.rows.length > 0) {
+      return res.json({ conversation_id: result.rows[0].conversation_id });
+    }
+
+    const newConversation = await db.query(`
+      INSERT INTO conversations (title, created_by, is_group) 
+      VALUES ($1, $2, $3) RETURNING conversation_id
+    `, [title || null, userId, participantIds.length > 1]);
+
+    const conversationId = newConversation.rows[0].conversation_id;
+
+    await db.query(`
+      INSERT INTO conversation_participants (conversation_id, user_id, joined_at)
+      SELECT $1, unnest($2::int[]), CURRENT_TIMESTAMP
+    `, [conversationId, participantIds]);
+
+    res.status(201).json({ conversation_id: conversationId });
+  } catch (error) {
+    console.error("Error creating conversation:", error);
+    res.status(500).json({ message: "Server error creating conversation" });
+  }
+});
+
+app.get('/conversations/:conversationId/messages', isAuthenticated, async (req, res) => {
+  const { conversationId } = req.params;
+  const { limit = 20, offset = 0, before } = req.query;
+
+  try {
+    const messages = await db.query(`
+      SELECT m.message_id, m.content, m.media_url, m.sent_at, m.sender_id,
+             json_agg(
+               json_build_object(
+                 'user_id', ms.user_id,
+                 'seen_at', ms.seen_at
+               )
+             ) AS seen_status
+      FROM messages m
+      LEFT JOIN message_status ms ON m.message_id = ms.message_id
+      WHERE m.conversation_id = $1
+        AND ($2::timestamp IS NULL OR m.sent_at < $2)
+      GROUP BY m.message_id
+      ORDER BY m.sent_at DESC
+      LIMIT $3 OFFSET $4
+    `, [conversationId, before, limit, offset]);
+
+    res.json(messages.rows.reverse());
+  } catch (error) {
+    console.error("Error fetching messages:", error);
+    res.status(500).json({ message: "Server error fetching messages" });
+  }
+});
+
+app.post('/conversations/:conversationId/messages', isAuthenticated, async (req, res) => {
+  const { conversationId } = req.params;
+  const { content, mediaUrl } = req.body;
+  const userId = req.user.id;
+
+  try {
+    const newMessage = await db.query(`
+      INSERT INTO messages (conversation_id, sender_id, content, media_url, sent_at) 
+      VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP) 
+      RETURNING *
+    `, [conversationId, userId, content, mediaUrl]);
+
+    const participants = await db.query(`
+      SELECT user_id 
+      FROM conversation_participants 
+      WHERE conversation_id = $1
+    `, [conversationId]);
+
+    await db.query(`
+      INSERT INTO message_status (message_id, user_id, seen, seen_at)
+      SELECT $1, user_id, FALSE, NULL 
+      FROM unnest($2::int[])
+    `, [newMessage.rows[0].message_id, participants.rows.map(p => p.user_id)]);
+
+    res.status(201).json(newMessage.rows[0]);
+  } catch (error) {
+    console.error("Error posting message:", error);
+    res.status(500).json({ message: "Server error posting message" });
+  }
+});
+
+app.post('/conversations/:conversationId/media', isAuthenticated, upload.single('media'), async (req, res) => {
+  try {
+    const isSafe = await moderateImageContent(req.file.buffer);
+    if (!isSafe) {
+      return res.status(400).json({ error: 'Uploaded media contains inappropriate content' });
+    }
+
+    const uploadResult = await cloudinary.v2.uploader.upload_stream({ resource_type: 'auto' }).end(req.file.buffer);
+    res.status(201).json({ mediaUrl: uploadResult.secure_url });
+  } catch (error) {
+    console.error("Error uploading media:", error);
+    res.status(500).json({ message: "Error uploading media" });
+  }
+});
 
 //friend routes
 app.post('/friends/request', isAuthenticated, async (req, res) => {
@@ -1722,6 +1866,57 @@ app.delete('/admin/clear-audit-logs', isAuthenticated, isAdmin, async (req, res)
   }
 });
 
-app.listen(port, '0.0.0.0', () => {
-    console.log(`Server running on port ${port}`);
+//websocket server and connection
+const server = app.listen(port, '0.0.0.0', () => {
+  console.log(`Server running on port ${port}`);
+});
+
+const wss = new WebSocketServer({ server, path: '/ws' });
+
+const connectedClients = {};
+
+wss.on('connection', (ws, req) => {
+  console.log("New WebSocket connection established.");
+
+  // Authenticate and identify the user
+  const userId = req.url.split('userId=')[1];
+  if (!userId) {
+    ws.close();
+    return;
+  }
+
+  // Store the connection
+  if (!connectedClients[userId]) {
+    connectedClients[userId] = [];
+  }
+  connectedClients[userId].push(ws);
+
+  ws.on('message', async (message) => {
+    try {
+        const parsedMessage = JSON.parse(message);
+
+        switch (parsedMessage.type) {
+            case 'send_message':
+                await handleSendMessage(parsedMessage, userId, connectedClients);
+                break;
+            case 'mark_seen':
+                await handleMarkSeen(parsedMessage, userId, connectedClients);
+                break;
+            default:
+                console.error("Unknown WebSocket message type:", parsedMessage.type);
+        }
+    } catch (error) {
+        console.error("Error processing WebSocket message:", error);
+    }
   });
+
+  ws.on('close', () => {
+    connectedClients[userId] = connectedClients[userId].filter(client => client !== ws);
+    if (connectedClients[userId].length === 0) {
+      delete connectedClients[userId];
+    }
+    console.log(`WebSocket connection closed for user ${userId}`);
+  });
+});
+
+export default db;
