@@ -1,14 +1,14 @@
 const WebSocketInstance = (() => {
     let socket;
-    let listeners = {}; // Holds callbacks for different message types
-    const port = 4747;
+    let listeners = {};
 
     const connect = (userId) => {
-        const wsUrl = `ws://localhost:${port}/ws?userId=${userId}`;
+        const wsUrl = `ws://${window.location.hostname}:4747/ws?userId=${userId}`;
+        console.log("Attempting to connect to WebSocket:", wsUrl);
         socket = new WebSocket(wsUrl);
 
         socket.onopen = () => {
-            console.log("WebSocket connection established");
+            console.log("WebSocket connection established to", wsUrl);
         };
 
         socket.onmessage = (event) => {
@@ -21,7 +21,7 @@ const WebSocketInstance = (() => {
         };
 
         socket.onerror = (error) => {
-            console.error("WebSocket error:", error);
+            console.error("WebSocket connection error:", error.message || error, "URL:", socket.url);
         };
     };
 
@@ -51,7 +51,7 @@ const WebSocketInstance = (() => {
         const { type, data } = message;
 
         if (listeners[type]) {
-            listeners[type](data); // Call the registered callback
+            listeners[type](data);
         } else {
             console.warn(`No handler for message type: ${type}`);
         }

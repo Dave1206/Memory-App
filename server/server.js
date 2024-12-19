@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import http from 'http';
 import pg from "pg";
 import bcrypt from "bcrypt";
 import session from "express-session";
@@ -1867,9 +1868,7 @@ app.delete('/admin/clear-audit-logs', isAuthenticated, isAdmin, async (req, res)
 });
 
 //websocket server and connection
-const server = app.listen(port, '0.0.0.0', () => {
-  console.log(`Server running on port ${port}`);
-});
+const server = http.createServer(app);
 
 const wss = new WebSocketServer({ server, path: '/ws' });
 
@@ -1917,6 +1916,10 @@ wss.on('connection', (ws, req) => {
     }
     console.log(`WebSocket connection closed for user ${userId}`);
   });
+});
+
+server.listen(port, '0.0.0.0', () => {
+  console.log(`Server running on port ${port}`);
 });
 
 export default db;

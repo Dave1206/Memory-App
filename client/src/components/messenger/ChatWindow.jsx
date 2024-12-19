@@ -19,7 +19,7 @@ function ChatWindow({ conversationId, onClose, userId }) {
                     params: { limit: 20, before },
                 });
                 setMessages((prevMessages) => [...response.data.reverse(), ...prevMessages]);
-                setHasMoreMessages(response.data.length === 20); // Pagination limit assumption
+                setHasMoreMessages(response.data.length === 20);
             } catch (error) {
                 console.error("Error fetching messages:", error);
             } finally {
@@ -31,14 +31,12 @@ function ChatWindow({ conversationId, onClose, userId }) {
 
         WebSocketInstance.connect(userId);
 
-        // Listen for new messages
         WebSocketInstance.on('new_message', (message) => {
             if (message.conversation_id === conversationId) {
                 setMessages((prevMessages) => [...prevMessages, message]);
             }
         });
 
-        // Listen for seen updates
         WebSocketInstance.on('message_seen', (seenData) => {
             if (seenData.conversation_id === conversationId) {
                 setMessages((prevMessages) =>

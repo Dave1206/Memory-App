@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useAxios } from '../auth/AxiosProvider';
+import { useAuth } from '../auth/AuthContext';
 import WebSocketInstance from '../../utils/WebSocket';
 import '../../styles/ConversationList.css';
 
-function ConversationList({ onSelectConversation, userId }) {
+function ConversationList({ onSelectConversation }) {
     const { axiosInstance } = useAxios();
+    const { user } = useAuth();
+    const userId = user.id;
     const [conversations, setConversations] = useState([]);
     const [loading, setLoading] = useState(true);
 
