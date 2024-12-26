@@ -1265,35 +1265,48 @@ app.post('/conversations', isAuthenticated, async (req, res) => {
   const userId = req.user.id;
 
   try {
-    const result = await db.query(`
-      SELECT c.conversation_id
-      FROM conversations c
-      JOIN conversation_participants cp ON c.conversation_id = cp.conversation_id
-      WHERE cp.user_id = ANY($1) AND c.is_group = FALSE
-      GROUP BY c.conversation_id
-      HAVING COUNT(cp.user_id) = $2
-    `, [participantIds, participantIds.length]);
+      if (!participantIds.includes(userId)) {
+          participantIds.push(userId);
+      }
 
-    if (result.rows.length > 0) {
-      return res.json({ conversation_id: result.rows[0].conversation_id });
-    }
+      const sortedParticipantIds = [...participantIds].sort((a, b) => a - b);
+      const participantKey = participantIds.length === 2
+          ? `${sortedParticipantIds[0]}_${sortedParticipantIds[1]}`
+          : null;
 
-    const newConversation = await db.query(`
-      INSERT INTO conversations (title, created_by, is_group) 
-      VALUES ($1, $2, $3) RETURNING conversation_id
-    `, [title || null, userId, participantIds.length > 1]);
+      if (participantKey) {
+          const existingConversation = await db.query(`
+              SELECT conversation_id
+              FROM conversations
+              WHERE participant_key = $1 AND is_group = FALSE
+          `, [participantKey]);
 
-    const conversationId = newConversation.rows[0].conversation_id;
+          if (existingConversation.rows.length > 0) {
+              return res.json({ conversation_id: existingConversation.rows[0].conversation_id });
+          }
+      }
 
-    await db.query(`
-      INSERT INTO conversation_participants (conversation_id, user_id, joined_at)
-      SELECT $1, unnest($2::int[]), CURRENT_TIMESTAMP
-    `, [conversationId, participantIds]);
+      const newConversation = await db.query(`
+          INSERT INTO conversations (title, creator_id, is_group, participant_key) 
+          VALUES ($1, $2, $3, $4) RETURNING conversation_id
+      `, [
+          title || null,
+          userId,
+          participantIds.length > 2,
+          participantKey,
+      ]);
 
-    res.status(201).json({ conversation_id: conversationId });
+      const conversationId = newConversation.rows[0].conversation_id;
+
+      await db.query(`
+          INSERT INTO conversation_participants (conversation_id, user_id, joined_at)
+          SELECT $1, unnest($2::int[]), CURRENT_TIMESTAMP
+      `, [conversationId, participantIds]);
+
+      res.status(201).json({ conversation_id: conversationId });
   } catch (error) {
-    console.error("Error creating conversation:", error);
-    res.status(500).json({ message: "Server error creating conversation" });
+      console.error("Error creating conversation:", error);
+      res.status(500).json({ message: "Server error creating conversation" });
   }
 });
 
@@ -1346,8 +1359,7 @@ app.post('/conversations/:conversationId/messages', isAuthenticated, async (req,
 
     await db.query(`
       INSERT INTO message_status (message_id, user_id, seen, seen_at)
-      SELECT $1, user_id, FALSE, NULL 
-      FROM unnest($2::int[])
+      SELECT $1, unnest($2::int[]), FALSE, NULL 
     `, [newMessage.rows[0].message_id, participants.rows.map(p => p.user_id)]);
 
     res.status(201).json(newMessage.rows[0]);
@@ -1470,7 +1482,6 @@ app.post('/friends/reject',  isAuthenticated, async (req, res) => {
 app.get('/friends/:userId', isAuthenticated, async (req, res) => {
   const { userId } = req.params;
   try {
-      // Fetch friends list
       const fetchFriends = await db.query(
           `SELECT u.id::text AS id, u.username, u.profile_picture, u.last_online 
            FROM friends f
@@ -1482,10 +1493,8 @@ app.get('/friends/:userId', isAuthenticated, async (req, res) => {
 
       const friends = fetchFriends.rows;
 
-      // Get list of friend IDs for session check
       const friendIds = friends.map(friend => friend.id);
 
-      // Fetch online statuses from session table, casting to text for uniform comparison
       const fetchStatuses = await db.query(
         `SELECT s.sess -> 'passport' ->> 'user' AS user_id
           FROM session s
@@ -1495,7 +1504,6 @@ app.get('/friends/:userId', isAuthenticated, async (req, res) => {
 
       const statuses = fetchStatuses.rows;
 
-      // Match friends list with online status
       const friendsWithStatus = friends.map(friend => {
         const onlineStatus = statuses.some(status => String(status.user_id) === String(friend.id));
         return { ...friend, online: onlineStatus };

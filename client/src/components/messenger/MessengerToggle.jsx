@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMessage, faChevronDown } from '@fortawesome/free-solid-svg-icons';
-import ConversationList from './ConversationList';
+import Messenger from './Messenger';
 import '../../styles/MessengerToggle.css';
 
 function MessengerToggle() {
@@ -22,7 +22,7 @@ function MessengerToggle() {
                     <button className="close-overlay-btn" onClick={toggleExpand}>
                         Close
                     </button>
-                    <ConversationList onSelectConversation={(id) => console.log(`Open chat ${id}`)} />
+                    <Messenger />
                 </div>
             )}
         </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAxios } from '../auth/AxiosProvider';
 import WebSocketInstance from '../../utils/WebSocket';
 import '../../styles/ChatWindow.css';
@@ -12,21 +12,23 @@ function ChatWindow({ conversationId, onClose, userId }) {
     const chatContainerRef = useRef(null);
     const oldestMessageTime = messages.length > 0 ? messages[0].sent_at : null;
 
-    useEffect(() => {
-        const fetchMessages = async (before = null) => {
-            try {
-                const response = await axiosInstance.get(`/conversations/${conversationId}/messages`, {
-                    params: { limit: 20, before },
-                });
-                setMessages((prevMessages) => [...response.data.reverse(), ...prevMessages]);
-                setHasMoreMessages(response.data.length === 20);
-            } catch (error) {
-                console.error("Error fetching messages:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
+    const chatContainer = chatContainerRef.current;
 
+    const fetchMessages = useCallback(async (before = null) => {
+        try {
+            const response = await axiosInstance.get(`/conversations/${conversationId}/messages`, {
+                params: { limit: 20, before },
+            });
+            setMessages((prevMessages) => [...response.data.reverse(), ...prevMessages]);
+            setHasMoreMessages(response.data.length === 20);
+        } catch (error) {
+            console.error("Error fetching messages:", error);
+        } finally {
+            setLoading(false);
+        }
+    }, [axiosInstance, conversationId]);
+    
+    useEffect(() => {
         fetchMessages();
 
         WebSocketInstance.connect(userId);
@@ -50,9 +52,11 @@ function ChatWindow({ conversationId, onClose, userId }) {
         });
 
         return () => {
+            WebSocketInstance.off('new_message');
+            WebSocketInstance.off('message_seen');
             WebSocketInstance.disconnect();
         };
-    }, [axiosInstance, conversationId, userId]);
+    }, [conversationId, userId, fetchMessages]);
 
     const handleSendMessage = async () => {
         if (!newMessage.trim()) return;
@@ -68,15 +72,15 @@ function ChatWindow({ conversationId, onClose, userId }) {
         }
     };
 
-    const handleScroll = () => {
-        if (chatContainerRef.current.scrollTop === 0 && hasMoreMessages) {
+    const handleScroll = useCallback(() => {
+        if (chatContainer.scrollTop === 0 && hasMoreMessages) {
             setLoading(true);
             fetchMessages(oldestMessageTime);
         }
 
         if (
-            chatContainerRef.current.scrollTop + chatContainerRef.current.clientHeight >=
-            chatContainerRef.current.scrollHeight
+            chatContainer.scrollTop + chatContainer.clientHeight >=
+            chatContainer.scrollHeight
         ) {
             const unseenMessages = messages.filter((msg) => !msg.seen_by.includes(userId));
             if (unseenMessages.length > 0) {
@@ -86,34 +90,41 @@ function ChatWindow({ conversationId, onClose, userId }) {
                 });
             }
         }
-    };
+    }, [setLoading, fetchMessages, chatContainer, conversationId, hasMoreMessages, messages, oldestMessageTime, userId]);
 
     useEffect(() => {
-        if (chatContainerRef.current) {
-            chatContainerRef.current.addEventListener('scroll', handleScroll);
+        if (chatContainer) {
+            chatContainer.addEventListener('scroll', handleScroll);
         }
 
         return () => {
-            if (chatContainerRef.current) {
-                chatContainerRef.current.removeEventListener('scroll', handleScroll);
+            if (chatContainer) {
+                chatContainer.removeEventListener('scroll', handleScroll);
             }
         };
-    }, [messages]);
+    }, [chatContainer, handleScroll]);
 
     return (
         <div className="chat-window">
             <button className="close-btn" onClick={onClose}>Close</button>
             <div className="chat-container" ref={chatContainerRef}>
                 {loading && <p>Loading messages...</p>}
-                {messages.map((msg) => (
-                    <div key={msg.message_id} className={`chat-message ${msg.sender_id === userId ? 'sent' : 'received'}`}>
-                        <p>{msg.content}</p>
-                        <span className="timestamp">{new Date(msg.sent_at).toLocaleString()}</span>
-                        <span className="seen-status">
-                            {msg.seen_by.length > 0 ? `Seen by ${msg.seen_by.length}` : 'Unseen'}
-                        </span>
-                    </div>
-                ))}
+                {messages && messages.length > 0 ? (
+                    messages.map((msg) => (
+                        <div
+                            key={msg.message_id}
+                            className={`chat-message ${msg.sender_id === userId ? 'sent' : 'received'}`}
+                        >
+                            <p>{msg.content}</p>
+                            <span className="timestamp">{new Date(msg.sent_at).toLocaleString()}</span>
+                            <span className="seen-status">
+                                {msg.seen_by?.length > 0 ? `Seen by ${msg.seen_by.length}` : 'Unseen'}
+                            </span>
+                        </div>
+                    ))
+                ) : (
+                    !loading && <p>No messages yet. Say something!</p>
+                )}
             </div>
             <div className="chat-input">
                 <input
