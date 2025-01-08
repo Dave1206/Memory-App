@@ -11,7 +11,6 @@ function ChatWindow({ conversationId, onClose, userId }) {
     const [hasMoreMessages, setHasMoreMessages] = useState(true);
     const chatContainerRef = useRef(null);
     const oldestMessageTime = messages.length > 0 ? messages[0].sent_at : null;
-
     const chatContainer = chatContainerRef.current;
 
     const fetchMessages = useCallback(async (before = null) => {
@@ -19,7 +18,11 @@ function ChatWindow({ conversationId, onClose, userId }) {
             const response = await axiosInstance.get(`/conversations/${conversationId}/messages`, {
                 params: { limit: 20, before },
             });
-            setMessages((prevMessages) => [...response.data.reverse(), ...prevMessages]);
+            if (before) {
+                setMessages((prevMessages) => [...response.data, ...prevMessages]);
+            } else {
+                setMessages(response.data);
+            }
             setHasMoreMessages(response.data.length === 20);
         } catch (error) {
             console.error("Error fetching messages:", error);
@@ -31,32 +34,18 @@ function ChatWindow({ conversationId, onClose, userId }) {
     useEffect(() => {
         fetchMessages();
 
-        WebSocketInstance.connect(userId);
-
-        WebSocketInstance.on('new_message', (message) => {
+        const handleNewMessage = (message) => {
             if (message.conversation_id === conversationId) {
                 setMessages((prevMessages) => [...prevMessages, message]);
             }
-        });
+        };
 
-        WebSocketInstance.on('message_seen', (seenData) => {
-            if (seenData.conversation_id === conversationId) {
-                setMessages((prevMessages) =>
-                    prevMessages.map((msg) =>
-                        seenData.messageIds.includes(msg.message_id)
-                            ? { ...msg, seen_by: seenData.seenBy }
-                            : msg
-                    )
-                );
-            }
-        });
+        WebSocketInstance.on('new_message', handleNewMessage);
 
         return () => {
-            WebSocketInstance.off('new_message');
-            WebSocketInstance.off('message_seen');
-            WebSocketInstance.disconnect();
+            WebSocketInstance.off('new_message', handleNewMessage);
         };
-    }, [conversationId, userId, fetchMessages]);
+    }, [conversationId, fetchMessages]);
 
     const handleSendMessage = async () => {
         if (!newMessage.trim()) return;
@@ -82,7 +71,7 @@ function ChatWindow({ conversationId, onClose, userId }) {
             chatContainer.scrollTop + chatContainer.clientHeight >=
             chatContainer.scrollHeight
         ) {
-            const unseenMessages = messages.filter((msg) => !msg.seen_by.includes(userId));
+            const unseenMessages = messages.filter((msg) => !msg.seen_status.includes(userId));
             if (unseenMessages.length > 0) {
                 WebSocketInstance.sendMessage('mark_seen', {
                     conversationId,

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAxios } from '../auth/AxiosProvider';
 import { useAuth } from '../auth/AuthContext';
-import WebSocketInstance from '../../utils/WebSocket';
 import '../../styles/ConversationList.css';
 
 function ConversationList({ onSelectConversation }) {
@@ -37,26 +36,6 @@ function ConversationList({ onSelectConversation }) {
 
         fetchConversations();
         fetchFriends();
-
-        WebSocketInstance.connect(userId);
-
-        WebSocketInstance.on('conversation_update', (updatedConversation) => {
-            setConversations((prevConversations) =>
-                prevConversations.map((conv) =>
-                    conv.conversation_id === updatedConversation.conversation_id
-                        ? { ...conv, ...updatedConversation }
-                        : conv
-                )
-            );
-        });
-
-        WebSocketInstance.on('new_conversation', (newConversation) => {
-            setConversations((prevConversations) => [newConversation, ...prevConversations]);
-        });
-
-        return () => {
-            WebSocketInstance.disconnect();
-        };
     }, [axiosInstance, userId]);
 
     const handleNewConversation = async () => {

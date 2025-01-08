@@ -22,7 +22,7 @@ function MessengerToggle() {
                     <button className="close-overlay-btn" onClick={toggleExpand}>
                         Close
                     </button>
-                    <Messenger />
+                    <Messenger isOpen={isExpanded} />
                 </div>
             )}
         </div>

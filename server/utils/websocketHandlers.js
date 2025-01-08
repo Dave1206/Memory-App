@@ -1,19 +1,20 @@
 import db from '../server.js';
 
 export async function handleSendMessage(message, senderId, connectedClients) {
-    const { conversationId, content, mediaUrl } = message;
+    const { conversation_id, content, media_url } = message;
+    console.log(message);
 
     try {
         const newMessage = await db.query(
             `INSERT INTO messages (conversation_id, sender_id, content, media_url, sent_at) 
              VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP) 
              RETURNING *`,
-            [conversationId, senderId, content, mediaUrl]
+            [conversation_id, senderId, content, media_url]
         );
 
         const participants = await db.query(
             `SELECT user_id FROM conversation_participants WHERE conversation_id = $1`,
-            [conversationId]
+            [conversation_id]
         );
 
         const messageId = newMessage.rows[0].message_id;
@@ -41,7 +42,8 @@ export async function handleSendMessage(message, senderId, connectedClients) {
 }
 
 export async function handleMarkSeen(message, userId, connectedClients) {
-    const { conversationId, seenMessageIds } = message;
+    const { conversation_id, seenMessageIds } = message;
+    console.log(message);
 
     try {
         await db.query(
@@ -53,7 +55,7 @@ export async function handleMarkSeen(message, userId, connectedClients) {
 
         const participants = await db.query(
             `SELECT user_id FROM conversation_participants WHERE conversation_id = $1 AND user_id != $2`,
-            [conversationId, userId]
+            [conversation_id, userId]
         );
 
         participants.rows.forEach(participant => {
@@ -61,7 +63,7 @@ export async function handleMarkSeen(message, userId, connectedClients) {
                 connectedClients[participant.user_id].forEach(client => {
                     client.send(JSON.stringify({
                         type: 'message_seen',
-                        data: { conversationId, seenMessageIds }
+                        data: { conversation_id, seenMessageIds }
                     }));
                 });
             }

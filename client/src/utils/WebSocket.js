@@ -1,20 +1,22 @@
 const WebSocketInstance = (() => {
-    let socket;
+    let socket = null;
     let listeners = {};
-    let reconnectTimeout;
+    let reconnectTimeout = null;
     const reconnectDelay = 5000;
 
     const connect = (userId) => {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            console.log("WebSocket already connected.");
+            return;
+        }
+
         const wsUrl = `ws://${window.location.hostname}:4747/ws?userId=${userId}`;
         console.log("Attempting to connect to WebSocket:", wsUrl);
         socket = new WebSocket(wsUrl);
 
         socket.onopen = () => {
-            console.log("WebSocket connection established to", wsUrl);
-            if (reconnectTimeout) {
-                clearTimeout(reconnectTimeout);
-                reconnectTimeout = null;
-            }
+            console.log("WebSocket connection established to", socket.url);
+            clearReconnectTimeout();
         };
 
         socket.onmessage = (event) => {
@@ -27,16 +29,31 @@ const WebSocketInstance = (() => {
         };
 
         socket.onclose = (event) => {
-            console.log("WebSocket connection closed:", event.reason);
-            if(!reconnectTimeout) {
-                reconnectTimeout = setTimeout(() => connect(userId), reconnectDelay);
-                console.log("Reconnecting WebSocket in", reconnectDelay / 1000, "seconds...");
+            console.warn(
+                `WebSocket connection closed: Code=${event.code}, Reason=${event.reason}`
+            );
+            if (event.code !== 1000 && !reconnectTimeout) {
+                scheduleReconnect(userId);
             }
         };
 
         socket.onerror = (error) => {
-            console.error("WebSocket connection error:", error.message || error, "URL:", socket.url);
+            console.error("WebSocket error:", error.message || error);
         };
+    };
+
+    const scheduleReconnect = (userId) => {
+        reconnectTimeout = setTimeout(() => {
+            console.log(`Reconnecting WebSocket in ${reconnectDelay / 1000}s...`);
+            connect(userId);
+        }, reconnectDelay);
+    };
+
+    const clearReconnectTimeout = () => {
+        if (reconnectTimeout) {
+            clearTimeout(reconnectTimeout);
+            reconnectTimeout = null;
+        }
     };
 
     const sendMessage = (type, data) => {
@@ -49,12 +66,9 @@ const WebSocketInstance = (() => {
 
     const disconnect = () => {
         if (socket) {
+            clearReconnectTimeout();
             socket.close();
             socket = null;
-            if (reconnectTimeout) {
-                clearTimeout(reconnectTimeout);
-                reconnectTimeout = null;
-            }
             console.log("WebSocket disconnected")
         }
     };
@@ -69,7 +83,6 @@ const WebSocketInstance = (() => {
 
     const handleClientMessage = (message) => {
         const { type, data } = message;
-
         if (listeners[type]) {
             listeners[type](data);
         } else {

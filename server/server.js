@@ -1883,24 +1883,22 @@ const wss = new WebSocketServer({ server, path: '/ws' });
 const connectedClients = {};
 
 wss.on('connection', (ws, req) => {
-  console.log("New WebSocket connection established.");
+  console.log(`New WebSocket connection: ${req.url}`);
 
-  // Authenticate and identify the user
   const userId = req.url.split('userId=')[1];
   if (!userId) {
+    console.error("Invalid connection: Missing userId.");
     ws.close();
     return;
   }
 
-  // Store the connection
-  if (!connectedClients[userId]) {
-    connectedClients[userId] = [];
-  }
+  connectedClients[userId] = connectedClients[userId] || [];
   connectedClients[userId].push(ws);
 
   ws.on('message', async (message) => {
     try {
         const parsedMessage = JSON.parse(message);
+        console.log("Received message:", parsedMessage);
 
         switch (parsedMessage.type) {
             case 'send_message':
@@ -1914,7 +1912,12 @@ wss.on('connection', (ws, req) => {
         }
     } catch (error) {
         console.error("Error processing WebSocket message:", error);
+        ws.close(1011, "Internal server error");
     }
+  });
+
+  ws.on('error', (error) => {
+    console.error("WebSocket error for user:", userId, error);
   });
 
   ws.on('close', () => {
