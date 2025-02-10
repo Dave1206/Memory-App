@@ -110,17 +110,24 @@ function ConversationList({ onSelectConversation }) {
                         <div
                             key={conversation.conversation_id}
                             className={`conversation-item ${conversation.unread_messages > 0 ? 'unread' : ''}`}
-                            onClick={() => onSelectConversation(conversation.conversation_id)}
+                            onClick={() => onSelectConversation(conversation)}
                         >
                             <div className="conversation-info">
-                                <h3>{conversation.title || 'Private Message'}</h3>
+                                <h3>{conversation.title || 
+                                    conversation.participants
+                                        .filter((participant) => participant.user_id !== userId)
+                                        .map((participant) => participant.username)
+                                        .join(', ')}
+                                </h3>
                                 <p>
                                     {conversation.last_message_time &&
                                         new Date(conversation.last_message_time).toLocaleString()}
                                 </p>
-                                <span className="unread-badge">
-                                    {conversation.unread_messages > 0 && conversation.unread_messages}
-                                </span>
+                                {conversation.unread_messages > 0 && (
+                                    <span className="unread-badge">
+                                        {conversation.unread_messages}
+                                    </span>
+                                )}
                             </div>
                         </div>
                     ))}

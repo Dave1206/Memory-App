@@ -1,5 +1,8 @@
 import db from '../server.js';
 
+const debounceTimers = new Map();
+const pendingMarkSeenEvents = new Map();
+
 export async function handleSendMessage(message, senderId, connectedClients) {
     const { conversation_id, content, media_url } = message;
     console.log(message);
@@ -42,33 +45,59 @@ export async function handleSendMessage(message, senderId, connectedClients) {
 }
 
 export async function handleMarkSeen(message, userId, connectedClients) {
-    const { conversation_id, seenMessageIds } = message;
-    console.log(message);
+    const { conversationId, messageIds } = message;
+  
+    const key = `${userId}-${conversationId}`;
 
-    try {
-        await db.query(
-            `UPDATE message_status
-             SET seen = TRUE, seen_at = CURRENT_TIMESTAMP
-             WHERE user_id = $1 AND message_id = ANY($2::int[])`,
-            [userId, seenMessageIds]
-        );
+    let pendingIds = pendingMarkSeenEvents.get(key) || new Set();
+    messageIds.forEach(id => pendingIds.add(id));
+    pendingMarkSeenEvents.set(key, pendingIds);
 
-        const participants = await db.query(
-            `SELECT user_id FROM conversation_participants WHERE conversation_id = $1 AND user_id != $2`,
-            [conversation_id, userId]
-        );
-
-        participants.rows.forEach(participant => {
-            if (connectedClients[participant.user_id]) {
-                connectedClients[participant.user_id].forEach(client => {
-                    client.send(JSON.stringify({
-                        type: 'message_seen',
-                        data: { conversation_id, seenMessageIds }
-                    }));
-                });
-            }
-        });
-    } catch (error) {
-        console.error("Error handling mark_seen WebSocket event:", error);
+    if (debounceTimers.has(key)) {
+      clearTimeout(debounceTimers.get(key));
     }
-}
+  
+    const timer = setTimeout(async () => {
+      const idsToUpdate = Array.from(pendingMarkSeenEvents.get(key));
+      pendingMarkSeenEvents.delete(key);
+      debounceTimers.delete(key);
+  
+      try {
+        await db.query(
+          `UPDATE message_status
+           SET seen = TRUE, seen_at = CURRENT_TIMESTAMP
+           WHERE user_id = $1
+             AND message_id = ANY($2::int[])
+             AND message_id NOT IN (
+               SELECT message_id FROM messages WHERE sender_id = $1
+             )`,
+          [userId, idsToUpdate]
+        );
+      } catch (error) {
+        console.error("Error updating message_status:", error);
+      }
+  
+      try {
+        const participantsResult = await db.query(
+          `SELECT user_id FROM conversation_participants 
+           WHERE conversation_id = $1 AND user_id != $2`,
+          [conversationId, userId]
+        );
+        const participants = participantsResult.rows;
+        participants.forEach(participant => {
+          if (connectedClients[participant.user_id]) {
+            connectedClients[participant.user_id].forEach(client => {
+              client.send(JSON.stringify({
+                type: 'message_seen',
+                data: { conversationId, messageIds: idsToUpdate }
+              }));
+            });
+          }
+        });
+      } catch (error) {
+        console.error("Error broadcasting message_seen:", error);
+      }
+    }, 300);
+  
+    debounceTimers.set(key, timer);
+  }

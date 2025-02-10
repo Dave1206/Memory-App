@@ -1,30 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ConversationList from './ConversationList';
 import ChatWindow from './ChatWindow';
 import { useAuth } from '../auth/AuthContext';
 import WebSocketInstance from '../../utils/WebSocket';
 import '../../styles/Messenger.css';
 
-function Messenger({ isOpen }) {
+function Messenger() {
     const { user } = useAuth();
     const [selectedConversation, setSelectedConversation] = useState(null);
+    const userId = useRef(user.id);
 
     useEffect(() => {
-        if (isOpen) {
-            console.log("Connecting WebSocket for user:", user.id);
-            WebSocketInstance.connect(user.id);
-        } else {
-            console.log("Disconnecting WebSocket for user:", user.id);
-            WebSocketInstance.disconnect();
-        }
+            console.log("Connecting WebSocket for user:", userId.current);
+            WebSocketInstance.connect(userId.current);
 
         return () => {
             WebSocketInstance.disconnect();
+            console.log("Messenger component unmounted.")
         };
-    }, [isOpen, user.id]);
+    }, []);
 
-    const handleSelectConversation = (conversationId) => {
-        setSelectedConversation(conversationId);
+    const handleSelectConversation = (conversation) => {
+        setSelectedConversation(conversation);
     };
 
     const handleCloseChatWindow = () => {
@@ -36,7 +33,8 @@ function Messenger({ isOpen }) {
             <ConversationList onSelectConversation={handleSelectConversation} />
             {selectedConversation && (
                 <ChatWindow
-                    conversationId={selectedConversation}
+                    conversationId={selectedConversation.conversation_id}
+                    participants = {selectedConversation.participants}
                     onClose={handleCloseChatWindow}
                     userId={user.id}
                 />

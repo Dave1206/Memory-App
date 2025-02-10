@@ -1236,20 +1236,28 @@ app.get('/conversations', isAuthenticated, async (req, res) => {
     const conversations = await db.query(`
       SELECT c.conversation_id, c.title, c.creator_id, 
              MAX(m.sent_at) AS last_message_time,
-             COUNT(ms.message_id) FILTER (WHERE ms.user_id = $1 AND ms.seen = FALSE) AS unread_messages,
-             json_agg(
-               json_build_object(
+             COUNT(ms.message_id) FILTER (
+                WHERE ms.user_id = $1 
+                  AND ms.seen = FALSE
+                  AND m.sender_id <> $1
+              ) AS unread_messages,
+             (json_agg(
+               DISTINCT jsonb_build_object(
                  'user_id', cp.user_id,
                  'username', u.username,
                  'profile_picture', u.profile_picture
                )
-             ) AS participants
+    ))::json AS participants
       FROM conversations c
       JOIN conversation_participants cp ON c.conversation_id = cp.conversation_id
       JOIN users u ON cp.user_id = u.id
       LEFT JOIN messages m ON c.conversation_id = m.conversation_id
       LEFT JOIN message_status ms ON m.message_id = ms.message_id
-      WHERE cp.user_id = $1
+      WHERE c.conversation_id IN (
+          SELECT conversation_id 
+          FROM conversation_participants 
+          WHERE user_id = $1
+      )
       GROUP BY c.conversation_id
       ORDER BY last_message_time DESC
     `, [userId]);
@@ -1345,11 +1353,13 @@ app.post('/conversations/:conversationId/messages', isAuthenticated, async (req,
   const userId = req.user.id;
 
   try {
-    const newMessage = await db.query(`
+    const newMessageResult = await db.query(`
       INSERT INTO messages (conversation_id, sender_id, content, media_url, sent_at) 
       VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP) 
       RETURNING *
     `, [conversationId, userId, content, mediaUrl]);
+
+    const newMessage = newMessageResult.rows[0];
 
     const participants = await db.query(`
       SELECT user_id 
@@ -1360,9 +1370,11 @@ app.post('/conversations/:conversationId/messages', isAuthenticated, async (req,
     await db.query(`
       INSERT INTO message_status (message_id, user_id, seen, seen_at)
       SELECT $1, unnest($2::int[]), FALSE, NULL 
-    `, [newMessage.rows[0].message_id, participants.rows.map(p => p.user_id)]);
+    `, [newMessage.message_id, participants.rows.map(p => p.user_id)]);
 
-    res.status(201).json(newMessage.rows[0]);
+    newMessage.seen_status = [];
+
+    res.status(201).json(newMessage);
   } catch (error) {
     console.error("Error posting message:", error);
     res.status(500).json({ message: "Server error posting message" });
@@ -1898,14 +1910,19 @@ wss.on('connection', (ws, req) => {
   ws.on('message', async (message) => {
     try {
         const parsedMessage = JSON.parse(message);
-        console.log("Received message:", parsedMessage);
-
+        if (parsedMessage.type !== 'ping'){
+          console.log("Received message:", parsedMessage);
+        }
+        
         switch (parsedMessage.type) {
             case 'send_message':
                 await handleSendMessage(parsedMessage, userId, connectedClients);
                 break;
             case 'mark_seen':
                 await handleMarkSeen(parsedMessage, userId, connectedClients);
+                break;
+            case 'ping':
+                ws.send(JSON.stringify({ type: 'pong' }));
                 break;
             default:
                 console.error("Unknown WebSocket message type:", parsedMessage.type);

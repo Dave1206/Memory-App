@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAxios } from '../auth/AxiosProvider';
+import { useAuth } from '../auth/AuthContext';
 import WebSocketInstance from '../../utils/WebSocket';
 import '../../styles/ChatWindow.css';
 
-function ChatWindow({ conversationId, onClose, userId }) {
+function ChatWindow({ conversationId, onClose, userId, participants }) {
     const { axiosInstance } = useAxios();
+    const { user } = useAuth();
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(true);
@@ -51,10 +53,11 @@ function ChatWindow({ conversationId, onClose, userId }) {
         if (!newMessage.trim()) return;
 
         try {
-            const response = await axiosInstance.post(`/conversations/${conversationId}/messages`, {
+            WebSocketInstance.sendMessage('send_message', {
+                conversation_id: conversationId,
                 content: newMessage,
+                media_url: null,
             });
-            WebSocketInstance.sendMessage('send_message', response.data);
             setNewMessage('');
         } catch (error) {
             console.error("Error sending message:", error);
@@ -71,7 +74,7 @@ function ChatWindow({ conversationId, onClose, userId }) {
             chatContainer.scrollTop + chatContainer.clientHeight >=
             chatContainer.scrollHeight
         ) {
-            const unseenMessages = messages.filter((msg) => !msg.seen_status.includes(userId));
+            const unseenMessages = messages.filter((msg) => !((msg.seen_status || []).includes(userId)));
             if (unseenMessages.length > 0) {
                 WebSocketInstance.sendMessage('mark_seen', {
                     conversationId,
@@ -99,18 +102,64 @@ function ChatWindow({ conversationId, onClose, userId }) {
             <div className="chat-container" ref={chatContainerRef}>
                 {loading && <p>Loading messages...</p>}
                 {messages && messages.length > 0 ? (
-                    messages.map((msg) => (
-                        <div
-                            key={msg.message_id}
-                            className={`chat-message ${msg.sender_id === userId ? 'sent' : 'received'}`}
-                        >
-                            <p>{msg.content}</p>
-                            <span className="timestamp">{new Date(msg.sent_at).toLocaleString()}</span>
-                            <span className="seen-status">
-                                {msg.seen_by?.length > 0 ? `Seen by ${msg.seen_by.length}` : 'Unseen'}
-                            </span>
-                        </div>
-                    ))
+                    messages.map((msg) => {
+                        const isSent = msg.sender_id === userId;
+                        const senderInfo = isSent 
+                        ? { username: user.username, profile_picture: user.profile_picture } 
+                        : (participants.find(p => Number(p.user_id) === Number(msg.sender_id)) || {});
+
+                        const formattedTime = new Date(msg.sent_at).toLocaleString([], { 
+                            weekday: 'short',
+                            month: 'short', 
+                            day: 'numeric', 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          });
+
+                        const seenParticipants = (msg.seen_status || [])
+                        .filter(status => status.user_id !== userId)
+                        .map(status => participants.find(p => Number(p.user_id) === Number(status.user_id)))
+                        .filter(p => p !== undefined);
+
+                        return (
+                            <div
+                                key={msg.message_id}
+                                className={`message-wrapper ${isSent ? 'sent' : 'received'}`}
+                            >
+                                <div className={`chat-message ${isSent ? 'sent' : 'received'}`}>
+                                    <img
+                                        className="profile-pic"
+                                        src={senderInfo.profile_picture}
+                                        alt="Profile"
+                                        title={senderInfo.username}
+                                    />
+
+                                    <div className="message-content">
+                                        {msg.content}
+                                    </div>
+                                </div>
+                                <div className="meta-info">
+                                    <span className="timestamp">
+                                        {formattedTime}
+                                    </span>
+                                    {seenParticipants.length > 0 ? (
+                                        <div className="seen-profiles">
+                                            Seen by
+                                            {seenParticipants.map((participant, idx) => (
+                                            <img
+                                                key={idx}
+                                                src={participant.profile_picture}
+                                                alt={participant.username}
+                                                className="seen-profile-pic"
+                                                title={participant.username}
+                                            />
+                                            ))}
+                                        </div>
+                                    ) : (<span>Unseen</span>)}
+                                </div>
+                            </div>
+                        );
+                    })
                 ) : (
                     !loading && <p>No messages yet. Say something!</p>
                 )}
@@ -121,6 +170,11 @@ function ChatWindow({ conversationId, onClose, userId }) {
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     placeholder="Type a message..."
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' && newMessage.trim()) {
+                            handleSendMessage();
+                        }
+                    }}
                 />
                 <button onClick={handleSendMessage}>Send</button>
             </div>
