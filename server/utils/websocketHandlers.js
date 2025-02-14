@@ -21,7 +21,9 @@ export async function handleSendMessage(message, senderId, connectedClients) {
         );
 
         const messageId = newMessage.message_id;
-        const recipientIds = participants.rows.map(row => row.user_id);
+        const recipientIds = participants.rows
+        .map(row => row.user_id)
+        .filter(id => parseInt(id) !== parseInt(senderId));
 
         await db.query(
             `INSERT INTO message_status (message_id, user_id, seen, seen_at)
@@ -44,9 +46,11 @@ export async function handleSendMessage(message, senderId, connectedClients) {
           conversationUpdate.last_message_sender = senderResult.rows[0].username;
         }
 
-        recipientIds.forEach(recipientId => {
-            if (connectedClients[recipientId]) {
-                connectedClients[recipientId].forEach(client => {
+        const allParticipantIds = participants.rows.map(row => row.user_id);
+
+        allParticipantIds.forEach(participantId => {
+            if (connectedClients[participantId]) {
+                connectedClients[participantId].forEach(client => {
                     client.send(JSON.stringify({
                         type: 'new_message',
                         data: newMessage

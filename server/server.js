@@ -1379,7 +1379,7 @@ app.get('/conversations/:conversationId/messages', isAuthenticated, async (req, 
                  'user_id', ms.user_id,
                  'seen_at', ms.seen_at
                )
-             ) AS seen_status
+             ) FILTER (WHERE ms.seen = TRUE) AS seen_status
       FROM messages m
       LEFT JOIN message_status ms ON m.message_id = ms.message_id
       WHERE m.conversation_id = $1
@@ -1959,7 +1959,10 @@ wss.on('connection', (ws, req) => {
   ws.on('message', async (message) => {
     try {
         const parsedMessage = JSON.parse(message);
-        console.log('Message received: ', parsedMessage);
+        
+        if (!message.type === 'ping'){
+          console.log('Message received: ', parsedMessage);
+        }
         
         switch (parsedMessage.type) {
             case 'send_message':

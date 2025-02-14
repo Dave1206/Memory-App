@@ -30,6 +30,7 @@ const WebSocketInstance = (() => {
                 const message = JSON.parse(event.data);
 
                 if (message.type === 'pong') {
+                    clearTimeout(heartbeatTimeout);
                     return;
                 }
 

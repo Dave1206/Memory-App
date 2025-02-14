@@ -140,13 +140,15 @@ function ConversationList({ onSelectConversation }) {
           </div>
           {conversations.length > 0 ? (
             <div className="conversation-list">
-              {conversations.map((conversation) => {
+            {[...conversations]
+              .sort((a, b) => new Date(b.last_message_time) - new Date(a.last_message_time))
+              .map((conversation) => {
                 const title =
                   conversation.title ||
-                  conversation.participants
+                  ((conversation.participants || [])
                     .filter((participant) => participant.user_id !== userId)
                     .map((participant) => participant.username)
-                    .join(', ');
+                    .join(', '));
     
                 const formattedTime = conversation.last_message_time
                   ? new Date(conversation.last_message_time).toLocaleString([], {

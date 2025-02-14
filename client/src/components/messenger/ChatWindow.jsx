@@ -28,6 +28,13 @@ function ChatWindow({ conversationId, onClose, userId, participants, lastSeenMes
         return Array.from(map.values());
       };
 
+    useEffect(() => {
+      setMessages([]);
+      setLoading(true);
+      setHasMoreMessages(true);
+      initialLoadRef.current = false;
+    }, [conversationId,]);
+
     const fetchMessages = useCallback(async (before = null) => {
         try {
             const response = await axiosInstance.get(`/conversations/${conversationId}/messages`, {
@@ -68,7 +75,7 @@ function ChatWindow({ conversationId, onClose, userId, participants, lastSeenMes
                 }
                 if (chatContainerRef.current && !isPrependingRef.current) {
                   const container = chatContainerRef.current;
-                  const threshold = 20;
+                  const threshold = 0;
                   wasAtBottomRef.current = (container.scrollTop + container.clientHeight >= container.scrollHeight - threshold);
                 }
                 return deduplicateMessages([...prev, message]);
@@ -89,7 +96,7 @@ useEffect(() => {
       prevMessages.map(msg => {
         if (msg.conversation_id === data.conversationId 
           && data.messageIds.includes(msg.message_id)
-          && msg.sender_id !== data.seenUser) {
+          && parseInt(msg.sender_id) !== parseInt(data.seenUser)) {
           const updatedSeen = msg.seen_status ? [...msg.seen_status] : [];
           if (!updatedSeen.some(status => status.user_id === data.seenUser)) {
             updatedSeen.push({ user_id: data.seenUser, seen_at: new Date().toISOString() });
@@ -253,7 +260,10 @@ useEffect(() => {
                             />
                           ))}
                         </div>
-                      ) : (<span>Unseen</span>)}
+                      ) : (
+                        ((participants && participants.length > 2) || msg.sender_id === userId) ? 
+                      <span>Unseen</span> : null
+                      )}
                     </div>
                   </div>
                 );
