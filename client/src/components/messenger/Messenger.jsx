@@ -34,6 +34,7 @@ function Messenger() {
             {selectedConversation && (
                 <ChatWindow
                     conversationId={selectedConversation.conversation_id}
+                    lastSeenMessageId={selectedConversation.last_seen_message_id}
                     participants = {selectedConversation.participants}
                     onClose={handleCloseChatWindow}
                     userId={user.id}

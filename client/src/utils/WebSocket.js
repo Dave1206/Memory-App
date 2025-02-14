@@ -120,8 +120,6 @@ const WebSocketInstance = (() => {
     };
 
     const handleClientMessage = (message) => {
-        console.log(message);
-        console.log(listeners);
         const { type, data } = message;
         if (listeners[type]) {
             listeners[type](data);

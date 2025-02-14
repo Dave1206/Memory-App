@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAxios } from '../auth/AxiosProvider';
 import { useAuth } from '../auth/AuthContext';
+import WebSocketInstance from '../../utils/WebSocket';
 import '../../styles/ConversationList.css';
 
 function ConversationList({ onSelectConversation }) {
@@ -67,78 +68,147 @@ function ConversationList({ onSelectConversation }) {
         }
     };
 
+    useEffect(() => {
+        const handleConversationUpdate = (data) => {
+          setConversations(prevConversations =>
+            prevConversations.map(conv => {
+              if (conv.conversation_id === data.conversation_id) {
+                return {
+                    ...conv,
+                    last_seen_message_id: data.last_seen_message_id !== undefined
+                      ? data.last_seen_message_id
+                      : conv.last_seen_message_id,
+                    last_message_content: data.last_message_content !== undefined
+                      ? data.last_message_content
+                      : conv.last_message_content,
+                    last_message_sender: data.last_message_sender !== undefined
+                      ? data.last_message_sender
+                      : conv.last_message_sender,
+                    last_message_time: data.last_message_time !== undefined
+                      ? data.last_message_time
+                      : conv.last_message_time,
+                  };
+              }
+              return conv;
+            })
+          );
+        };
+      
+        WebSocketInstance.on('conversation_update', handleConversationUpdate);
+        
+        return () => {
+          WebSocketInstance.off('conversation_update', handleConversationUpdate);
+        };
+      }, [setConversations]);      
+
     if (loading) {
         return <p>Loading conversations...</p>;
     }
 
     return (
         <div className="conversation-dropdown">
-            <div className="new-conversation">
-                <input
-                    type="text"
-                    value={newConversationUser}
-                    onChange={(e) => handleInputChange(e.target.value)}
-                    placeholder="Start a conversation by username..."
-                    className="conversation-input"
-                />
-                <button
-                    className="start-conversation-btn"
-                    onClick={handleNewConversation}
-                    disabled={!newConversationUser.trim()}
-                >
-                    Start
-                </button>
-                {suggestedFriends.length > 0 && (
-                    <ul className="friend-suggestions">
-                        {suggestedFriends.map((friend) => (
-                            <li
-                                key={friend.id}
-                                onClick={() => {
-                                    setNewConversationUser(friend.username);
-                                    setSuggestedFriends([]);
-                                }}
-                            >
-                                {friend.username}
-                            </li>
-                        ))}
-                    </ul>
-                )}
-            </div>
-            {conversations.length > 0 ? (
-                <div className="conversation-list">
-                    {conversations.map((conversation) => (
-                        <div
-                            key={conversation.conversation_id}
-                            className={`conversation-item ${conversation.unread_messages > 0 ? 'unread' : ''}`}
-                            onClick={() => onSelectConversation(conversation)}
-                        >
-                            <div className="conversation-info">
-                                <h3>{conversation.title || 
-                                    conversation.participants
-                                        .filter((participant) => participant.user_id !== userId)
-                                        .map((participant) => participant.username)
-                                        .join(', ')}
-                                </h3>
-                                <p>
-                                    {conversation.last_message_time &&
-                                        new Date(conversation.last_message_time).toLocaleString()}
-                                </p>
-                                {conversation.unread_messages > 0 && (
-                                    <span className="unread-badge">
-                                        {conversation.unread_messages}
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            ) : (
-                <div className="no-conversations">
-                    <p>No conversations yet. Start a new one!</p>
-                </div>
+          <div className="new-conversation">
+            <input
+              type="text"
+              value={newConversationUser}
+              onChange={(e) => handleInputChange(e.target.value)}
+              placeholder="Start a conversation by username..."
+              className="conversation-input"
+            />
+            <button
+              className="start-conversation-btn"
+              onClick={handleNewConversation}
+              disabled={!newConversationUser.trim()}
+            >
+              Start
+            </button>
+            {suggestedFriends.length > 0 && (
+              <ul className="friend-suggestions">
+                {suggestedFriends.map((friend) => (
+                  <li
+                    key={friend.id}
+                    onClick={() => {
+                      setNewConversationUser(friend.username);
+                      setSuggestedFriends([]);
+                    }}
+                  >
+                    {friend.username}
+                  </li>
+                ))}
+              </ul>
             )}
-        </div>
-    );
-}
+          </div>
+          {conversations.length > 0 ? (
+            <div className="conversation-list">
+              {conversations.map((conversation) => {
+                const title =
+                  conversation.title ||
+                  conversation.participants
+                    .filter((participant) => participant.user_id !== userId)
+                    .map((participant) => participant.username)
+                    .join(', ');
+    
+                const formattedTime = conversation.last_message_time
+                  ? new Date(conversation.last_message_time).toLocaleString([], {
+                      weekday: 'short',
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })
+                  : '';
+    
+                const lastMessage = conversation.last_message_content || '';
+                const preview =
+                  lastMessage.length > 50
+                    ? lastMessage.substring(0, 50) + '...'
+                    : lastMessage;
 
-export default ConversationList;
+                const previewText = conversation.last_message_sender
+                    ? `${conversation.last_message_sender}: ${preview}`
+                    : preview;
+    
+                const colorIndex = (parseInt(conversation.conversation_id, 10) % 9) + 1;
+                const colorClass = `color${colorIndex}`;
+    
+                return (
+                  <div
+                    key={conversation.conversation_id}
+                    className={`conversation-item ${colorClass} ${conversation.unread_messages > 0 ? 'unread' : ''}`}
+                    onClick={() => onSelectConversation(conversation)}
+                  >
+                    <div className="conversation-info">
+                      <h3>{title}</h3>
+                      <div className="participants-avatars">
+                        {conversation.participants.map((participant, idx) => (
+                          <img
+                            key={idx}
+                            src={participant.profile_picture}
+                            alt={participant.username}
+                            title={participant.username}
+                            className="participant-avatar"
+                          />
+                        ))}
+                      </div>
+                      <p className="last-message-preview">{previewText}</p>
+                      <p className="timestamp">{formattedTime}</p>
+                      {conversation.unread_messages > 0 && (
+                        <span className="unread-badge">
+                          {conversation.unread_messages}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="no-conversations">
+              <p>No conversations yet. Start a new one!</p>
+            </div>
+          )}
+        </div>
+      );
+    }
+    
+    export default ConversationList;

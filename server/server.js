@@ -1234,20 +1234,69 @@ app.get('/conversations', isAuthenticated, async (req, res) => {
   try {
     const userId = req.user.id;
     const conversations = await db.query(`
-      SELECT c.conversation_id, c.title, c.creator_id, 
-             MAX(m.sent_at) AS last_message_time,
-             COUNT(ms.message_id) FILTER (
-                WHERE ms.user_id = $1 
-                  AND ms.seen = FALSE
-                  AND m.sender_id <> $1
-              ) AS unread_messages,
-             (json_agg(
-               DISTINCT jsonb_build_object(
-                 'user_id', cp.user_id,
-                 'username', u.username,
-                 'profile_picture', u.profile_picture
-               )
-    ))::json AS participants
+      SELECT 
+        c.conversation_id, 
+        c.title, 
+        c.creator_id, 
+        MAX(m.sent_at) AS last_message_time,
+        (
+          SELECT m2.content 
+          FROM messages m2 
+          WHERE m2.conversation_id = c.conversation_id 
+          ORDER BY m2.sent_at DESC 
+          LIMIT 1
+        ) AS last_message_content,
+        (
+          SELECT u2.username
+          FROM messages m2
+          JOIN users u2 ON m2.sender_id = u2.id
+          WHERE m2.conversation_id = c.conversation_id
+          ORDER BY m2.sent_at DESC
+          LIMIT 1
+        ) AS last_message_sender,
+        (
+          SELECT CASE 
+                   WHEN (
+                     SELECT m_last.sender_id 
+                     FROM messages m_last 
+                     WHERE m_last.conversation_id = c.conversation_id 
+                     ORDER BY m_last.sent_at DESC 
+                     LIMIT 1
+                   ) = $1
+                   THEN (
+                     SELECT m_last2.message_id 
+                     FROM messages m_last2 
+                     WHERE m_last2.conversation_id = c.conversation_id 
+                     ORDER BY m_last2.sent_at DESC 
+                     LIMIT 1
+                   )
+                   ELSE (
+                     SELECT m3.message_id
+                     FROM messages m3
+                     JOIN message_status ms2 ON m3.message_id = ms2.message_id
+                     WHERE m3.conversation_id = c.conversation_id
+                       AND m3.sender_id <> $1
+                       AND ms2.user_id = $1
+                       AND ms2.seen = TRUE
+                     ORDER BY m3.sent_at DESC
+                     LIMIT 1
+                   )
+                 END
+        ) AS last_seen_message_id,
+        COUNT(ms.message_id) FILTER (
+          WHERE ms.user_id = $1 
+            AND ms.seen = FALSE
+            AND m.sender_id <> $1
+        ) AS unread_messages,
+        (
+          json_agg(
+            DISTINCT jsonb_build_object(
+              'user_id', cp.user_id,
+              'username', u.username,
+              'profile_picture', u.profile_picture
+            )
+          )
+        )::json AS participants
       FROM conversations c
       JOIN conversation_participants cp ON c.conversation_id = cp.conversation_id
       JOIN users u ON cp.user_id = u.id
@@ -1910,9 +1959,7 @@ wss.on('connection', (ws, req) => {
   ws.on('message', async (message) => {
     try {
         const parsedMessage = JSON.parse(message);
-        if (parsedMessage.type !== 'ping'){
-          console.log("Received message:", parsedMessage);
-        }
+        console.log('Message received: ', parsedMessage);
         
         switch (parsedMessage.type) {
             case 'send_message':
