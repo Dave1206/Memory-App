@@ -4,7 +4,7 @@ import { useAuth } from '../auth/AuthContext';
 import WebSocketInstance from '../../utils/WebSocket';
 import '../../styles/ConversationList.css';
 
-function ConversationList({ onSelectConversation }) {
+function ConversationList({ onSelectConversation, lastSeenMessageId }) {
     const { axiosInstance } = useAxios();
     const { user } = useAuth();
     const userId = user.id;
@@ -37,7 +37,7 @@ function ConversationList({ onSelectConversation }) {
 
         fetchConversations();
         fetchFriends();
-    }, [axiosInstance, userId]);
+    }, [axiosInstance, userId, lastSeenMessageId]);
 
     const handleNewConversation = async () => {
         if (!newConversationUser.trim()) return;

@@ -8,6 +8,7 @@ import '../../styles/Messenger.css';
 function Messenger() {
     const { user } = useAuth();
     const [selectedConversation, setSelectedConversation] = useState(null);
+    const [lastSeenMessageId, setLastSeenMessageId] = useState(null);
     const userId = useRef(user.id);
 
     useEffect(() => {
@@ -22,6 +23,7 @@ function Messenger() {
 
     const handleSelectConversation = (conversation) => {
         setSelectedConversation(conversation);
+        setLastSeenMessageId(conversation.last_seen_message_id);
     };
 
     const handleCloseChatWindow = () => {
@@ -30,14 +32,20 @@ function Messenger() {
 
     return (
         <div className="messenger-container">
-            <ConversationList onSelectConversation={handleSelectConversation} />
+            <ConversationList 
+                lastSeenMessageId={lastSeenMessageId}
+                onSelectConversation={handleSelectConversation} 
+            />
             {selectedConversation && (
                 <ChatWindow
                     conversationId={selectedConversation.conversation_id}
-                    lastSeenMessageId={selectedConversation.last_seen_message_id}
+                    lastSeenMessageId={lastSeenMessageId}
                     participants = {selectedConversation.participants}
                     onClose={handleCloseChatWindow}
                     userId={user.id}
+                    onUpdateLastSeen={(newId) => {
+                        setLastSeenMessageId(newId)
+                    }}
                 />
             )}
         </div>

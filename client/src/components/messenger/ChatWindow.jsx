@@ -4,7 +4,7 @@ import { useAuth } from '../auth/AuthContext';
 import WebSocketInstance from '../../utils/WebSocket';
 import '../../styles/ChatWindow.css';
 
-function ChatWindow({ conversationId, onClose, userId, participants, lastSeenMessageId }) {
+function ChatWindow({ conversationId, onClose, userId, participants, lastSeenMessageId, onUpdateLastSeen }) {
     const { axiosInstance } = useAxios();
     const { user } = useAuth();
     const [messages, setMessages] = useState([]);
@@ -27,13 +27,6 @@ function ChatWindow({ conversationId, onClose, userId, participants, lastSeenMes
         });
         return Array.from(map.values());
       };
-
-    useEffect(() => {
-      setMessages([]);
-      setLoading(true);
-      setHasMoreMessages(true);
-      initialLoadRef.current = false;
-    }, [conversationId,]);
 
     const fetchMessages = useCallback(async (before = null) => {
         try {
@@ -61,6 +54,14 @@ function ChatWindow({ conversationId, onClose, userId, participants, lastSeenMes
             setLoading(false);
         }
     }, [axiosInstance, conversationId]);
+
+    useEffect(() => {
+      setMessages([]);
+      setLoading(true);
+      setHasMoreMessages(true);
+      initialLoadRef.current = false;
+      fetchMessages();
+    }, [conversationId, fetchMessages]);
     
     useEffect(() => {
         fetchMessages();
@@ -90,30 +91,47 @@ function ChatWindow({ conversationId, onClose, userId, participants, lastSeenMes
         };
     }, [conversationId]);
 
-useEffect(() => {
-  const handleMessageSeen = (data) => {
-    setMessages(prevMessages => 
-      prevMessages.map(msg => {
-        if (msg.conversation_id === data.conversationId 
-          && data.messageIds.includes(msg.message_id)
-          && parseInt(msg.sender_id) !== parseInt(data.seenUser)) {
-          const updatedSeen = msg.seen_status ? [...msg.seen_status] : [];
-          if (!updatedSeen.some(status => status.user_id === data.seenUser)) {
-            updatedSeen.push({ user_id: data.seenUser, seen_at: new Date().toISOString() });
+    useEffect(() => {
+      const handleMessageSeen = (data) => {
+        setMessages(prevMessages => {
+          const updatedMessages = prevMessages.map(msg => {
+            if (
+              msg.conversation_id === data.conversationId &&
+              data.messageIds.includes(msg.message_id) &&
+              parseInt(msg.sender_id) !== parseInt(data.seenUser)
+            ) {
+              const updatedSeen = msg.seen_status ? [...msg.seen_status] : [];
+              if (!updatedSeen.some(status => status.user_id === data.seenUser)) {
+                updatedSeen.push({ user_id: data.seenUser, seen_at: new Date().toISOString() });
+              }
+              return { ...msg, seen_status: updatedSeen };
+            }
+            return msg;
+          });
+          
+          const seenMessages = updatedMessages.filter(msg =>
+            msg.sender_id !== userId &&
+            msg.seen_status &&
+            msg.seen_status.some(status => status.user_id === userId)
+          );
+          
+          if (seenMessages.length > 0) {
+            seenMessages.sort((a, b) => new Date(b.sent_at) - new Date(a.sent_at));
+            const newLastSeen = seenMessages[0].message_id;
+            if (typeof onUpdateLastSeen === 'function') {
+              onUpdateLastSeen(newLastSeen);
+            }
           }
-          return { ...msg, seen_status: updatedSeen };
-        }
-        return msg;
-      })
-    );
-  };
-
-  WebSocketInstance.on('message_seen', handleMessageSeen);
-  return () => {
-    WebSocketInstance.off('message_seen', handleMessageSeen);
-  };
-}, [conversationId, userId]);
-
+          
+          return updatedMessages;
+        });
+      };
+    
+      WebSocketInstance.on('message_seen', handleMessageSeen);
+      return () => {
+        WebSocketInstance.off('message_seen', handleMessageSeen);
+      };
+    }, [conversationId, userId, onUpdateLastSeen]);    
 
     useEffect(() => {
         const container = chatContainerRef.current;
@@ -126,11 +144,12 @@ useEffect(() => {
     useEffect(() => {
       if (!initialLoadRef.current && chatContainerRef.current && lastSeenMessageId) {
         setTimeout(() => {
-          const lastSeenElem = document.getElementById(`message-${lastSeenMessageId}`);
+          const lastSeenElem = document.getElementById(`message-${String(lastSeenMessageId)}`);
+          console.log(lastSeenMessageId);
           if (lastSeenElem) {
             lastSeenElem.scrollIntoView({ block: 'center' });
           }
-        }, 0);
+        }, 100);
         initialLoadRef.current = true;
       }
     }, [lastSeenMessageId]);
