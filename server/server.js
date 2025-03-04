@@ -17,6 +17,7 @@ import cloudinary from 'cloudinary';
 import axios from "axios";
 import { WebSocketServer } from "ws";
 import { handleSendMessage, handleMarkSeen } from "./utils/websocketHandlers.js";
+import path from "path";
 
 env.config();
 const app = express();
@@ -131,6 +132,14 @@ cloudinary.v2.config({
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
+
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, 'build')));
+
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'build', 'index.html'));
+  });
+}
 
 //server functions
 function isAuthenticated(req, res, next) {
