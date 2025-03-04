@@ -24,13 +24,24 @@ const app = express();
 const port = 4747;
 const saltRounds = 10;
 
-const db = new pg.Client({
-  user: process.env.PG_USER,
-  host: process.env.PG_HOST,
-  database: process.env.PG_DATABASE,
-  password: process.env.PG_PASSWORD,
-  port: process.env.PG_PORT,
-});
+let db;
+
+if (process.env.NODE_ENV === 'production' && process.env.DATABASE_URL) {
+  // In production (Heroku), use DATABASE_URL and enable SSL
+  db = new pg.Client({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false },
+  });
+} else {
+  // In local development, use your individual PG_* variables
+  db = new pg.Client({
+    user: process.env.PG_USER,
+    host: process.env.PG_HOST,
+    database: process.env.PG_DATABASE,
+    password: process.env.PG_PASSWORD,
+    port: process.env.PG_PORT,
+  });
+}
 
 db.connect();
 
