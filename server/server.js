@@ -25,7 +25,7 @@ const __dirname = dirname(__filename);
 
 env.config();
 const app = express();
-const port = 4747;
+const port = process.env.PORT || 4747;
 const saltRounds = 10;
 
 let db;
