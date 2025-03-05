@@ -17,19 +17,31 @@ import cloudinary from 'cloudinary';
 import axios from "axios";
 import { WebSocketServer } from "ws";
 import { handleSendMessage, handleMarkSeen } from "./utils/websocketHandlers.js";
+import path from "path";
 
 env.config();
 const app = express();
 const port = 4747;
 const saltRounds = 10;
 
-const db = new pg.Client({
-  user: process.env.PG_USER,
-  host: process.env.PG_HOST,
-  database: process.env.PG_DATABASE,
-  password: process.env.PG_PASSWORD,
-  port: process.env.PG_PORT,
-});
+let db;
+
+if (process.env.NODE_ENV === 'production' && process.env.DATABASE_URL) {
+  // In production (Heroku), use DATABASE_URL and enable SSL
+  db = new pg.Client({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false },
+  });
+} else {
+  // In local development, use your individual PG_* variables
+  db = new pg.Client({
+    user: process.env.PG_USER,
+    host: process.env.PG_HOST,
+    database: process.env.PG_DATABASE,
+    password: process.env.PG_PASSWORD,
+    port: process.env.PG_PORT,
+  });
+}
 
 db.connect();
 
@@ -131,6 +143,14 @@ cloudinary.v2.config({
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
+
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, 'build')));
+
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'build', 'index.html'));
+  });
+}
 
 //server functions
 function isAuthenticated(req, res, next) {
