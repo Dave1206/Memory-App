@@ -17,7 +17,11 @@ import cloudinary from 'cloudinary';
 import axios from "axios";
 import { WebSocketServer } from "ws";
 import { handleSendMessage, handleMarkSeen } from "./utils/websocketHandlers.js";
-import path from "path";
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 env.config();
 const app = express();
@@ -145,10 +149,10 @@ cloudinary.v2.config({
 });
 
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, 'build')));
+  app.use(express.static(join(__dirname, '../client/build')));
 
   app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'build', 'index.html'));
+    res.sendFile(join(__dirname, '../client/build', 'index.html'));
   });
 }
 
