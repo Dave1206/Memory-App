@@ -33,8 +33,7 @@ let db;
 if (process.env.NODE_ENV === 'production' && process.env.DATABASE_URL) {
   // In production (Heroku), use DATABASE_URL and enable SSL
   db = new pg.Client({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false },
+    connectionString: process.env.DATABASE_URL
   });
 } else {
   // In local development, use your individual PG_* variables
