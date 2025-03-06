@@ -62,7 +62,7 @@ app.use(
 const sessionOptions = process.env.NODE_ENV === "production"
   ? {
       // Use the DATABASE_URL provided by Heroku
-      conString: process.env.DATABASE_URL + "?sslmode=require"
+      conString: process.env.DATABASE_URL + "?sslmode=no-verify"
     }
   : {
       // Local development options
