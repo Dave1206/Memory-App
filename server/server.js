@@ -58,17 +58,28 @@ app.use(
     credentials: true,
   })
 );
-app.use(
-  session({
-    store: new (pgSession(session))({
+
+const sessionOptions = process.env.NODE_ENV === "production"
+  ? {
+      // Use the DATABASE_URL provided by Heroku
+      conString: process.env.DATABASE_URL,
+      // Enable SSL with Heroku Postgres
+      ssl: { rejectUnauthorized: false }
+    }
+  : {
+      // Local development options
       conObject: {
         user: process.env.PG_USER,
         host: process.env.PG_HOST,
         database: process.env.PG_DATABASE,
         password: process.env.PG_PASSWORD,
         port: process.env.PG_PORT,
-      },
-    }),
+      }
+    };
+
+app.use(
+  session({
+    store: new (pgSession(session))(sessionOptions),
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
