@@ -86,7 +86,7 @@ app.use(
       httpOnly: true,
       rolling: true,
       secure: process.env.NODE_ENV === "production", // Enable for HTTPS
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      sameSite: process.env.NODE_ENV === "production" ? "lax" : "lax",
     },
   })
 );
