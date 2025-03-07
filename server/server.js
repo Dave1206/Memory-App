@@ -156,14 +156,6 @@ cloudinary.v2.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(join(__dirname, '../client/build')));
-
-  app.get('*', (req, res) => {
-    res.sendFile(join(__dirname, '../client/build', 'index.html'));
-  });
-}
-
 //server functions
 function isAuthenticated(req, res, next) {
   if (req.isAuthenticated()) {
@@ -2027,6 +2019,15 @@ wss.on('connection', (ws, req) => {
     console.log(`WebSocket connection closed for user ${userId}`);
   });
 });
+
+//server frontend in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(join(__dirname, '../client/build')));
+
+  app.get('*', (req, res) => {
+    res.sendFile(join(__dirname, '../client/build', 'index.html'));
+  });
+}
 
 server.listen(port, '0.0.0.0', () => {
   console.log(`Server running on port ${port}`);

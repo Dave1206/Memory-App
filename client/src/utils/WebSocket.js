@@ -15,7 +15,10 @@ const WebSocketInstance = (() => {
             return;
         }
 
-        const wsUrl = `ws://${window.location.hostname}:4747/ws?userId=${userId}`;
+        const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
+        const wsPort = process.env.NODE_ENV === "production" ? "" : ":4747"; // Use port only in development
+        const wsUrl = `${wsProtocol}${window.location.hostname}${wsPort}/ws?userId=${userId}`;
+
         console.log("Attempting to connect to WebSocket:", wsUrl);
         socket = new WebSocket(wsUrl);
 
