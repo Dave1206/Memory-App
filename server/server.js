@@ -88,8 +88,7 @@ app.use(
       httpOnly: true,
       rolling: true,
       secure: process.env.NODE_ENV === "production", // Enable for HTTPS
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      domain: ".herokuapp.com"
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
     },
   })
 );
