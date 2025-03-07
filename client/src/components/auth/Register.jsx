@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useAuth } from "./AuthContext";
-import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 
 const Register = ({ handleClick }) => {
   const { register } = useAuth();
@@ -91,7 +92,7 @@ const Register = ({ handleClick }) => {
               style={{ flex: 1 }}
             />
             <span onClick={togglePasswordVisibility} style={{ cursor: "pointer", marginLeft: "5px" }}>
-              {showPassword ? <FaEyeSlash /> : <FaEye />}
+              {showPassword ? <FontAwesomeIcon icon={faEyeSlash} /> : <FontAwesomeIcon icon={faEye} />}
             </span>
           </div>
           <small>
