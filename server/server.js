@@ -89,6 +89,7 @@ app.use(
       rolling: true,
       secure: process.env.NODE_ENV === "production", // Enable for HTTPS
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      domain: ".herokuapp.com"
     },
   })
 );
@@ -257,6 +258,14 @@ app.post("/register", async (req, res) => {
 
     const user = result.rows[0];
 
+    const verificationToken = crypto.randomBytes(20).toString('hex');
+    const tokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
+
+    await db.query(
+      "INSERT INTO user_tokens (user_id, token, token_type, expires_at) VALUES ($1, $2, $3, $4)",
+      [user.id, verificationToken, 'email_verification', tokenExpiry]
+    );
+
     await db.query(
       `INSERT INTO user_preferences 
       (user_id, account_settings, notification_settings, privacy_settings, data_settings) 
@@ -268,19 +277,50 @@ app.post("/register", async (req, res) => {
       [user.id]
     );
 
-    req.login(user, (err) => {
-      if (err) return res.status(500).send("Server error on login.");
-      res.status(201).json({ message: "User registered successfully", user });
+    const verificationLink = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
+    await transporter.sendMail({
+      from: `${process.env.EMAIL_USER}`,
+      to: email,
+      subject: 'Please verify your email address',
+      text: `Click the following link to verify your email:\n ${verificationLink}`,
     });
+
+    res.status(201).json({ message: "User registered successfully. Please verify your email to complete registration"});
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error on registration." });
   }
 });
 
+app.get("/verify-email", async (req, res) => {
+  const { token } = req.query;
+
+  try {
+    const result = await db.query(
+      "SELECT * FROM user_tokens WHERE token = $1 AND token_type = 'email_verification' AND expires_at > NOW()",
+      [token]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(400).json({ message: "Invalid or expired token." });
+    }
+
+    const userToken = result.rows[0];
+
+    await db.query("UPDATE users SET is_verified = true WHERE id = $1", [userToken.user_id]);
+
+    await db.query("DELETE FROM user_tokens WHERE id = $1", [userToken.id]);
+
+    res.status(200).json({ message: "Email verified successfully! You can now log in." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error during email verification." });
+  }
+});
+
 app.post("/login", passport.authenticate("local"), (req, res) => {
   res.status(200).json({ message: "Login successful", user: req.user });
-  console.log(req.session);
 });
 
 app.post("/logout", (req, res) => {
@@ -318,7 +358,6 @@ app.post("/logout", (req, res) => {
 });
 
 app.get('/auth/session', isAuthenticated, (req, res) => {
-  console.log(req.session);
   if (req.user) {
     res.json({ user: req.user });
   } else {
@@ -329,9 +368,6 @@ app.get('/auth/session', isAuthenticated, (req, res) => {
 //events routes
 app.get("/events", isAuthenticated, async(req, res) => {
   const userId = req.user.id;
-
-  console.log(req.session);
-  console.log(req.user);
 
   try {
     const eventOptIns = await db.query(
