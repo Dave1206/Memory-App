@@ -325,6 +325,10 @@ app.get('/auth/session', isAuthenticated, (req, res) => {
 //events routes
 app.get("/events", isAuthenticated, async(req, res) => {
   const userId = req.user.id;
+
+  console.log(req.session);
+  console.log(req.user);
+
   try {
     const eventOptIns = await db.query(
       `SELECT e.*, u.username, ep.has_shared_event, ep.has_shared_memory, ep.interaction_count, ep.status, ep.last_checked
