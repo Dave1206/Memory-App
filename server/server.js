@@ -28,6 +28,8 @@ const app = express();
 const port = process.env.PORT || 4747;
 const saltRounds = 10;
 
+app.set('trust proxy', 1);
+
 let db;
 
 if (process.env.NODE_ENV === 'production' && process.env.DATABASE_URL) {
