@@ -28,6 +28,7 @@ function App() {
     try {
       const response = await axiosInstance.get("/events");
       const fetchedEvents = response.data;
+      console.log(fetchedEvents);
       const sortedEvents = fetchedEvents.Optins.sort((a, b) => a.has_shared - b.has_shared);
       const sortedEventInvites = fetchedEvents.Invites.sort((a, b) => a.has_shared - b.has_shared);
       setEvents(sortedEvents);
