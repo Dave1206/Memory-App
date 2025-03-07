@@ -278,6 +278,7 @@ app.post("/register", async (req, res) => {
 
 app.post("/login", passport.authenticate("local"), (req, res) => {
   res.status(200).json({ message: "Login successful", user: req.user });
+  console.log(req.session);
 });
 
 app.post("/logout", (req, res) => {
