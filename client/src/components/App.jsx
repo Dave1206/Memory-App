@@ -50,11 +50,11 @@ function App() {
   };
 
   useEffect(() => {
-    if (sessionExpired && user) {
+    if (sessionExpired) {
       alert('Your session has expired. Please log in again.');
       logout();
     }
-  }, [sessionExpired, logout, user]);
+  }, [sessionExpired, logout]);
 
   useEffect(() => {
     const timer = setTimeout(() => setIsCheckingSession(false), 500);
