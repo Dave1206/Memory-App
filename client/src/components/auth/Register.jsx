@@ -13,6 +13,7 @@ const Register = ({ handleClick }) => {
   const [success, setSuccess] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isRegistered, setIsRegistered] = useState(false);
 
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
   const toggleConfirmPasswordVisibility = () => setShowConfirmPassword(!showConfirmPassword);
@@ -49,11 +50,8 @@ const Register = ({ handleClick }) => {
 
     try {
       await register(username, email, password, confirmPassword);
-      setSuccess("Registration successful! You can now log in.");
-      setUsername("");
-      setEmail("");
-      setPassword("");
-      setConfirmPassword("");
+      setSuccess("Registration successful! Please check your email to verify your account.");
+      setIsRegistered(true);
     } catch (err) {
       setError(err.response?.data.message || "Registration failed. Please try again.");
     }
@@ -62,11 +60,17 @@ const Register = ({ handleClick }) => {
   return (
     <div>
       <h2>Register</h2>
+      {isRegistered ? (
+        <p style={{ color: "green" }}>
+          Registration successful! Please check your email and click the verification link to activate your account.
+        </p>
+      ) : (
       <form onSubmit={handleRegister}>
         <div>
           <label>Username:</label>
           <input
             type="text"
+            placeholder="Username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
@@ -76,6 +80,7 @@ const Register = ({ handleClick }) => {
           <label>Email:</label>
           <input
             type="email"
+            placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -86,6 +91,7 @@ const Register = ({ handleClick }) => {
           <div style={{ display: "flex", alignItems: "center" }}>
             <input
               type={showPassword ? "text" : "password"}
+              placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -95,16 +101,13 @@ const Register = ({ handleClick }) => {
               {showPassword ? <FontAwesomeIcon icon={faEyeSlash} /> : <FontAwesomeIcon icon={faEye} />}
             </span>
           </div>
-          <small>
-            Password must be at least 8 characters and include an uppercase letter, lowercase letter,
-            number, and special character.
-          </small>
         </div>
         <div>
           <label>Confirm Password:</label>
           <div style={{ display: "flex", alignItems: "center" }}>
             <input
               type={showConfirmPassword ? "text" : "password"}
+              placeholder="Confirm Password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
@@ -114,12 +117,15 @@ const Register = ({ handleClick }) => {
               {showConfirmPassword ? <FontAwesomeIcon icon={faEyeSlash} /> : <FontAwesomeIcon icon={faEye} />}
             </span>
           </div>
+          <small>
+            Password must be at least 8 characters and include an uppercase letter, lowercase letter,
+            number, and special character.
+          </small>
         </div>
         <button type="submit">Register</button>
-      </form>
-      <p onClick={handleClick}>Already registered? Login.</p>
+      </form>)}
+      <p onClick={handleClick}>Login.</p>
       {error && <p style={{ color: "red" }}>{error}</p>}
-      {success && <p style={{ color: "green" }}>{success}</p>}
     </div>
   );
 };

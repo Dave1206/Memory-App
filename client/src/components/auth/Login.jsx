@@ -4,6 +4,7 @@ import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import Register from "./Register";
 import { useAuth } from "./AuthContext";
 import { useAxios } from "./AxiosProvider";
+import { useLocation } from 'react-router-dom';
 import ForgotPassword from "./ForgotPassword";
 import '../../styles/Login.css';
 
@@ -13,8 +14,12 @@ const Login = () => {
   const [isRegistered, setIsRegistered] = useState(true);
   const [forgotPassword, setForgotPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
   const { login, user } = useAuth();
   const { setSessionExpired } = useAxios();
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const isVerified = searchParams.get('verified') === 'true';
 
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
@@ -27,6 +32,7 @@ const Login = () => {
   return (
     !forgotPassword ? (
       <div className="login-container">
+        {isVerified && <p style={{ color: "green" }}>Email verified successfully! You can now log in.</p>}
         {user ? (
           <p>Welcome, {user.username}</p>
         ) : (

@@ -282,7 +282,7 @@ app.post("/register", async (req, res) => {
       from: `${process.env.EMAIL_USER}`,
       to: email,
       subject: 'Please verify your email address',
-      text: `Click the following link to verify your email:\n ${verificationLink}`,
+      text: `Click the following link to verify your email:\n${verificationLink}`,
     });
 
     res.status(201).json({ message: "User registered successfully. Please verify your email to complete registration"});
@@ -309,10 +309,9 @@ app.get("/verify-email", async (req, res) => {
     const userToken = result.rows[0];
 
     await db.query("UPDATE users SET is_verified = true WHERE id = $1", [userToken.user_id]);
-
     await db.query("DELETE FROM user_tokens WHERE id = $1", [userToken.id]);
 
-    res.status(200).json({ message: "Email verified successfully! You can now log in." });
+    res.redirect("/login?verified=true");
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error during email verification." });
