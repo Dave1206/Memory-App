@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "./AuthContext";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 const Register = ({ handleClick }) => {
   const { register } = useAuth();
@@ -9,6 +10,11 @@ const Register = ({ handleClick }) => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const togglePasswordVisibility = () => setShowPassword(!showPassword);
+  const toggleConfirmPasswordVisibility = () => setShowConfirmPassword(!showConfirmPassword);
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -76,12 +82,18 @@ const Register = ({ handleClick }) => {
         </div>
         <div>
           <label>Password:</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <input
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              style={{ flex: 1 }}
+            />
+            <span onClick={togglePasswordVisibility} style={{ cursor: "pointer", marginLeft: "5px" }}>
+              {showPassword ? <FaEyeSlash /> : <FaEye />}
+            </span>
+          </div>
           <small>
             Password must be at least 8 characters and include an uppercase letter, lowercase letter,
             number, and special character.
@@ -89,12 +101,18 @@ const Register = ({ handleClick }) => {
         </div>
         <div>
           <label>Confirm Password:</label>
-          <input
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            required
-          />
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <input
+              type={showConfirmPassword ? "text" : "password"}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              style={{ flex: 1 }}
+            />
+            <span onClick={toggleConfirmPasswordVisibility} style={{ cursor: "pointer", marginLeft: "5px" }}>
+              {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+            </span>
+          </div>
         </div>
         <button type="submit">Register</button>
       </form>
