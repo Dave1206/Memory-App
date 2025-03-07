@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useRef } from 'react';
 import axios from 'axios';
 import { useAuth } from './AuthContext';
 
@@ -7,6 +7,7 @@ const AxiosContext = createContext();
 export const AxiosProvider = ({ children }) => {
   const { logout } = useAuth();
   const [sessionExpired, setSessionExpired] = useState(false);
+  const logoutTriggered = useRef(false);
 
   const axiosInstance = axios.create({
     baseURL: process.env.REACT_APP_API_BASE_URL,
@@ -17,7 +18,8 @@ export const AxiosProvider = ({ children }) => {
     response => response,
     error => {
       if (error.response && error.response.status === 401) {
-        if (!sessionExpired){
+        if (!logoutTriggered.current){
+          logoutTriggered.current = true;
           setSessionExpired(true);
           logout();
         }
