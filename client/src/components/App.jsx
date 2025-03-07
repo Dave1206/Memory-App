@@ -49,12 +49,12 @@ function App() {
     );
   };
 
-  // useEffect(() => {
-  //   if (sessionExpired) {
-  //     alert('Your session has expired. Please log in again.');
-  //     logout();
-  //   }
-  // }, [sessionExpired, logout]);
+  useEffect(() => {
+    if (sessionExpired) {
+      alert('Your session has expired. Please log in again.');
+      logout();
+    }
+  }, [sessionExpired, logout]);
 
   useEffect(() => {
     const timer = setTimeout(() => setIsCheckingSession(false), 500);
