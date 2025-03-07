@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import Register from "./Register";
 import { useAuth } from "./AuthContext";
 import { useAxios } from "./AxiosProvider";
@@ -10,8 +12,11 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [isRegistered, setIsRegistered] = useState(true);
   const [forgotPassword, setForgotPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const { login, user } = useAuth();
   const { setSessionExpired } = useAxios();
+
+  const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -36,12 +41,19 @@ const Login = () => {
                               value={email}
                               onChange={(e) => setEmail(e.target.value)}
                           />
-                          <input
-                              type="password"
+                          <div style={{ display: "flex", alignItems: "center" }}>
+                            <input
+                              type={showPassword ? "text" : "password"}
                               placeholder="Password"
                               value={password}
                               onChange={(e) => setPassword(e.target.value)}
-                          />
+                              required
+                              style={{ flex: 1 }}
+                            />
+                            <span onClick={togglePasswordVisibility} style={{ cursor: "pointer", marginLeft: "5px" }}>
+                              {showPassword ? <FontAwesomeIcon icon={faEyeSlash} /> : <FontAwesomeIcon icon={faEye} />}
+                            </span>
+                          </div>
                           <button type="submit">Login</button>
                       </form>
                       <p style={{ cursor: 'pointer' }} onClick={() => setIsRegistered(false)}>Not registered? Click here.</p>
