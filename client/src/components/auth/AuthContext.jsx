@@ -27,6 +27,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     console.log("Logout has been called.");
+    console.trace();
     try {
       await axios.post("/logout", {}, { withCredentials: true });
       setUser(null);
