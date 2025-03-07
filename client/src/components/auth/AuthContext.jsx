@@ -14,6 +14,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (email, password) => {
+    console.log("Login has been called.");
     try {
       const response = await axios.post("/login", { email, password }, { withCredentials: true });
       setUser(response.data.user);
@@ -25,6 +26,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
+    console.log("Logout has been called.");
     try {
       await axios.post("/logout", {}, { withCredentials: true });
       setUser(null);

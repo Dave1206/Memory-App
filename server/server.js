@@ -1694,19 +1694,15 @@ app.post("/forgot-password", async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Generate a unique token
     const token = crypto.randomBytes(32).toString("hex");
 
-    // Set token expiration time (e.g., 1 hour)
     const expires = new Date(Date.now() + 60 * 60 * 1000);
 
-    // Update user with reset token and expiration time
     await db.query(
       "UPDATE users SET password_reset_token = $1, password_reset_expires = $2 WHERE email = $3",
       [token, expires, email]
     );
 
-    // Send email with the reset link
     const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
     const mailOptions = {
       from: process.env.EMAIL_USER,
