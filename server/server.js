@@ -316,6 +316,7 @@ app.post("/logout", (req, res) => {
 });
 
 app.get('/auth/session', isAuthenticated, (req, res) => {
+  console.log(req.session);
   if (req.user) {
     res.json({ user: req.user });
   } else {
