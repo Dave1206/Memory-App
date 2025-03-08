@@ -98,21 +98,26 @@ app.use(passport.session());
 passport.use(
   "local",
   new LocalStrategy(
-    { usernameField: "email", passwordField: "password" },
-    async function verify(email, password, done) {
+    { usernameField: "identifier", passwordField: "password" },
+    async function verify(identifier, password, done) {
       try {
-        const result = await db.query("SELECT * FROM users WHERE email = $1", [email]);
-        if (result.rows.length > 0) {
-          const user = result.rows[0];
-          const isValid = await bcrypt.compare(password, user.password);
-          if (isValid) {
-            return done(null, user);
-          } else {
-            return done(null, false, { message: "Incorrect password." });
-          }
-        } else {
-          return done(null, false, { message: "User not found." });
+        const result = await db.query(
+          "SELECT * FROM users WHERE LOWER(email) = LOWER($1) OR username = $1",
+          [identifier]
+        );
+
+        if (result.rows.length === 0) {
+          return done(null, false, { message: "No account found with that email or username." });
         }
+
+        const user = result.rows[0];
+        const isValid = await bcrypt.compare(password, user.password);
+
+        if (!isValid) {
+          return done(null, false, { message: "Incorrect password. Please try again." });
+        }
+
+        return done(null, user);
       } catch (err) {
         return done(err);
       }
@@ -338,8 +343,24 @@ app.get("/check-username", async (req, res) => {
   }
 });
 
-app.post("/login", passport.authenticate("local"), (req, res) => {
-  res.status(200).json({ message: "Login successful", user: req.user });
+app.post("/login", (req, res, next) => {
+  passport.authenticate("local", (err, user, info) => {
+    if (err) {
+      console.error("Server error during login:", err);
+      return res.status(500).json({ message: "Server error. Please try again later." });
+    }
+    if (!user) {
+      return res.status(401).json({ message: info.message });
+    }
+
+    req.logIn(user, (loginErr) => {
+      if (loginErr) {
+        console.error("Error logging in user:", loginErr);
+        return res.status(500).json({ message: "Login failed due to a server error." });
+      }
+      return res.status(200).json({ message: "Login successful", user });
+    });
+  })(req, res, next);
 });
 
 app.post("/logout", (req, res) => {
