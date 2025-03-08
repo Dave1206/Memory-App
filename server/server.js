@@ -317,6 +317,27 @@ app.get("/verify-email", async (req, res) => {
   }
 });
 
+app.get("/check-username", async (req, res) => {
+  const { username } = req.query;
+
+  if (!username) {
+    return res.status(400).json({ message: "Username is required." });
+  }
+
+  try {
+    const result = await db.query("SELECT 1 FROM users WHERE LOWER(username) = LOWER($1)", [username]);
+
+    if (result.rows.length > 0) {
+      return res.json({ available: false });
+    } else {
+      return res.json({ available: true });
+    }
+  } catch (err) {
+    console.error("Error checking username availability:", err);
+    res.status(500).json({ message: "Server error." });
+  }
+});
+
 app.post("/login", passport.authenticate("local"), (req, res) => {
   res.status(200).json({ message: "Login successful", user: req.user });
 });
