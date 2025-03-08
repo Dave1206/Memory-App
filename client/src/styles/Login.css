@@ -6,25 +6,26 @@
     justify-content: center;
     height: 100%;
     width: 100%;
-    font-family: 'Courier New', Courier, monospace; /* Retro feel */
-    background-color: #f5e6ca; /* Warm, nostalgic background */
-    color: #3d3b30; /* Subtle text color */
+    font-family: 'Courier New', Courier, monospace;
+    background-color: #f5e6ca;
+    color: #3d3b30;
     padding: 20px;
 }
 
 /* Form card styling */
 .login-card {
-    background-color: #fff8e1; /* Soft, off-white background */
+    position: relative;
+    background-color: #fff8e1;
     padding: 40px;
     border-radius: 12px;
-    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1); /* Soft shadow for depth */
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1); 
     max-width: 300px;
     text-align: center;
 }
 
 /* Title styling */
 .login-card h2 {
-    color: #8c7051; /* Warm heading color */
+    color: #8c7051; 
     font-size: 1.8em;
     margin-bottom: 20px;
     font-weight: bold;
@@ -36,12 +37,12 @@
     padding: 12px;
     margin: 10px 0;
     border-radius: 8px;
-    border: 1px solid #c5a880; /* Soft border color */
+    border: 1px solid #c5a880; 
     background-color: #fdf3e1;
     font-size: 1em;
     color: #3d3b30;
     outline: none;
-    box-shadow: inset 0px 2px 4px rgba(0, 0, 0, 0.1); /* Subtle inner shadow */
+    box-shadow: inset 0px 2px 4px rgba(0, 0, 0, 0.1); 
     transition: background-color 0.3s ease;
 }
 
@@ -51,17 +52,17 @@
     font-size: 1em;
     font-weight: bold;
     color: #ffffff;
-    background-color: #a6765e; /* Inviting, retro button color */
+    background-color: #a6765e; 
     border: none;
     border-radius: 8px;
     cursor: pointer;
     transition: background-color 0.3s ease;
     margin-top: 20px;
-    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2); /* Shadow for depth */
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2); 
 }
 
 .login-card button:hover {
-    background-color: #8c5e45; /* Darken on hover */
+    background-color: #8c5e45;
 }
 
 /* Link styling */
@@ -74,5 +75,11 @@
 }
 
 .login-card p:hover {
-    color: #6d5238; /* Darker color on hover */
+    color: #6d5238;
+}
+
+.check-username {
+    position: absolute;
+    left: 15px;
+    top: 168px;
 }

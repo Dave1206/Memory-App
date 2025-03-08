@@ -9,11 +9,12 @@ import ForgotPassword from "./ForgotPassword";
 import '../../styles/Login.css';
 
 const Login = () => {
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [isRegistered, setIsRegistered] = useState(true);
   const [forgotPassword, setForgotPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
 
   const { login, user } = useAuth();
   const { setSessionExpired } = useAxios();
@@ -23,10 +24,16 @@ const Login = () => {
 
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    login(email, password);
-    setSessionExpired(false);
+    setError("");
+
+    try {
+      await login(identifier, password);
+      setSessionExpired(false);
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   return (
@@ -40,12 +47,13 @@ const Login = () => {
               {isRegistered ? (
                   <div>
                       <h2>Login</h2>
+                      {error && <p style={{ color: "red" }}>{error}</p>}
                       <form onSubmit={handleSubmit}>
                           <input
-                              type="email"
-                              placeholder="Email"
-                              value={email}
-                              onChange={(e) => setEmail(e.target.value)}
+                              type="text"
+                              placeholder="Email or Username"
+                              value={identifier}
+                              onChange={(e) => setIdentifier(e.target.value)}
                           />
                           <div style={{ display: "flex", alignItems: "center" }}>
                             <input
@@ -57,7 +65,7 @@ const Login = () => {
                               style={{ flex: 1 }}
                             />
                             <span onClick={togglePasswordVisibility} style={{ cursor: "pointer", marginLeft: "5px" }}>
-                              {showPassword ? <FontAwesomeIcon icon={faEyeSlash} /> : <FontAwesomeIcon icon={faEye} />}
+                              {showPassword ? <FontAwesomeIcon icon={faEye} /> : <FontAwesomeIcon icon={faEyeSlash} />}
                             </span>
                           </div>
                           <button type="submit">Login</button>

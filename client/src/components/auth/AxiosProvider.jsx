@@ -21,7 +21,7 @@ export const AxiosProvider = ({ children }) => {
         if (!logoutTriggered.current){
           logoutTriggered.current = true;
           setSessionExpired(true);
-          // logout();
+          logout();
         }
       }
       return Promise.reject(error);

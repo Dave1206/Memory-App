@@ -25,16 +25,6 @@ const Register = ({ handleClick }) => {
     const usernameRegex = /^(?!.*[_.]{2})[a-zA-Z0-9][a-zA-Z0-9._]{1,18}[a-zA-Z0-9]$/;
     return usernameRegex.test(name);
   };
-
-  const checkUsernameAvailability = async (name) => {
-    try {
-      const response = await axiosInstance.get(`/check-username?username=${name}`);
-      return response.data.available;
-    } catch (error) {
-      console.error("Error checking username availability:", error);
-      return false;
-    }
-  };
   
   useEffect(() => {
     if (username.length < 3) {
@@ -42,6 +32,16 @@ const Register = ({ handleClick }) => {
       setIsUsernameAvailable(null);
       return;
     }
+
+    const checkUsernameAvailability = async (name) => {
+      try {
+        const response = await axiosInstance.get(`/check-username?username=${name}`);
+        return response.data.available;
+      } catch (error) {
+        console.error("Error checking username availability:", error);
+        return false;
+      }
+    };
 
     if (validateUsername(username)) {
       setIsUsernameValid(true);
@@ -56,7 +56,7 @@ const Register = ({ handleClick }) => {
       setIsUsernameValid(false);
       setIsUsernameAvailable(null);
     }
-  }, [username]);
+  }, [username, axiosInstance]);
   
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -117,9 +117,9 @@ const Register = ({ handleClick }) => {
             onChange={(e) => setUsername(e.target.value)}
             required
           />
-          {isUsernameValid === false && <span style={{ color: "red" }}><FontAwesomeIcon icon={faTimesCircle} /></span>}
-          {isUsernameValid && isUsernameAvailable === true && <span style={{ color: "green" }}><FontAwesomeIcon icon={faCheckCircle} /></span>}
-          {isUsernameValid && isUsernameAvailable === false && <span style={{ color: "red" }}><FontAwesomeIcon icon={faTimesCircle} /></span>}
+          {username.length > 0 && isUsernameValid === false && <span className="check-username" style={{ color: "red" }}><FontAwesomeIcon icon={faTimesCircle} /></span>}
+          {isUsernameValid && isUsernameAvailable === true && <span className="check-username" style={{ color: "green" }}><FontAwesomeIcon icon={faCheckCircle} /></span>}
+          {isUsernameValid && isUsernameAvailable === false && <span className="check-username" style={{ color: "red" }}><FontAwesomeIcon icon={faTimesCircle} /></span>}
         </div>
         <div>
           <label>Email:</label>
@@ -143,7 +143,7 @@ const Register = ({ handleClick }) => {
               style={{ flex: 1 }}
             />
             <span onClick={togglePasswordVisibility} style={{ cursor: "pointer", marginLeft: "5px" }}>
-              {showPassword ? <FontAwesomeIcon icon={faEyeSlash} /> : <FontAwesomeIcon icon={faEye} />}
+              {!showPassword ? <FontAwesomeIcon icon={faEyeSlash} /> : <FontAwesomeIcon icon={faEye} />}
             </span>
           </div>
         </div>
@@ -159,7 +159,7 @@ const Register = ({ handleClick }) => {
               style={{ flex: 1 }}
             />
             <span onClick={toggleConfirmPasswordVisibility} style={{ cursor: "pointer", marginLeft: "5px" }}>
-              {showConfirmPassword ? <FontAwesomeIcon icon={faEyeSlash} /> : <FontAwesomeIcon icon={faEye} />}
+              {!showConfirmPassword ? <FontAwesomeIcon icon={faEyeSlash} /> : <FontAwesomeIcon icon={faEye} />}
             </span>
           </div>
           <small>

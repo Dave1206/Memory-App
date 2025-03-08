@@ -13,21 +13,21 @@ export const AuthProvider = ({ children }) => {
     setIsModMode(prevMode => !prevMode);
   };
 
-  const login = async (email, password) => {
-    console.log("Login has been called.");
+  const login = async (identifier, password) => {
     try {
-      const response = await axios.post("/login", { email, password }, { withCredentials: true });
+      const response = await axios.post("/login", { identifier, password }, { withCredentials: true });
       setUser(response.data.user);
       return response.data.user;
     } catch (error) {
-      console.error("Login error:", error.response?.data || error.message);
-      throw error;
+      if (error.response) {
+        throw new Error(error.response.data.message || "An error occurred while logging in.");
+      } else {
+        throw new Error("No response from server. Please check your internet connection.");
+      }
     }
-  };
+  };  
 
   const logout = async () => {
-    console.log("Logout has been called.");
-    console.trace();
     try {
       await axios.post("/logout", {}, { withCredentials: true });
       setUser(null);
