@@ -1,28 +1,71 @@
 import React, { useState } from "react";
 import { useAuth } from "./AuthContext";
+import { useAxios } from "./AxiosProvider";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
+import { faEye, faEyeSlash, faCheckCircle, faTimesCircle } from '@fortawesome/free-solid-svg-icons';
 
 const Register = ({ handleClick }) => {
   const { register } = useAuth();
   const [username, setUsername] = useState("");
+  const [isUsernameValid, setIsUsernameValid] = useState(null);
+  const [isUsernameAvailable, setIsUsernameAvailable] = useState(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
 
+  const { axiosInstance } = useAxios();
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
   const toggleConfirmPasswordVisibility = () => setShowConfirmPassword(!showConfirmPassword);
 
+  const validateUsername = (name) => {
+    const usernameRegex = /^(?!.*[_.]{2})[a-zA-Z0-9][a-zA-Z0-9._]{1,18}[a-zA-Z0-9]$/;
+    return usernameRegex.test(name);
+  };
+
+  const checkUsernameAvailability = async (name) => {
+    try {
+      const response = await axios.get(`/check-username?username=${name}`);
+      return response.data.available;
+    } catch (error) {
+      console.error("Error checking username availability:", error);
+      return false;
+    }
+  };
+  
+  useEffect(() => {
+    if (username.length < 3) {
+      setIsUsernameValid(false);
+      setIsUsernameAvailable(null);
+      return;
+    }
+
+    if (validateUsername(username)) {
+      setIsUsernameValid(true);
+
+      const timer = setTimeout(async () => {
+        const available = await checkUsernameAvailability(username);
+        setIsUsernameAvailable(available);
+      }, 500);
+
+      return () => clearTimeout(timer);
+    } else {
+      setIsUsernameValid(false);
+      setIsUsernameAvailable(null);
+    }
+  }, [username]);
+  
   const handleRegister = async (e) => {
     e.preventDefault();
     setError("");
-    setSuccess("");
 
+    if (!isUsernameValid || !isUsernameAvailable) {
+      setError("Invalid or unavailable username.");
+      return;
+    }
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
       return;
@@ -50,7 +93,6 @@ const Register = ({ handleClick }) => {
 
     try {
       await register(username, email, password, confirmPassword);
-      setSuccess("Registration successful! Please check your email to verify your account.");
       setIsRegistered(true);
     } catch (err) {
       setError(err.response?.data.message || "Registration failed. Please try again.");
@@ -75,6 +117,9 @@ const Register = ({ handleClick }) => {
             onChange={(e) => setUsername(e.target.value)}
             required
           />
+          {isUsernameValid === false && <span style={{ color: "red" }}><FontAwesomeIcon icon={faTimesCircle} /></span>}
+          {isUsernameValid && isUsernameAvailable === true && <span style={{ color: "green" }}><FontAwesomeIcon icon={faCheckCircle} /></span>}
+          {isUsernameValid && isUsernameAvailable === false && <span style={{ color: "red" }}><FontAwesomeIcon icon={faTimesCircle} /></span>}
         </div>
         <div>
           <label>Email:</label>
