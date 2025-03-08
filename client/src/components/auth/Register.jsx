@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "./AuthContext";
 import { useAxios } from "./AxiosProvider";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -28,7 +28,7 @@ const Register = ({ handleClick }) => {
 
   const checkUsernameAvailability = async (name) => {
     try {
-      const response = await axios.get(`/check-username?username=${name}`);
+      const response = await axiosInstance.get(`/check-username?username=${name}`);
       return response.data.available;
     } catch (error) {
       console.error("Error checking username availability:", error);
