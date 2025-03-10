@@ -12,7 +12,7 @@ const Landing = () => {
   const lastUpdatedData = {
     issues: "2025-03-10T07:42:00Z",
     features: "2025-03-08T18:35:00Z",
-    plannedFeatures: "2025-03-08T18:35:00Z",
+    upcoming: "2025-03-08T18:35:00Z",
     walkthrough: "2025-03-06T15:45:00Z",
   };
 
@@ -39,7 +39,7 @@ const Landing = () => {
           {isNew("features") && "🆕 "} Features
         </button>
         <button onClick={() => setActiveTab("upcoming")} className={activeTab === "upcoming" ? "active" : ""}>
-          {isNew("plannedFeatures") && "🆕 "} Upcoming Features
+          {isNew("upcoming") && "🆕 "} Upcoming Features
         </button>
         <button onClick={() => setActiveTab("walkthrough")} className={activeTab === "walkthrough" ? "active" : ""}>
           {isNew("walkthrough") && "🆕 "} How to Use
