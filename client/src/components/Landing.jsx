@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faDiscord } from '@fortawesome/free-brands-svg-icons';
 import issues from "../data/issuesData";
 import features from "../data/featuresData";
 import plannedFeatures from "../data/plannedFeaturesData";
@@ -54,10 +56,9 @@ const Landing = () => {
               <h2>Thank You for Testing MemoryApp!</h2>
               <p>
                 This app is currently in testing. We appreciate your feedback!
-                Please report any <strong>bugs, usability issues, or general feedback</strong> on our 
-                <a href="https://discord.gg/cXtwDJVEFF"> Discord Server</a>.
+                Please report any <strong>bugs, usability issues, or general feedback</strong> on our Discord.
               </p>
-
+              <a href="https://discord.gg/cXtwDJVEFF"> <FontAwesomeIcon style={{fontSize: "42px"}} icon={faDiscord}/></a>
               <h3>Data Collection & Privacy</h3>
               <p>To improve user experience, MemoryApp collects limited data:</p>
 
@@ -72,7 +73,7 @@ const Landing = () => {
 
               <p>You can <strong>enable or disable both</strong> in the <strong>Settings</strong> at any time.</p>
 
-              <h3>Your Privacy Matters:</h3>
+              <h3>Your Privacy Matters</h3>
               <ul>
                 <li> <strong>Your data will never be sold</strong> or shared with third parties.</li>
                 <li> Data is <strong>only used within the app</strong> to enhance recommendations and user experience.</li>

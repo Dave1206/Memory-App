@@ -225,8 +225,13 @@ textarea[name="custom-tags"] {
 }
 
 @media (max-width:768px) {
+    .modal-backdrop{
+        justify-content: flex-start;
+        align-items: flex-start;
+        overflow-y: scroll;
+    }
     .modal{
         flex-direction: column;
-        overflow-y: scroll;
+        /* overflow-y: scroll; */
     }
 }

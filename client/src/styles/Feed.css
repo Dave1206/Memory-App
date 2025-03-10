@@ -46,6 +46,7 @@
 @media (max-width: 768px) {
     .feed-wrapper {
         width: 95vw;
+        height: 90vh;
         margin-top: 12%;
     }
     .feed-container{
