@@ -36,7 +36,7 @@ function ToggleableList({ getEvents, user, onLogout }) {
                             <ToggleModMode />
                             {isModMode && (
                                 <Link to={'/moderator-tools'}>
-                                    <button className="toggleable-button mod-button">
+                                    <button className="event-button">
                                         Mod tools <FontAwesomeIcon icon={faGavel} />
                                     </button>
                                 </Link>

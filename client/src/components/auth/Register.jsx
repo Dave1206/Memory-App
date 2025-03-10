@@ -111,6 +111,7 @@ const Register = ({ handleClick }) => {
         <div>
           <label>Username:</label>
           <input
+            className="login-card-input"
             type="text"
             placeholder="Username"
             value={username}
@@ -124,6 +125,7 @@ const Register = ({ handleClick }) => {
         <div>
           <label>Email:</label>
           <input
+            className="login-card-input"
             type="email"
             placeholder="Email"
             value={email}
@@ -135,6 +137,7 @@ const Register = ({ handleClick }) => {
           <label>Password:</label>
           <div style={{ display: "flex", alignItems: "center" }}>
             <input
+              className="login-card-input"
               type={showPassword ? "text" : "password"}
               placeholder="Password"
               value={password}
@@ -151,6 +154,7 @@ const Register = ({ handleClick }) => {
           <label>Confirm Password:</label>
           <div style={{ display: "flex", alignItems: "center" }}>
             <input
+              className="login-card-input"
               type={showConfirmPassword ? "text" : "password"}
               placeholder="Confirm Password"
               value={confirmPassword}

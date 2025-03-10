@@ -283,10 +283,10 @@ app.post("/register", async (req, res) => {
 
     const verificationLink = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
     await transporter.sendMail({
-      from: `${process.env.EMAIL_USER}`,
+      from: `"MemoryApp Support" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: 'Please verify your email address',
-      text: `Click the following link to verify your email:\n${verificationLink}`,
+      text: `Welcome to the Memory App Alpha.\nClick the following link to verify your email:\n${verificationLink}`,
     });
 
     res.status(201).json({ message: "User registered successfully. Please verify your email to complete registration"});

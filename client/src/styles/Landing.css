@@ -1,118 +1,228 @@
+/* Main container */
 .landing-container {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.9);
-  color: white;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
+  width: 90%;
+  max-width: 1200px;
+  margin: 0 auto;
   padding: 20px;
-  margin: 0;
-  overflow-y: auto;
+  font-family: 'Arial', sans-serif;
+  text-align: center;
+  background-color: rgba(245, 230, 202, 1);
+  color: #3d3b30;
   z-index: 10000;
+  border-radius: 10px;
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.landing-container.h1 {
-  font-size: 24px;
+/* Header styling */
+.landing-container h1 {
+  margin-top: 40px;
+  font-size: 2em;
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: #8c7051;
+}
+
+.landing-container p {
+  font-size: 1em;
   margin-bottom: 10px;
 }
 
-.discord-link {
-  color: #7289DA;
-  font-size: 18px;
-  text-decoration: none;
-  margin: 10px 0;
-  display: block;
-}
-
-.last-updated {
-  font-size: 14px;
-  color: #bbb;
-  margin-bottom: 10px;
-}
-
+/* Tabs */
 .tabs {
   display: flex;
-  margin-top: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 20px 0;
 }
 
 .tabs button {
-  padding: 10px 15px;
-  margin: 0 5px;
-  border: none;
+  background: none;
+  border: 2px solid #8c7051;
+  color: #8c7051;
+  font-size: 1em;
+  padding: 10px 18px;
   cursor: pointer;
-  background-color: #444;
-  color: white;
   border-radius: 5px;
-  font-weight: bold;
-  position: relative;
+  transition: all 0.3s ease-in-out;
 }
 
 .tabs button.active {
-  background-color: #7289DA;
+  background: #8c7051;
+  color: white;
 }
 
+.tabs button:hover {
+  background: #a6765e;
+  color: white;
+}
+
+/* Tab Content */
 .tab-content {
-  width: 100%;
-  justify-self: center;
-  align-self: center;
-  margin-top: 20px;
+  margin-top: 15px;
+  padding: 20px;
+  background-color: #fff8e1;
+  border-radius: 10px;
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
 }
 
+/* Last Updated Text */
+.last-updated {
+  font-size: 0.9em;
+  font-style: italic;
+  margin-bottom: 12px;
+  color: #6d5238;
+}
+
+/* Issues & Features List */
 .issues-list {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
+  justify-content: flex-start;
+  text-align: left;
+  height: 60vh;
+  overflow-y: auto;
+  scrollbar-width: none;
 }
 
-.issues-row {
-  display: flex;
-  justify-content: space-evenly;
-  flex-wrap: wrap;
-  gap: 20px;
-  width: 100%;
-}
-
-.issues-column {
-  flex: 1;
-  min-width: 30%;
-  max-width: 30%;
-}
-
+/* Details & Summary */
 .issue {
-  background: #222;
-  padding: 10px;
-  margin: 5px;
+  background: #fdf3e1;
+  border: 1px solid #c5a880;
+  padding: 12px;
   border-radius: 8px;
-  /* border: #fff solid 1px; */
-  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.5s ease;
+  margin: 1px;
 }
 
 .issue summary {
-  font-size: 18px;
   font-weight: bold;
   cursor: pointer;
-  user-select: none;
-  border-bottom: #fff solid 1px;
+  padding: 10px;
+  border-radius: 5px;
+  transition: all 0.5s ease-in-out;
 }
 
-.issue summary::before {
-  content: attr(data-new);
-  color: red;
-  margin-right: 5px;
-  font-weight: bold;
+.issue summary:hover {
+  background-color: #e6d5b8;
 }
 
 .issue ul {
-  margin-top: 5px;
-  padding-left: 20px;
+  padding-left: 30px;
   list-style-type: numeric;
 }
 
-.issue li {
-  margin-bottom: 5px;
+/* Walkthrough Section */
+.walkthrough-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  text-align: left;
+  padding: 20px;
+  height: 60vh;
+}
+
+/* Walkthrough Left-Side Buttons */
+.walkthrough-menu {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  max-width: 250px;
+}
+
+.walkthrough-menu button {
+  width: 100%;
+  background: none;
+  border: 2px solid #8c7051;
+  color: #8c7051;
+  font-size: 1em;
+  padding: 12px;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: all 0.3s ease-in-out;
+}
+
+.walkthrough-menu button:hover {
+  background: #8c7051;
+  color: white;
+}
+
+/* Walkthrough Right-Side Content */
+.walkthrough-content {
+  flex: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  background-color: #fff8e1;
+  padding: 10px;
+  border-radius: 10px;
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+  width: 100%;
+}
+
+.walkthrough-image {
+  width: 100%;
+  height: 500px;
+  border-radius: 10px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* Welcome Section */
+.welcome-content{
+  height: 64vh;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.welcome-content h2 {
+  font-size: 1.9em;
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: #8c7051;
+}
+
+.welcome-content h3 {
+  font-size: 1.6em;
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: #8c7051;
+}
+
+/* Responsive Design */
+@media (max-width: 900px) {
+  .issues-list {
+    max-height: 50vh;
+  }
+
+  .walkthrough-container {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .walkthrough-content {
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .tabs {
+    flex-wrap: wrap;
+  }
+
+  .tabs button {
+    width: 45%;
+    margin-bottom: 5px;
+  }
+
+  .walkthrough-menu button {
+    width: 100%;
+  }
 }

@@ -6,6 +6,8 @@ import EventInvites from "./events/EventInvites";
 import NotificationBadge from "./NotificationBadge";
 import { useAxios } from './auth/AxiosProvider';
 import { useNavigate } from 'react-router-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCalendarAlt, faCompass, faNewspaper, faUsers, faBell } from '@fortawesome/free-solid-svg-icons';
 import "../styles/Navbar.css";
 
 function Navbar({ userId, events, onEventUpdate }) {
@@ -19,11 +21,11 @@ function Navbar({ userId, events, onEventUpdate }) {
 
     const fetchNotifications = useCallback(async () => {
         const initialNavItems = [
-            { name: "Events", notifications: 0 },
-            { name: "Explore", notifications: 0 },
-            { name: "Feed", notifications: 0 },
-            { name: "Friends", notifications: 0 },
-            { name: "Alerts", notifications: 0 }
+            { name: "Events", icon: faCalendarAlt, notifications: 0 },
+            { name: "Explore", icon: faCompass, notifications: 0 },
+            { name: "Feed", icon: faNewspaper, notifications: 0 },
+            { name: "Friends", icon: faUsers, notifications: 0 },
+            { name: "Alerts", icon: faBell, notifications: 0 }
         ];
         try {
             const response = await axiosInstance.get(`/notifications/${userId}`);
@@ -74,7 +76,7 @@ function Navbar({ userId, events, onEventUpdate }) {
                         className={`nav-item ${index === activeRoute ? "active" : ""}`}
                         onClick={() => handleRouteClick(index, `/${item.name.toLowerCase()}`)}
                     >
-                        <img src={`/assets/${item.name.toLowerCase()}.png`} alt={`${item.name} icon`} />
+                        <FontAwesomeIcon icon={item.icon} />
                         {item.name}
                         {item.notifications > 0 && <NotificationBadge count={parseInt(item.notifications, 10)} />}
                     </div>
@@ -84,8 +86,7 @@ function Navbar({ userId, events, onEventUpdate }) {
                     className={`nav-dropdown-toggle ${activeDropdown === 3 ? "active" : ""}`}
                     onClick={() => handleDropdownClick(3)}
                 >
-                    <img src="/assets/friends.png" alt="Friends icon" />
-                    <p>Friends</p>
+                    <FontAwesomeIcon icon={faUsers} />
                     {navItems[3]?.notifications > 0 && <NotificationBadge count={parseInt(navItems[3].notifications, 10)} />}
                 </div>
                 
@@ -93,8 +94,7 @@ function Navbar({ userId, events, onEventUpdate }) {
                     className={`nav-dropdown-toggle ${activeDropdown === 4 ? "active" : ""}`}
                     onClick={() => handleDropdownClick(4)}
                 >
-                    <img src="/assets/alerts.png" alt="Alerts icon" />
-                    <p>Alerts</p>
+                    <FontAwesomeIcon icon={faBell} />
                     {navItems[4]?.notifications > 0 && <NotificationBadge count={parseInt(navItems[4].notifications, 10)} />}
                 </div>
 

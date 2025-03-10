@@ -1,60 +1,54 @@
 footer {
     width: 100%;
-    padding: 20px 60px;
+    height: 8%;
+    padding: 20px 40px;
     color: var(--text-color);
     position: absolute;
     bottom: 0;
     left: 0;
     display: flex;
-    flex-direction: column;
-    justify-content: center;
+    flex-direction: row;
+    gap: 50px;
+    justify-content: flex-start;
     align-items: flex-start;
-    background-color: rgba(118, 78, 50, 0.7);
-    backdrop-filter: blur(5px); /* Subtle blur effect for transparency */
+    background-color: #8c7051;
+    backdrop-filter: blur(5px);
     box-shadow: 0 -4px 8px rgba(0, 0, 0, 0.2);
     box-sizing: border-box;
     font-size: 0.9rem;
+    text-align: left;
+    z-index: 1000;
 }
 
+/* Ensure text and links align properly */
 footer p, footer a {
     color: var(--text-color);
     text-decoration: none;
     font-weight: 500;
-    margin: 0;
+    margin: 5px 0;
 }
 
+/* Add hover effect to links */
 footer a:hover {
-    text-decoration: underline;
     color: var(--link-hover-color);
 }
 
+/* Adjust footer links to be positioned in the bottom-left */
 footer .footer-links {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    position: absolute;
-    bottom: 10px;
-    left: 10px;
+    gap: 5px;
+    align-items: flex-start;
 }
 
-footer::before {
-    content: '';
-    position: absolute;
-    top: -20px;
-    left: 0;
-    right: 0;
-    height: 20px;
-    background: linear-gradient(to top, rgba(118, 78, 50, 0.7), rgba(118, 78, 50, 0));
-    pointer-events: none;
-    z-index: -1;
-}
-
+/* Responsive adjustments */
 @media (max-width: 768px) {
     footer {
-        display: none; /* Hide footer on smaller screens */
+        display: none;
     }
 }
 
+/* Light mode adjustments */
 @media (prefers-color-scheme: light) {
     footer {
         background-color: rgba(0, 121, 107, 0.7);

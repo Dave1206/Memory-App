@@ -32,8 +32,8 @@
 }
 
 /* Input styling */
-.login-card input {
-    width: 100%;
+.login-card-input {
+    width: 90%;
     padding: 12px;
     margin: 10px 0;
     border-radius: 8px;
@@ -44,6 +44,12 @@
     outline: none;
     box-shadow: inset 0px 2px 4px rgba(0, 0, 0, 0.1); 
     transition: background-color 0.3s ease;
+}
+
+.login-eye {
+    position: absolute;
+    right: 12px;
+    top: 205px;
 }
 
 /* Button styling */

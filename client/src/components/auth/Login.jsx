@@ -50,13 +50,15 @@ const Login = () => {
                       {error && <p style={{ color: "red" }}>{error}</p>}
                       <form onSubmit={handleSubmit}>
                           <input
+                              className="login-card-input"
                               type="text"
                               placeholder="Email or Username"
                               value={identifier}
                               onChange={(e) => setIdentifier(e.target.value)}
                           />
-                          <div style={{ display: "flex", alignItems: "center" }}>
+                          <div>
                             <input
+                              className="login-card-input"
                               type={showPassword ? "text" : "password"}
                               placeholder="Password"
                               value={password}
@@ -64,14 +66,14 @@ const Login = () => {
                               required
                               style={{ flex: 1 }}
                             />
-                            <span onClick={togglePasswordVisibility} style={{ cursor: "pointer", marginLeft: "5px" }}>
+                            <span className="login-eye" onClick={togglePasswordVisibility} style={{ cursor: "pointer", marginLeft: "5px" }}>
                               {showPassword ? <FontAwesomeIcon icon={faEye} /> : <FontAwesomeIcon icon={faEyeSlash} />}
                             </span>
                           </div>
                           <button type="submit">Login</button>
                       </form>
-                      <p style={{ cursor: 'pointer' }} onClick={() => setIsRegistered(false)}>Not registered? Click here.</p>
-                      <p style={{ cursor: 'pointer' }} onClick={() => setForgotPassword(true)}>Forgot your password? Click here.</p>
+                      <p style={{ cursor: 'pointer' }} onClick={() => setIsRegistered(false)}>Register</p>
+                      <p style={{ cursor: 'pointer' }} onClick={() => setForgotPassword(true)}>Forgot your password?</p>
                   </div>
               ) : (
                   <Register 
@@ -83,9 +85,7 @@ const Login = () => {
         )}
       </div>
     ) : (
-      <div>
         <ForgotPassword />
-      </div>
     )
   );
 };

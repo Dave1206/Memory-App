@@ -228,7 +228,7 @@ function CreateModal({ show, onClose, onCreate, userId }) {
                         </div>
                         <textarea
                             name="custom-tags"
-                            placeholder="Add custom tags, separated by commas"
+                            placeholder="Add custom tags separated by commas."
                             value={customTags}
                             onChange={(e) => {
                                 setCustomTags(e.target.value);
@@ -245,7 +245,7 @@ function CreateModal({ show, onClose, onCreate, userId }) {
                         <h3>Location</h3>
                         <textarea
                             className='location-input'
-                            placeholder="City, Region, Country"
+                            placeholder="City, State or Region, Country"
                             value={newEvent.location}
                             onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
                             disabled={autoLocation}

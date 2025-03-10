@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from "react";
+import issues from "../data/issuesData";
+import features from "../data/featuresData";
+import plannedFeatures from "../data/plannedFeaturesData";
 import "../styles/Landing.css";
 
 const Landing = () => {
-  const [activeTab, setActiveTab] = useState("issues");
+  const [activeTab, setActiveTab] = useState("welcome");
   const [lastViewed, setLastViewed] = useState(null);
+  const [selectedGuide, setSelectedGuide] = useState("createEvent");
 
   const lastUpdatedData = {
-    issues: "2025-03-09T12:00:00Z",
-    features: "2025-03-08T18:30:00Z",
+    issues: "2025-03-10T07:42:00Z",
+    features: "2025-03-08T18:35:00Z",
+    plannedFeatures: "2025-03-08T18:35:00Z",
     walkthrough: "2025-03-06T15:45:00Z",
   };
 
@@ -17,86 +22,24 @@ const Landing = () => {
     localStorage.setItem("lastViewedLanding", new Date().toISOString());
   }, []);
 
-  const isNew = (section) => {
-    if (!lastViewed) return true;
-    return new Date(lastUpdatedData[section]) > lastViewed;
-  };
+  const isNew = (section) => !lastViewed || new Date(lastUpdatedData[section]) > lastViewed;
 
-  const issues = [
-    {
-      title: "Alerts & Notifications",
-      details: [
-        "Alerts will be moved to the top right next to the ellipsis menu.",
-        "New notifications will include when a friend creates a post or when a memory is added to a post you follow.",
-        "Notification preferences will be customizable."
-      ]
-    },
-    {
-      title: "Messenger",
-      details: [
-        "Chat window should auto-scroll to the last seen message, but sometimes does not.",
-        "Messages are not always marked as seen correctly.",
-        "The message list should load previous messages when scrolling up. This is temporarily broken. 🔥 High Priority Fix",
-        "In the future, users can start a conversation via a 'Message' button in the friend's list and profile."
-      ]
-    },
-    {
-      title: "Blocking & Privacy",
-      details: [
-        "Blocking users is currently broken. 🔥 High Priority Fix",
-        "There is no way to unblock users yet—this will be added in profile settings."
-      ]
-    },
-    {
-      title: "Profile & Settings Pages",
-      details: [
-        "Sometimes trying to access your own profile results in a 'This user has blocked you' error. Logging out and back in fixes this.",
-        "Not all notification preferences are functional.",
-        "Changing email does not currently require re-verification. This will be fixed soon."
-      ]
-    },
-    {
-      title: "Like Button Issue",
-      details: [
-        "Like button does not work on the Events page but functions on Explore and Feed pages."
-      ]
-    },
-    {
-      title: "Event & Memory Posts",
-      details: [
-        "Currently, users can create events with an empty title or description. These will be required in the future.",
-        "Memory posts will require minimum content limits.",
-        "Multimedia (images, videos) will be supported soon, with moderation in place.",
-        "The magnifying glass icon is clickable on all events, but in the future, it will only be available for events exceeding the content limit.",
-        "Styling will be added to make it more obvious that it is a clickable button."
-      ]
-    },
-    {
-      title: "Advanced Account Setup",
-      details: [
-        "New users will go through an onboarding process to set preferences, add a profile picture, and customize their content interests.",
-        "This data will be used to tailor the 'For You' section in Explore."
-      ]
-    }
-  ];
-  
   return (
     <div className="landing-container">
       <h1>Welcome to MemoryApp - Testing Phase</h1>
-      <p>
-        This app is currently in testing! Below is a list of known issues, upcoming features, and how to use the app.
-        If you find an issue, please report it on Discord.
-      </p>
-      <a href="YOUR_DISCORD_LINK_HERE" target="_blank" rel="noopener noreferrer" className="discord-link">
-        📢 Report an Issue on Discord
-      </a>
 
       <div className="tabs">
+        <button onClick={() => setActiveTab("welcome")} className={activeTab === "welcome" ? "active" : ""}>
+          Welcome
+        </button>
         <button onClick={() => setActiveTab("issues")} className={activeTab === "issues" ? "active" : ""}>
           {isNew("issues") && "🆕 "} Known Issues
         </button>
         <button onClick={() => setActiveTab("features")} className={activeTab === "features" ? "active" : ""}>
-          {isNew("features") && "🆕 "} Current Features
+          {isNew("features") && "🆕 "} Features
+        </button>
+        <button onClick={() => setActiveTab("upcoming")} className={activeTab === "upcoming" ? "active" : ""}>
+          {isNew("plannedFeatures") && "🆕 "} Upcoming Features
         </button>
         <button onClick={() => setActiveTab("walkthrough")} className={activeTab === "walkthrough" ? "active" : ""}>
           {isNew("walkthrough") && "🆕 "} How to Use
@@ -104,48 +47,108 @@ const Landing = () => {
       </div>
 
       <div className="tab-content">
+        {/* Welcome Tab - Default View */}
+        {activeTab === "welcome" && (
+          <div className="welcome-content">
+            <div class="privacy-notice">
+              <h2>Thank You for Testing MemoryApp!</h2>
+              <p>
+                This app is currently in testing. We appreciate your feedback!
+                Please report any <strong>bugs, usability issues, or general feedback</strong> on our 
+                <a href="https://discord.gg/cXtwDJVEFF"> Discord Server</a>.
+              </p>
 
-        {activeTab === "issues" && (
-          <div className="issues-list">
-            <p className="last-updated">Last Updated: {new Date(lastUpdatedData.issues).toLocaleString()}</p>
-            {/* Split issues into groups of 3 per column */}
-            {Array.from({ length: Math.ceil(issues.length / 12) }).map((_, rowIndex) => (
-              <div key={rowIndex} className="issues-row">
-                {Array.from({ length: 3 }).map((_, colIndex) => {
-                  const startIndex = rowIndex * 12 + colIndex * 4;
-                  const columnIssues = issues.slice(startIndex, startIndex + 4);
+              <h3>Data Collection & Privacy</h3>
+              <p>To improve user experience, MemoryApp collects limited data:</p>
 
-                  return (
-                    <div key={colIndex} className="issues-column">
-                      {columnIssues.map((issue, index) => (
-                        <details key={index} className="issue">
-                          <summary>
-                            {new Date(issue.lastUpdated) > lastViewed ? "🆕 " : ""} {issue.title}
-                          </summary>
-                          <ul>
-                            {issue.details.map((detail, i) => (
-                              <li key={i}>{detail}</li>
-                            ))}
-                          </ul>
-                        </details>
-                      ))}
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
+              <ul>
+                <li><strong>Interaction Data</strong> (enabled by default): Tracks engagement with content to
+                  <em> promote popular posts</em> and <em>suggest relevant content</em>.
+                </li>
+                <li><strong>Location Data</strong> (disabled by default): Can be used to
+                  <em> recommend events near you</em> if enabled.
+                </li>
+              </ul>
+
+              <p>You can <strong>enable or disable both</strong> in the <strong>Settings</strong> at any time.</p>
+
+              <h3>Your Privacy Matters:</h3>
+              <ul>
+                <li> <strong>Your data will never be sold</strong> or shared with third parties.</li>
+                <li> Data is <strong>only used within the app</strong> to enhance recommendations and user experience.</li>
+                <li> During testing, we may log additional usage patterns to improve app stability and functionality.</li>
+              </ul>
+
+              <p>
+                By using MemoryApp during this testing phase, you acknowledge and agree to this data collection.
+                If you have any concerns, please reach out via Discord.
+              </p>
+            </div>
+
+            <h3>What We’re Looking For:</h3>
+            <ul>
+              <li>🐞 Bugs – Anything that isn't working as expected.</li>
+              <li>⚙️ Usability Issues – If something is confusing or hard to use.</li>
+              <li>🌟 Feature Suggestions – Ideas for improvements or additions.</li>
+              <li>🎨 Design Suggestions - Suggestions that might improve the look of the app or user experience (UX).</li>
+              <li>📱 Responsiveness - Test the app on your mobile device, and give feedback about the mobile experience.</li>
+              <li>🔧 If you would like to work on the app, whether coding, design, or otherwise, reach out on discord.</li>
+            </ul>
+            <p>Click a tab above to explore known issues, current features, and upcoming updates.</p>
           </div>
         )}
 
-        {activeTab === "features" && (
-          <div>
-            <p>Features List here</p>
-          </div>
-        )}
-
+        {/* Walkthrough Section */}
         {activeTab === "walkthrough" && (
+          <div className="walkthrough-container">
+            <div className="walkthrough-menu">
+              <button onClick={() => setSelectedGuide("createEvent")}>Create an Event</button>
+              <button onClick={() => setSelectedGuide("shareMemory")}>Share a Memory</button>
+              <button onClick={() => setSelectedGuide("messenger")}>Access Messenger</button>
+              <button onClick={() => setSelectedGuide("profile")}>Access User Profile</button>
+              <button onClick={() => setSelectedGuide("notifications")}>Access Settings</button>
+            </div>
+            <div className="walkthrough-content">
+              {selectedGuide ? (
+                <img
+                  src={`/assets/${selectedGuide}.jpg`}
+                  alt="Guide Screenshot"
+                  className="walkthrough-image"
+                />
+              ) : (
+                <p>Select a topic to view the guide.</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Issues, Features, and Upcoming Features Sections */}
+        {activeTab !== "welcome" && activeTab !== "walkthrough" && (
           <div>
-            <p>Features walkthrough here</p>
+            <p className="last-updated">
+              Last Updated: {new Date(lastUpdatedData[activeTab]).toLocaleString()}
+              {activeTab === "issues" && " 🔥= high priority"}
+            </p>
+            <div className="issues-list">
+              {activeTab === "issues" && issues.map((issue, index) => (
+                <details key={index} className="issue">
+                  <summary>{new Date(issue.lastUpdated) > lastViewed ? "🆕 " : ""} {issue.title}</summary>
+                  <ul>{issue.details.map((detail, i) => <li key={i}>{detail}</li>)}</ul>
+                </details>
+              ))}
+              {activeTab === "features" && features.map((feature, index) => (
+                <details key={index} className="issue">
+                  <summary>{new Date(feature.lastUpdated) > lastViewed ? "🆕 " : ""} {feature.title}</summary>
+                  <ul>{feature.details.map((detail, i) => <li key={i}>{detail}</li>)}</ul>
+                </details>
+              ))}
+              {activeTab === "upcoming" && plannedFeatures.map((feature, index) => (
+                <details key={index} className="issue">
+                  <summary>{new Date(feature.lastUpdated) > lastViewed ? "🆕 " : ""} {feature.title}</summary>
+                  <ul>{feature.details.map((detail, i) => <li key={i}>{detail}</li>)}</ul>
+                </details>
+              ))}
+            </div>
           </div>
         )}
       </div>
