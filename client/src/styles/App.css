@@ -8,3 +8,7 @@
   align-items: center;
   overflow: hidden;
 }
+
+html, body {
+  overscroll-behavior: contain;
+}

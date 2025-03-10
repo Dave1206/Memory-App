@@ -177,7 +177,7 @@
 @media (max-width: 768px) {
     .conversation-dropdown {
       width: 100%;
-      height: 88vh;
+      height: 85vh;
       margin-bottom: 0;
       bottom: 0;
       right: 0;
@@ -185,6 +185,6 @@
     
     .chat-window {
       right: 0;
-      height: 88vh;
+      height: 85vh;
     }
   }

@@ -107,7 +107,7 @@ const Register = ({ handleClick }) => {
           Registration successful! Please check your email and click the verification link to activate your account.
         </p>
       ) : (
-      <form onSubmit={handleRegister}>
+      <form onSubmit={handleRegister} noValidate>
         <div>
           <label>Username:</label>
           <input
@@ -166,15 +166,14 @@ const Register = ({ handleClick }) => {
               {!showConfirmPassword ? <FontAwesomeIcon icon={faEyeSlash} /> : <FontAwesomeIcon icon={faEye} />}
             </span>
           </div>
-          <small>
+          {error ? (<p style={{ color: "red" }}>{error}</p>) : (<small>
             Password must be at least 8 characters and include an uppercase letter, lowercase letter,
             number, and special character.
-          </small>
+          </small>)}
         </div>
-        <button type="submit">Register</button>
+        <button type="submit" onClick={(e) => e.preventDefault() || handleRegister(e)}>Register</button>
       </form>)}
       <p onClick={handleClick}>Login.</p>
-      {error && <p style={{ color: "red" }}>{error}</p>}
     </div>
   );
 };
