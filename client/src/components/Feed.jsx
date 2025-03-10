@@ -203,7 +203,6 @@ function Feed({ getEvents }) {
     };
 
     const handleBlockUser = async (blockedId, e) => {
-        e.stopPropagation();
         try {
             await axiosInstance.post('/block-user', {
                 userId: user.id,

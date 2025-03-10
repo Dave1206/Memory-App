@@ -13,6 +13,7 @@ import MessengerToggle from './messenger/MessengerToggle';
 import Navbar from './Navbar';
 import Feed from './Feed';
 import Explore from './Explore';
+import LandingToggle from "./LandingToggle";
 import '../styles/App.css';
 import ModeratorTools from './moderation/ModeratorTools';
 
@@ -68,6 +69,7 @@ function App() {
   return (
     <Router>
       <div className="wrapper">
+        <LandingToggle />
         <Routes>
           {/* Public routes */}
           <Route path="/login" element={!user ? <Login /> : <Navigate to="/events" />} />

@@ -32,7 +32,7 @@ function FeedPost({ post, onLike, onShare, onAddEvent, onRemoveEvent, onBlock, c
         {
             content: <><FontAwesomeIcon icon={faBan} /> Block User</>,
             onClick: () => onBlock(),
-            isDisabled: false,
+            isDisabled: user.id === post.created_by,
         },
     ];
 
