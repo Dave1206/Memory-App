@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faDiscord } from '@fortawesome/free-brands-svg-icons';
 import issues from "../data/issuesData";
@@ -6,15 +6,16 @@ import features from "../data/featuresData";
 import plannedFeatures from "../data/plannedFeaturesData";
 import "../styles/Landing.css";
 
-const Landing = () => {
+const Landing = ({ onClose, toggleButtonRef }) => {
   const [activeTab, setActiveTab] = useState("welcome");
   const [lastViewed, setLastViewed] = useState(null);
   const [selectedGuide, setSelectedGuide] = useState("createEvent");
+  const containerRef = useRef(null);
 
   const lastUpdatedData = {
-    issues: "2025-03-10T07:42:00Z",
+    issues: "2025-03-11T16:54:27.451Z",
     features: "2025-03-08T18:35:00Z",
-    upcoming: "2025-03-08T18:35:00Z",
+    upcoming: "2025-03-11T16:54:27.451Z",
     walkthrough: "2025-03-06T15:45:00Z",
   };
 
@@ -24,10 +25,24 @@ const Landing = () => {
     localStorage.setItem("lastViewedLanding", new Date().toISOString());
   }, []);
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (containerRef.current && 
+        !containerRef.current.contains(event.target) &&
+        !(toggleButtonRef.current && toggleButtonRef.current.contains(event.target)) 
+      ){
+        onClose();
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [onClose, toggleButtonRef]);
+
   const isNew = (section) => !lastViewed || new Date(lastUpdatedData[section]) > lastViewed;
 
   return (
-    <div className="landing-container">
+    <div className="landing-container" ref={containerRef}>
       <h1>Welcome to MemoryApp - Testing Phase</h1>
 
       <div className="tabs">
@@ -49,7 +64,6 @@ const Landing = () => {
       </div>
 
       <div className="tab-content">
-        {/* Welcome Tab - Default View */}
         {activeTab === "welcome" && (
           <div className="welcome-content">
             <div class="privacy-notice">

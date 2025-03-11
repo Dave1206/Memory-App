@@ -45,7 +45,7 @@ function SelectedEvent({ event, handleBackButton, getEvents }) {
                 Back to Events
             </button>
             <h2>{event.title}</h2>
-            <div>{`by ${event.username}`}
+            <div><span>{`by ${event.username}`}</span>
                 <div
                     className="description-toggle-link"
                     onClick={toggleDescription}

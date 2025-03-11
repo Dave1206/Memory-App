@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Landing from "./Landing";
 import "../styles/LandingToggle.css";
 
 const LandingToggle = () => {
   const [isLandingOpen, setIsLandingOpen] = useState(true);
+  const toggleButtonRef = useRef(null);
 
   useEffect(() => {
     const lastViewed = localStorage.getItem("landingClosed");
@@ -22,8 +23,8 @@ const LandingToggle = () => {
 
   return (
     <>
-      {isLandingOpen && <Landing />}
-      <button className="landing-toggle" onClick={toggleLanding}>
+      {isLandingOpen && <Landing onClose={() => toggleLanding()} toggleButtonRef={toggleButtonRef} />}
+      <button ref={toggleButtonRef} className="landing-toggle" onClick={toggleLanding}>
         {isLandingOpen ? "Close Info" : "View Info"}
       </button>
     </>

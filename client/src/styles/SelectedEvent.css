@@ -4,7 +4,8 @@
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    background-color: rgba(255, 255, 255, 0.1); 
+    margin-top: 100px;
+    background-color: rgba(255, 255, 255, 0.5); 
     border-radius: 12px;
     padding: 30px 0;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); 
@@ -42,23 +43,27 @@
   /* Event title styling */
   .selected-event h2 {
     font-size: 1.8rem;
-    color: #ffffff; 
-    margin-bottom: 10px;
+    color: #555; 
+    margin: 50px 0 20px 0;
     text-align: center;
     font-weight: bold;
   }
   
   .selected-event h3 {
     font-size: 1.2rem;
-    color: #ffffff;
+    color: #555;
     text-align: center;
+  }
+
+  .selected-event span {
+    color: #555;
   }
   
   /* Description toggle link */
   .description-toggle-link {
     background: none;
     border: none;
-    color: white;
+    color: #333;
     cursor: pointer;
     text-decoration: underline;
     font-size: .9rem;
