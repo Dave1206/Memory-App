@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Landing from "./Landing";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faClipboardList, faTimesCircle } from '@fortawesome/free-solid-svg-icons';
 import "../styles/LandingToggle.css";
 
 const LandingToggle = () => {
@@ -25,7 +27,7 @@ const LandingToggle = () => {
     <>
       {isLandingOpen && <Landing onClose={() => toggleLanding()} toggleButtonRef={toggleButtonRef} />}
       <button ref={toggleButtonRef} className="landing-toggle" onClick={toggleLanding}>
-        {isLandingOpen ? "Close Info" : "View Info"}
+        {isLandingOpen ? <FontAwesomeIcon icon={faTimesCircle} /> : <FontAwesomeIcon icon={faClipboardList} />}
       </button>
     </>
   );

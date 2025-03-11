@@ -34,7 +34,7 @@
     height: 36px;
     padding: 0;
     font-size: 1.2em;
-    border: none;
+    border: 1px solid #fff;
     border-radius: 50%;
     cursor: pointer;
     display: flex;
@@ -52,6 +52,10 @@
     background-color: rgba(0, 0, 0, 0.6);
     transform: scale(1.1);
 }
+
+.toggleable-toggle-button:active {
+    transform: translateX(-10%) scale(0.95);
+  }
 
 .toggleable-toggle-button:focus {
     outline: none;

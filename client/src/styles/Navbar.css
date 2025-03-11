@@ -81,7 +81,7 @@
     }
 
     .nav-item {
-        font-size: .75em;
+        font-size: 1em;
     }
 
     .nav-dropdown-toggle {
@@ -95,25 +95,19 @@
         border: 1px solid rgba(255, 255, 255, 1);
         box-shadow: 1px 2px 2px rgba(0, 0, 0, 0.3),
                     -1px 2px 2px rgba(0, 0, 0, 0.3);
-    }
-
-    .nav-dropdown-toggle:hover {
-        transform: scale(1.1);
-    }
-
-    .nav-dropdown-toggle p{
-        font-size: .9em;
-        margin-top: 15px;
+        font-size: 1em;
     }
 
     .nav-dropdown-toggle:nth-child(4) {
         right: 2px;
         bottom: 200px;
+        font-size: 1.5em;
     }
 
     .nav-dropdown-toggle:nth-child(5) {
         right: 2px;
         bottom: 140px;
+        font-size: 1.5em;
     }
 
     .nav-dropdown-content {

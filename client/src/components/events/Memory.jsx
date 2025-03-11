@@ -8,12 +8,7 @@ import InviteModal from '../modals/InviteModal';
 import ModOptionsButton from '../moderation/ModOptionsButton';
 import '../../styles/Memory.css';
 
-function Memory({
-    event,
-    userId,
-    memories,
-    getMemories,
-}) {
+function Memory({ event, userId, memories, getMemories }) {
     const [showModal, setShowModal] = useState(false);
     const [showInviteModal, setShowInviteModal] = useState(false);
     const { axiosInstance } = useAxios();
@@ -21,7 +16,9 @@ function Memory({
 
     const currentDate = new Date();
     const revealDate = new Date(event.reveal_date);
-    const isTimeCapsuleRevealed = event.event_type !== 'time_capsule' || revealDate <= currentDate;
+    const isTimeCapsule = event.event_type === 'time_capsule';
+    const isTimeCapsuleRevealed = !isTimeCapsule || revealDate <= currentDate;
+    const shouldBlurMemories = !event.has_shared_memory || !isTimeCapsuleRevealed;
 
     const shareMemory = async (newMemory) => {
         try {
@@ -51,6 +48,7 @@ function Memory({
 
     return (
         <div className="memories-wrapper">
+            {/* Event Buttons */}
             <div className='event-button-container'>
                 {event.created_by === userId && (
                     <button className="invite-button" onClick={openInviteModal}>
@@ -64,6 +62,7 @@ function Memory({
                 )}
             </div>
 
+            {/* Modals */}
             <InviteModal 
                 show={showInviteModal}
                 onClose={closeInviteModal}
@@ -78,51 +77,33 @@ function Memory({
                 eventId={event.event_id}
             />
 
-            {!event.has_shared_memory ? (
-                <div>
-                    <h3>Share your memory to reveal others' memories.</h3>
-                    <div className="memory-container">
-                        {memories.length === 0 && (
-                            <p>No one has shared a memory for this event yet. Be the first!</p>
-                        )}
-                        {memories.map((memory, index) => (
-                            <div key={index} className='memory-parent'>
-                                {user.role !== 'user' && (
-                                    <ModOptionsButton type='memory' contentId={memory.memory_id} />
-                                )}
-                                <div className="memory">
-                                    <p style={{ visibility: 'hidden' }}>{memory.content}</p>
-                                </div>
-                                <strong className="memory-username">{memory.username}</strong>
-                            </div>
-                        ))}
-                    </div>
+            {/* Time Capsule Information */}
+            {isTimeCapsule && (
+                <div className="time-capsule-info">
+                    <span>This time capsule will be available on {revealDate.toLocaleDateString()}.</span>
+                    {!isTimeCapsuleRevealed && <FontAwesomeIcon icon={faLock} className="lock-icon-overlay" />}
                 </div>
-            ) : (
-                isTimeCapsuleRevealed ? (
-                    <div>
-                        <h3>Here's what everyone remembers of this event.</h3>
-                        <div className="memory-container">
-                            {memories.map((memory, index) => (
-                                <div key={index} className='memory-parent'>
-                                    {user.role !== 'user' && (
-                                        <ModOptionsButton type='memory' contentId={memory.memory_id} />
-                                    )}
-                                    <div className="memory">
-                                        <p>{memory.content}</p>
-                                    </div>
-                                    <strong className="memory-username">{memory.username}</strong>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                ) : (
-                    <>
-                    <h2>This time capsule will be available on {revealDate.toLocaleDateString()}.</h2>
-                    <FontAwesomeIcon icon={faLock} className="lock-icon-overlay" />
-                    </>
-                )
             )}
+
+            {/* Memories Section */}
+            <h3>{event.has_shared_memory ? "Here's what everyone remembers:" : "Share your memory to reveal others' memories."}</h3>
+            <div className="memory-container">
+                {memories.length === 0 ? (
+                    <p>No one has shared a memory for this event yet. Be the first!</p>
+                ) : (
+                    memories.map((memory, index) => (
+                        <div key={index} className='memory-parent'>
+                            {user.role !== 'user' && <ModOptionsButton type='memory' contentId={memory.memory_id} />}
+                            
+                            <div className={`memory`}>
+                                <p className={`${shouldBlurMemories ? 'blurred-memory' : ''}`} >{memory.content}</p>
+                            </div>
+
+                            <strong className="memory-username">{memory.username}</strong>
+                        </div>
+                    ))
+                )}
+            </div>
         </div>
     );
 }

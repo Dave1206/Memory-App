@@ -5,9 +5,11 @@
     align-items: center;
     justify-content: center;
     width: 90%;
+    min-height: 100%;
+    max-height: 100%;
     flex-basis: 90%;
-    margin: 20px auto;
-    padding: 20px 0;
+    margin: 20px auto 0;
+    padding: 10px 0;
     border-radius: 12px;
     background: linear-gradient(135deg, #ffafbd 0%, #ffc3a0 100%);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
@@ -18,8 +20,9 @@
 /* Header styles */
 .memories-wrapper h3 {
     font-size: 1.8rem;
-    color: #222;
+    color: #555;
     margin-bottom: 20px;
+    padding: 0 20px;
     text-align: center;
 }
 
@@ -54,7 +57,8 @@
 /* Memory container */
 .memory-container {
     width: 90%;
-    max-height: 400px;
+    min-height: 75%;
+    max-height: 75%;
     overflow-y: auto;
     scrollbar-width: none;
     display: flex;
@@ -111,6 +115,32 @@
     background: #888;
 }
 
+.blurred-memory {
+    filter: blur(8px);
+    position: relative;
+}
+
+/* .blurred-memory::after {
+    content: "🔒 Content hidden";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1rem;
+    font-weight: bold;
+    color: #444;
+    background: rgba(255, 255, 255, 0.8);
+    padding: 5px 10px;
+    border-radius: 5px;
+} */
+
+.time-capsule-info {
+    text-align: center;
+    position: relative;
+    font-size: .8rem;
+    color: #555;
+}
+
 /* Lock overlay */
 .lock-icon-overlay {
     font-size: 4rem;
@@ -134,12 +164,18 @@
 /* Responsive design */
 @media (max-width: 768px) {
     .memories-wrapper {
-        padding: 15px;
-        height: 100%;
+        padding: 10px;
+        min-height: 92%;
+        max-height: 92%;
+    }
+
+    .memories-wrapper h3 {
+        font-size: 1rem;
     }
 
     .memory-container {
-        max-height: 220px;
+        min-height: 65%;
+        max-height: 65%;
     }
 
     .share-button,
