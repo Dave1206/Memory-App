@@ -1,6 +1,7 @@
 .navbar-wrapper {
-    min-width: 25vw;
-    max-width: 25vw;
+    min-width: 200px;
+    width: 15vw;
+    max-width: 15vw;
 }
 
 .navbar {

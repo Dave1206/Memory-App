@@ -3,7 +3,8 @@
     top: 0;
     right: 0;
     min-width: 200px;
-    max-width: 200px;
+    width: 15vw;
+    max-width: 15vw;
     height: 100vh;
     background: rgba(255, 255, 255, 0.9);
     padding: 50px 20px;
