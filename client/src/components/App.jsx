@@ -81,7 +81,7 @@ function App() {
           <Route path="/moderator-tools" element={user ? <ModeratorTools user={user} /> : <Navigate to="/login" />} />
           <Route path="/" element={user ? <Navigate to="/feed" /> : <Navigate to="/login" />} />
         </Routes>
-        {!isMobile && <RightSidebar />}
+        {!isMobile && user && <RightSidebar />}
         <Footer />
       </div>
     </Router>
