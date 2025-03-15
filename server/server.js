@@ -16,7 +16,7 @@ import { moderateImageContent } from './contentModeration.js';
 import cloudinary from 'cloudinary';
 import axios from "axios";
 import { WebSocketServer } from "ws";
-import { handleSendMessage, handleMarkSeen } from "./utils/websocketHandlers.js";
+import { handleSendMessage, handleMarkSeen, handleSendNotification } from "./utils/websocketHandlers.js";
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
@@ -241,9 +241,10 @@ const fetchUserLocation = async (ip) => {
 app.post("/register", async (req, res) => {
   const { username, email, password, confirmPassword } = req.body;
   const date = new Date().toISOString().replace("T", " ").replace("Z", "");
+  const normalizedEmail = email.toLowerCase();
 
   try {
-    const checkEmail = await db.query("SELECT * FROM users WHERE email = $1", [email]);
+    const checkEmail = await db.query("SELECT * FROM users WHERE email = $1", [normalizedEmail]);
     const checkUser = await db.query("SELECT * FROM users WHERE username = $1", [username]);
 
     if (checkEmail.rows.length > 0) {
@@ -257,7 +258,7 @@ app.post("/register", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, saltRounds);
     const result = await db.query(
       "INSERT INTO users (username, email, password, join_date) VALUES ($1, $2, $3, $4) RETURNING *",
-      [username, email, hashedPassword, date]
+      [username, normalizedEmail, hashedPassword, date]
     );
 
     const user = result.rows[0];
@@ -438,21 +439,95 @@ app.get("/events", isAuthenticated, async(req, res) => {
   }
 });
 
+app.get("/events/mine", isAuthenticated, async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    const myEvents = await db.query(
+      `SELECT e.event_id, e.title, e.description, e.creation_date, e.event_type, e.reveal_date, 
+              u.username, u.profile_picture, e.created_by, e.visibility, 
+              ep.has_shared_memory, 
+              COUNT(likes.event_id) AS likes_count,
+              COUNT(shares.event_id) AS shares_count,
+              COUNT(ep.interaction_count) AS interaction_count,
+              (SELECT COUNT(*) FROM memories m WHERE m.event_id = e.event_id) AS memories_count,
+              MAX(CASE WHEN ep.user_id = $1 THEN CAST(ep.has_liked AS INTEGER) ELSE 0 END) > 0 AS has_liked,
+              MAX(CASE WHEN ep.user_id = $1 THEN CAST(ep.has_shared_event AS INTEGER) ELSE 0 END) > 0 AS has_shared_event,
+              MAX(CASE WHEN ep.user_id = $1 THEN ep.status ELSE NULL END) AS event_status
+      FROM events e
+      JOIN users u ON e.created_by = u.id
+      LEFT JOIN event_participation ep ON e.event_id = ep.event_id AND ep.user_id = $1
+      LEFT JOIN event_participation likes ON e.event_id = likes.event_id AND likes.has_liked = TRUE
+      LEFT JOIN event_participation shares ON e.event_id = shares.event_id AND shares.has_shared_event = TRUE
+      WHERE e.created_by = $1
+      GROUP BY e.event_id, u.username, u.profile_picture, e.title, e.description, e.creation_date, e.created_by, e.visibility, e.event_type, e.reveal_date, ep.has_shared_memory
+      ORDER BY e.creation_date DESC`,
+      [userId]
+    );
+
+    res.json(myEvents.rows);
+  } catch (err) {
+    console.error("Error fetching My Events:", err.message);
+    res.status(500).send("Server Error");
+  }
+});
+
+app.get("/events/followed", isAuthenticated, async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    const followedEvents = await db.query(
+      `SELECT e.event_id, e.title, e.description, e.creation_date, e.event_type, e.reveal_date, 
+              u.username, u.profile_picture, e.created_by, e.visibility, 
+              ep.has_shared_memory, 
+              COUNT(likes.event_id) AS likes_count,
+              COUNT(shares.event_id) AS shares_count,
+              COUNT(ep.interaction_count) AS interaction_count,
+              (SELECT COUNT(*) FROM memories m WHERE m.event_id = e.event_id) AS memories_count,
+              MAX(CASE WHEN ep.user_id = $1 THEN CAST(ep.has_liked AS INTEGER) ELSE 0 END) > 0 AS has_liked,
+              MAX(CASE WHEN ep.user_id = $1 THEN CAST(ep.has_shared_event AS INTEGER) ELSE 0 END) > 0 AS has_shared_event,
+              MAX(CASE WHEN ep.user_id = $1 THEN ep.status ELSE NULL END) AS event_status
+      FROM events e
+      JOIN users u ON e.created_by = u.id
+      JOIN event_participation ep ON e.event_id = ep.event_id
+      LEFT JOIN event_participation likes ON e.event_id = likes.event_id AND likes.has_liked = TRUE
+      LEFT JOIN event_participation shares ON e.event_id = shares.event_id AND shares.has_shared_event = TRUE
+      WHERE ep.user_id = $1 AND ep.status = 'opted_in'
+      GROUP BY e.event_id, u.username, u.profile_picture, e.title, e.description, e.creation_date, e.created_by, e.visibility, e.event_type, e.reveal_date, ep.has_shared_memory
+      ORDER BY e.creation_date DESC`,
+      [userId]
+    );
+
+    res.json(followedEvents.rows);
+  } catch (err) {
+    console.error("Error fetching Followed Events:", err.message);
+    res.status(500).send("Server Error");
+  }
+});
+
 app.post("/events", isAuthenticated, async(req,res) => {
   try {
-    const { title, description, invites, eventType, revealDate, visibility, tags, location } = req.body.newEvent;
+    const { newEvent, memoryContent } = req.body;
+    const { title, invites, eventType, revealDate, visibility, tags, location } = newEvent;
+    const userId = req.user.id;
     const timeStamp = new Date(Date.now()+(1000*60*(-(new Date()).getTimezoneOffset()))).toISOString().replace('T',' ').replace('Z','');
-    const newEvent = await db.query(
+    
+    const newEventResult = await db.query(
       `INSERT INTO events (title, description, created_by, creation_date, event_type, reveal_date, visibility, location) 
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`, 
-      [title, description, req.user.id, timeStamp, eventType, revealDate, visibility, location]
+      [title, "No description provided", userId, timeStamp, eventType, revealDate, visibility, location]
     );
     
-    const eventId = newEvent.rows[0].event_id;
+    const eventId = newEventResult.rows[0].event_id;
 
     await db.query(
-      "INSERT INTO event_participation (event_id, user_id, status) VALUES ($1, $2, $3)",
-      [eventId, req.user.id, 'opted_in']
+      "INSERT INTO memories (event_id, user_id, content) VALUES ($1, $2, $3)",
+      [eventId, userId, memoryContent]
+    );
+
+    await db.query(
+      "INSERT INTO event_participation (event_id, user_id, status, has_shared_memory) VALUES ($1, $2, $3, $4)",
+      [eventId, userId, 'opted_in', true]
     );
 
     if (invites.length > 0){
@@ -480,7 +555,7 @@ app.post("/events", isAuthenticated, async(req,res) => {
 
     await logActivity(req.user.id, 'created_event', `Created a new event: ${title}`, eventId, 'event');
    
-    res.json(newEvent.rows[0]);
+    res.json({ success: true, eventId });
 
   } catch(err) {
     console.error(err.message);
@@ -603,11 +678,18 @@ app.post("/invite/:event_id", isAuthenticated, async (req, res) => {
       )
       users.push(result.rows[0]);
     }
+
+    const event = await db.query(
+      "SELECT * FROM events WHERE event_id = $1",
+    [event_id]);
+
     for (let user of users) {
       await db.query (
         "INSERT INTO event_participation (event_id, user_id, status) VALUES ($1, $2, $3)",
           [event_id, user.id, 'invited']
       );
+      const notificationMessage = `${req.user.username} invited you to an event: "${event.rows[0].title}"`;
+        await handleSendNotification({ recipientId: user.id, message: notificationMessage, type: "invite", event_id }, req.user.id, connectedClients);
     }
 
   } catch (err) {
@@ -666,7 +748,7 @@ app.post("/events/:event_id/memories", isAuthenticated, async (req, res) => {
     const { content } = req.body;
     const userId = req.user.id;
 
-    const invite = await db.query(
+    const participation = await db.query(
       "SELECT * FROM event_participation WHERE event_id = $1 AND user_id = $2",
       [event_id, userId]
     );
@@ -676,7 +758,7 @@ app.post("/events/:event_id/memories", isAuthenticated, async (req, res) => {
       [event_id]
     );
 
-    if (invite.rows[0].has_shared_memory) {
+    if (participation.rows[0].has_shared_memory) {
       return res.status(400).send("You have already shared your memory");
     }
 
@@ -718,11 +800,16 @@ app.get("/events/:event_id/memories", isAuthenticated, async (req, res) => {
 
     if (invite.rows.length > 0) {
       const memories = await db.query(
-        "SELECT u.username, m.content, m.shared_date FROM memories m JOIN users u ON m.user_id = u.id WHERE m.event_id = $1",
+        `SELECT m.user_id, u.username, m.content, m.shared_date 
+         FROM memories m 
+         JOIN users u ON m.user_id = u.id 
+         WHERE m.event_id = $1`,
         [eventId]
       );
 
       res.json(memories.rows);
+    } else {
+      res.json([]);
     }
 
   } catch (err) {
@@ -754,7 +841,6 @@ app.post('/events/:eventId/like', isAuthenticated, async (req, res) => {
         WHERE user_id = $1 AND event_id = $2
       `;
       message = 'Event like removed successfully';
-      await logActivity(userId, 'unliked_event', `Unliked an event: ${event.rows[0].title}`, eventId, 'event');
     } else {
       query = `
         INSERT INTO event_participation (user_id, event_id, has_liked)
@@ -764,6 +850,11 @@ app.post('/events/:eventId/like', isAuthenticated, async (req, res) => {
       `;
       message = 'Event liked successfully';
       await logActivity(userId, 'liked_event', `Liked an event: ${event.rows[0].title}`, eventId, 'event');
+
+      if (userId !== creatorId) {
+        const notificationMessage = `${req.user.username} liked your event "${event.rows[0].title}"`;
+        await handleSendNotification({ recipientId: creatorId, message: notificationMessage, type: "reaction", eventId }, userId, connectedClients);
+      }
     }
 
     await db.query(query, [userId, eventId]);
@@ -776,7 +867,6 @@ app.post('/events/:eventId/like', isAuthenticated, async (req, res) => {
   }
 });
 
-
 app.post('/events/:eventId/share', isAuthenticated, async (req, res) => {
   const userId = req.user.id;
   const eventId = req.params.eventId;
@@ -786,6 +876,8 @@ app.post('/events/:eventId/share', isAuthenticated, async (req, res) => {
       if (event.rows.length === 0) {
           return res.status(404).json({ message: 'Event not found' });
       }
+
+      const creatorId = event.rows[0].created_by;
 
       const participation = await db.query(`
         SELECT has_shared_event FROM event_participation 
@@ -807,11 +899,64 @@ app.post('/events/:eventId/share', isAuthenticated, async (req, res) => {
 
       await logActivity(userId, 'shared_event', `Shared an event: ${event.rows[0].title}`, eventId, 'event');
 
+      if (userId !== creatorId) {
+        const notificationMessage = `${req.user.username} shared your event "${event.rows[0].title}"`;
+        await handleSendNotification({ recipientId: creatorId, message: notificationMessage, type: "reaction", eventId }, userId, connectedClients);
+      }
+
       res.status(200).json({ message: 'Event successfully shared' });
 
   } catch (error) {
       console.error('Error sharing event:', error);
       res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.post('/memories/:memoryId/like', isAuthenticated, async (req, res) => {
+  const userId = req.user.id;
+  const memoryId = req.params.memoryId;
+
+  try {
+      const memory = await db.query("SELECT * FROM memories WHERE memory_id = $1", [memoryId]);
+      if (memory.rows.length === 0) {
+          return res.status(404).json({ message: "Memory not found" });
+      }
+
+      const creatorId = memory.rows[0].user_id;
+
+      const creator = await db.query("SELECT 1 FROM users WHERE id = $1", [creatorId]);
+
+      const participation = await db.query(
+          `SELECT has_liked FROM memory_participation WHERE user_id = $1 AND memory_id = $2`,
+          [userId, memoryId]
+      );
+
+      let query, message;
+      if (participation.rows.length > 0 && participation.rows[0].has_liked) {
+          query = `UPDATE memory_participation SET has_liked = false WHERE user_id = $1 AND memory_id = $2`;
+          message = "Memory like removed successfully";
+      } else {
+          query = `
+              INSERT INTO memory_participation (user_id, memory_id, has_liked)
+              VALUES ($1, $2, true)
+              ON CONFLICT (user_id, memory_id)
+              DO UPDATE SET has_liked = true
+          `;
+          message = "Memory liked successfully";
+          await logActivity(userId, 'liked_memory', `Liked a memory by ${creator.username}`, memoryId, 'memory');
+          // Send real-time notification
+          if (userId !== creatorId) {
+            const notificationMessage = `${req.user.username} liked your memory shared on"${memory.event_id}"`;
+            await handleSendNotification({ recipientId: creatorId, message: notificationMessage, type: "reaction", memoryId }, userId, connectedClients);
+          }
+      }
+
+      await db.query(query, [userId, memoryId]);
+      res.status(200).json({ message });
+
+  } catch (error) {
+      console.error("Error toggling like on memory:", error);
+      res.status(500).json({ message: "Internal server error" });
   }
 });
 
@@ -1151,6 +1296,7 @@ app.get('/explore/personalized', isAuthenticated, async (req, res) => {
 
 app.get('/notifications/:userId', isAuthenticated, async (req, res) => {
   const { userId } = req.params;
+
   try {
     const fetchFriends = await db.query(
       `SELECT u.id, u.username 
@@ -1161,72 +1307,84 @@ app.get('/notifications/:userId', isAuthenticated, async (req, res) => {
       [userId]
     );
 
-    const friends = fetchFriends.rows;
-
-    const friendIds = friends.map(friend => friend.id);
+    const friends = fetchFriends.rows.map(friend => friend.id);
 
     const fetchStatuses = await db.query(
       `SELECT s.sess -> 'passport' ->> 'user' AS userId
        FROM session s
        WHERE (s.sess -> 'passport' ->> 'user')::int = ANY($1::int[])`,
-       [friendIds]
+      [friends]
     );
-      const fetchRequests = await db.query(
-        'SELECT * FROM friends JOIN users ON friends.user_id = users.id WHERE friend_id = $1 AND status = $2',
-        [userId, 'pending']);
-      
-      const fetchInvites = await db.query (
-        `SELECT * FROM event_participation WHERE user_id = $1 AND status = 'invited'`,
-        [userId]
-      );
 
-      const fetchVisibleEvents = await db.query(
-        `SELECT e.event_id, e.title, e.created_by, e.visibility
-         FROM events e
-         LEFT JOIN event_participation ep ON e.event_id = ep.event_id AND ep.user_id = $1
-         WHERE 
-           (e.visibility = 'public' 
-           OR (e.visibility = 'friends_only' AND e.created_by = ANY($2::int[])) 
-           OR (e.visibility = 'private' AND ep.user_id IS NOT NULL))
-           AND e.creation_date > (SELECT last_checked FROM users WHERE id = $1)`,
-        [userId, friendIds]
-      );
+    const fetchRequests = await db.query(
+      `SELECT * FROM friends JOIN users ON friends.user_id = users.id 
+       WHERE friend_id = $1 AND status = 'pending'`,
+      [userId]
+    );
 
-      const fetchNewMemories = await db.query(
-        `SELECT m.memory_id, m.event_id, m.user_id, m.shared_date
-         FROM memories m
-         JOIN event_participation ep ON m.event_id = ep.event_id AND ep.user_id = $1
-         WHERE ep.status = 'opted_in' 
-         AND m.shared_date > ep.last_checked`,
-        [userId]
-      );
+    const fetchInvites = await db.query(
+      `SELECT * FROM event_participation 
+       WHERE user_id = $1 AND status = 'invited'`,
+      [userId]
+    );
 
-      const fetchModNotifications = await db.query(
-        `SELECT * FROM notifications 
-        WHERE user_id = $1 
-        ORDER BY created_at DESC`, 
-        [userId]
-      );
+    const fetchUnseenPosts = await db.query(
+      `SELECT COUNT(*) AS unseen_posts FROM events e
+       LEFT JOIN event_participation ep ON e.event_id = ep.event_id AND ep.user_id = $1
+       WHERE e.creation_date > (SELECT last_checked FROM users WHERE id = $1)`,
+      [userId]
+    );
 
-      const friendRequests = fetchRequests.rows;
-      const statuses = fetchStatuses.rows;
-      const invites = fetchInvites.rows;
-      const visibleEvents = fetchVisibleEvents.rows;
-      const newMemories = fetchNewMemories.rows;
-      const modNotifications = fetchModNotifications.rows;
+    const fetchUnreadMessages = await db.query(
+      `SELECT COUNT(*) AS unread_messages FROM message_status ms
+       WHERE ms.user_id = $1 AND ms.seen = FALSE`,
+      [userId]
+    );
 
-      const notifications = {
-        invites: invites, 
-        visibleEvents: visibleEvents,
-        friendRequests: friendRequests,
-        onlineFriends: statuses,
-        newMemories: newMemories,
-        modNotifications: modNotifications
-      };
+    const fetchNewMemories = await db.query(
+      `SELECT COUNT(*) AS new_memories FROM memories m
+       JOIN event_participation ep ON m.event_id = ep.event_id AND ep.user_id = $1
+       WHERE ep.status = 'opted_in' 
+       AND m.shared_date > ep.last_checked`,
+      [userId]
+    );
 
-      res.status(200).json(notifications);
+    const fetchLikes = await db.query(
+      `SELECT COUNT(*) AS likes FROM notifications 
+       WHERE user_id = $1 AND message LIKE '%liked%' AND read = FALSE`,
+      [userId]
+    );
+
+    const fetchShares = await db.query(
+      `SELECT COUNT(*) AS shares FROM notifications 
+       WHERE user_id = $1 AND message LIKE '%shared%' AND read = FALSE`,
+      [userId]
+    );
+
+    const friendRequests = fetchRequests.rows;
+    const onlineFriends = fetchStatuses.rows;
+    const eventInvites = fetchInvites.rows;
+    const unseenPosts = fetchUnseenPosts.rows[0].unseen_posts;
+    const unreadMessages = fetchUnreadMessages.rows[0].unread_messages;
+    const newMemories = fetchNewMemories.rows[0].new_memories;
+    const likes = fetchLikes.rows[0].likes;
+    const shares = fetchShares.rows[0].shares;
+
+    const notifications = {
+      unseenPosts,
+      unreadMessages,
+      onlineFriends,
+      friendRequests,
+      eventInvites,
+      newMemories,
+      likes,
+      shares
+    };
+
+    res.status(200).json(notifications);
   } catch (error) {
-      res.status(500).json({ error: 'Error retrieving notifications' });
+    console.error("Error retrieving notifications:", error);
+    res.status(500).json({ error: "Error retrieving notifications" });
   }
 });
 
@@ -1242,61 +1400,116 @@ app.get('/user/preferences/:userId', isAuthenticated, async (req, res) => {
 
 app.put('/user/preferences/:userId', isAuthenticated, async (req, res) => {
   try {
-      const { userId } = req.params;
-      const { accountSettings, notificationSettings, privacySettings, dataSettings } = req.body;
-      const clientIp = await fetchIP();
+    const { userId } = req.params;
+    const { username, email, accountSettings, notificationSettings, privacySettings, dataSettings } = req.body;
 
-      if (dataSettings?.location_enabled) {
-        const locationData = await fetchUserLocation(clientIp);
-        if (locationData) {
-          await db.query(`
-            UPDATE users
-            SET
-              city = $1,
-              region = $2,
-              country = $3
-            WHERE id = $4
-            `,[locationData.city, locationData.region, locationData.country, userId]);
-        } else {
-          console.error("Location data is null, skipping update.");
-        }
-      } else {
+    const clientIp = await fetchIP();
+
+    if (dataSettings?.location_enabled) {
+      const locationData = await fetchUserLocation(clientIp);
+      if (locationData) {
         await db.query(`
           UPDATE users
-          SET 
-            city = NULL,
-            region = NULL,
-            country = NULL
-          WHERE id = $1
-          `, [userId]);
+          SET city = $1, region = $2, country = $3
+          WHERE id = $4
+        `, [locationData.city, locationData.region, locationData.country, userId]);
       }
-
+    } else {
       await db.query(`
-          UPDATE user_preferences
-          SET 
-              account_settings = COALESCE(account_settings || $1::jsonb, account_settings),
-              notification_settings = COALESCE(notification_settings || $2::jsonb, notification_settings),
-              privacy_settings = COALESCE(privacy_settings || $3::jsonb, privacy_settings),
-              data_settings = COALESCE(data_settings || $4::jsonb, data_settings),
-              updated_at = CURRENT_TIMESTAMP
-          WHERE user_id = $5
-      `, [accountSettings, notificationSettings, privacySettings, dataSettings, userId]);
+        UPDATE users
+        SET city = NULL, region = NULL, country = NULL
+        WHERE id = $1
+      `, [userId]);
+    }
 
-      res.send("Preferences saved");
+    // Check if username or email has changed
+    const userResult = await db.query("SELECT username, email FROM users WHERE id = $1", [userId]);
+    const currentUser = userResult.rows[0];
+
+    if (!currentUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (username && username !== currentUser.username) {
+      await db.query("UPDATE users SET username = $1 WHERE id = $2", [username, userId]);
+    }
+
+    if (email && email.toLowerCase() !== currentUser.email) {
+      const verificationToken = crypto.randomBytes(20).toString("hex");
+      const tokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
+
+      await db.query(
+        "INSERT INTO user_tokens (user_id, token, token_type, expires_at) VALUES ($1, $2, 'email_verification', $3)",
+        [userId, verificationToken, tokenExpiry]
+      );
+
+      const verificationLink = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
+      const mailOptions = {
+        from: process.env.EMAIL_USER,
+        to: email.toLowerCase(),
+        subject: "Verify Your New Email",
+        text: `Click the link to verify your new email: ${verificationLink}`,
+        html: `<p>Click the link below to verify your new email:</p>
+               <a href="${verificationLink}">${verificationLink}</a>`,
+      };
+
+      await transporter.sendMail(mailOptions);
+      return res.json({ message: "Verification email sent. Please verify your new email before it updates." });
+    }
+
+    // Update other preferences
+    await db.query(`
+        UPDATE user_preferences
+        SET 
+            account_settings = COALESCE(account_settings || $1::jsonb, account_settings),
+            notification_settings = COALESCE(notification_settings || $2::jsonb, notification_settings),
+            privacy_settings = COALESCE(privacy_settings || $3::jsonb, privacy_settings),
+            data_settings = COALESCE(data_settings || $4::jsonb, data_settings),
+            updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = $5
+    `, [accountSettings, notificationSettings, privacySettings, dataSettings, userId]);
+
+    res.json({ message: "Preferences updated successfully." });
   } catch (error) {
-      res.status(500).send("Error updating preferences:", error.message);
+    console.error("Error updating preferences:", error);
+    res.status(500).json({ message: "Error updating preferences" });
   }
 });
 
 app.put('/user/change-password', isAuthenticated, async (req, res) => {
+  const { userId, currentPassword, newPassword } = req.body;
+
   try {
-      const { userId, currentPassword, newPassword } = req.body;
+    const result = await db.query("SELECT password, email FROM users WHERE id = $1", [userId]);
+    const user = result.rows[0];
 
-      
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-      res.send("Password updated successfully");
-  } catch (error) {
-      res.status(500).send("Error updating preferences");
+    const isValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isValid) {
+      return res.status(400).json({ message: "Current password is incorrect" });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+    await db.query("UPDATE users SET password = $1 WHERE id = $2", [hashedPassword, userId]);
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: "Password Changed Successfully",
+      text: "Your password has been changed successfully. If this was not you, please contact support immediately.",
+      html: `<p>Your password has been changed successfully. If this was not you, please contact support immediately.</p>`,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    res.json({ message: "Password updated successfully. A confirmation email has been sent." });
+  } catch (err) {
+    console.error("Error updating password:", err);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -1594,6 +1807,9 @@ app.post('/friends/request', isAuthenticated, async (req, res) => {
           [userId, friend.id, 'pending']
       );
 
+      const notificationMessage = `${req.user.username} sent you a friend request."`;
+        await handleSendNotification({ recipientId: friend.id, message: notificationMessage, type: "friend" }, userId, connectedClients);
+
       res.status(201).json({ message: 'Friend request sent' });
   } catch (error) {
     console.error("error sending friend request:", error);
@@ -1728,7 +1944,7 @@ app.post("/forgot-password", async (req, res) => {
   const { email } = req.body;
 
   try {
-    const result = await db.query("SELECT * FROM users WHERE email = $1", [email]);
+    const result = await db.query("SELECT id FROM users WHERE email = $1", [email]);
     const user = result.rows[0];
 
     if (!user) {
@@ -1737,16 +1953,16 @@ app.post("/forgot-password", async (req, res) => {
 
     const token = crypto.randomBytes(32).toString("hex");
 
-    const expires = new Date(Date.now() + 60 * 60 * 1000);
+    const expires = new Date(Date.now() + 60 * 60 * 1000); //1 hour
 
     await db.query(
-      "UPDATE users SET password_reset_token = $1, password_reset_expires = $2 WHERE email = $3",
-      [token, expires, email]
+      "INSERT INTO user_tokens (user_id, token, token_type, expires_at) VALUES ($1, $2, 'password_reset', $3) ON CONFLICT (user_id, token_type) DO UPDATE SET token = $2, expires_at = $3",
+      [user.id, token, expires]
     );
 
     const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
     const mailOptions = {
-      from: process.env.EMAIL_USER,
+      from: `MemoryApp Support ${process.env.EMAIL_USER}`,
       to: email,
       subject: "Password Reset",
       text: `You requested a password reset. Click the link to reset your password: ${resetLink}`,
@@ -1767,21 +1983,24 @@ app.post("/reset-password", async (req, res) => {
 
   try {
     const result = await db.query(
-      "SELECT * FROM users WHERE password_reset_token = $1 AND password_reset_expires > NOW()",
+      "SELECT user_id FROM user_tokens WHERE token = $1 AND token_type = 'password_reset' AND expires_at > NOW()",
       [token]
     );
-    const user = result.rows[0];
 
-    if (!user) {
+    const tokenEntry = result.rows[0];
+
+    if (!tokenEntry) {
       return res.status(400).json({ message: "Invalid or expired token" });
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
 
     await db.query(
-      "UPDATE users SET password = $1, password_reset_token = NULL, password_reset_expires = NULL WHERE id = $2",
-      [hashedPassword, user.id]
+      "UPDATE users SET password = $1 WHERE id = $2",
+      [hashedPassword, tokenEntry.user_id]
     );
+
+    await db.query("DELETE FROM user_tokens WHERE token = $1", [token]);
 
     res.json({ message: "Password reset successful" });
   } catch (err) {
@@ -2045,20 +2264,26 @@ const server = http.createServer(app);
 
 const wss = new WebSocketServer({ server, path: '/ws' });
 
-const connectedClients = {};
+const connectedClients = {
+  messenger: {},
+  navbar: {}
+};
 
 wss.on('connection', (ws, req) => {
   console.log(`New WebSocket connection: ${req.url}`);
 
-  const userId = req.url.split('userId=')[1];
-  if (!userId) {
-    console.error("Invalid connection: Missing userId.");
+  const params = new URLSearchParams(req.url.split('?')[1]);
+  const userId = params.get('userId');
+  const clientType = params.get('type');
+
+  if (!userId || !clientType) {
+    console.error("Invalid connection: Missing userId or clientType.");
     ws.close();
     return;
   }
 
-  connectedClients[userId] = connectedClients[userId] || [];
-  connectedClients[userId].push(ws);
+  connectedClients[clientType][userId] = connectedClients[clientType][userId] || [];
+  connectedClients[clientType][userId].push(ws);
 
   ws.on('message', async (message) => {
     try {
@@ -2068,19 +2293,22 @@ wss.on('connection', (ws, req) => {
           console.log('Message received: ', parsedMessage);
         }
         
-        switch (parsedMessage.type) {
-            case 'send_message':
-                await handleSendMessage(parsedMessage, userId, connectedClients);
-                break;
-            case 'mark_seen':
-                await handleMarkSeen(parsedMessage, userId, connectedClients);
-                break;
-            case 'ping':
-                ws.send(JSON.stringify({ type: 'pong' }));
-                break;
-            default:
-                console.error("Unknown WebSocket message type:", parsedMessage.type);
-        }
+      switch (parsedMessage.type) {
+        case 'send_message':
+          await handleSendMessage(parsedMessage, userId, connectedClients);
+          break;
+        case 'mark_seen':
+          await handleMarkSeen(parsedMessage, userId, connectedClients);
+          break;
+        case 'new_notification':
+          await handleSendNotification(parsedMessage, userId, connectedClients);
+          break;
+        case 'ping':
+          ws.send(JSON.stringify({ type: 'pong' }));
+          break;
+        default:
+          console.error("Unknown WebSocket message type:", parsedMessage.type);
+      }
     } catch (error) {
         console.error("Error processing WebSocket message:", error);
         ws.close(1011, "Internal server error");
@@ -2092,11 +2320,11 @@ wss.on('connection', (ws, req) => {
   });
 
   ws.on('close', () => {
-    connectedClients[userId] = connectedClients[userId].filter(client => client !== ws);
-    if (connectedClients[userId].length === 0) {
-      delete connectedClients[userId];
+    connectedClients[clientType][userId] = connectedClients[clientType][userId].filter(client => client !== ws);
+    if (connectedClients[clientType][userId].length === 0) {
+      delete connectedClients[clientType][userId];
     }
-    console.log(`WebSocket connection closed for user ${userId}`);
+    console.log(`WebSocket connection closed for user ${userId} (${clientType})`);
   });
 });
 

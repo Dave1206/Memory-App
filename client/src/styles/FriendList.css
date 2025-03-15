@@ -6,14 +6,13 @@
     max-width: 400px;
     padding: 20px;
     margin: 10px auto;
-    background-color: rgba(255, 255, 255, 0.05);
     border-radius: 10px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .friends-list-heading h2 {
     font-size: 1.5rem;
-    color: #e6dbbd;
+    color: #190933;
     text-align: center;
     border-bottom: 1px solid #444;
     padding-bottom: 8px;
@@ -40,14 +39,14 @@
     gap: 10px;
     padding: 8px;
     border-radius: 8px;
-    background-color: #333;
+    background-color: #190933;;
     cursor: pointer;
     transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
 .friends-list-item:hover {
-    background-color: #444;
-    transform: translateY(-2px);
+    background-color: #3c1777;;
+    transform: translateX(-1px);
 }
 
 /* Profile picture with status dot */
@@ -109,6 +108,7 @@
 
 /* Friends Section Toggle Button */
 .toggle-section-button {
+    color: var(--text-color);
     background: none;
     border: none;
     cursor: pointer;

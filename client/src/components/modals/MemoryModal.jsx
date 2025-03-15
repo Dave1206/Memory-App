@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import '../../styles/MemoryModal.css';
 
-function MemoryModal({ show, onClose, onCreate, eventId }) {
+function MemoryModal({ show, onClose, onCreate }) {
     const [newMemory, setNewMemory] = useState("");
     const [isEmojiToolbarVisible, setIsEmojiToolbarVisible] = useState(false);
     const textAreaRef = useRef(null);
@@ -40,9 +40,12 @@ function MemoryModal({ show, onClose, onCreate, eventId }) {
     };
 
     const handleCreate = () => {
+        if (newMemory.trim() === "") {
+            alert("Memory cannot be empty!");
+            return;
+        }
         onCreate(newMemory);
         setNewMemory("");
-        onClose();
     };
 
     const handleBackdropClick = (e) => {
@@ -98,7 +101,7 @@ function MemoryModal({ show, onClose, onCreate, eventId }) {
                     </div>
 
                     <div className="button-container">
-                        <button className='modal-button' onClick={handleCreate}>Share Memory</button>
+                        <button className='modal-button' onClick={handleCreate}>Submit</button>
                         <button className='modal-button'  onClick={onClose}>Cancel</button>
                     </div>
                 </div>

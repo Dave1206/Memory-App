@@ -1,31 +1,61 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import ReactDOM from "react-dom";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faMessage, faChevronDown } from '@fortawesome/free-solid-svg-icons';
+import { faMessage } from '@fortawesome/free-solid-svg-icons';
+import NotificationBadge from '../NotificationBadge';
 import Messenger from './Messenger';
 import '../../styles/MessengerToggle.css';
 
-function MessengerToggle() {
+function MessengerToggle({ notifications, isMobile, variant }) {
     const [isExpanded, setIsExpanded] = useState(false);
 
-    const toggleExpand = () => {
-        setIsExpanded(!isExpanded);
+    const toggleExpand = (e) => {
+        e.stopPropagation();
+        setIsExpanded((prev) => !prev);
     };
 
-    return (
-        <div className={`messenger-toggle ${isExpanded ? 'expanded' : 'compact'}`}>
-            <button className="messenger-toggle-button" onClick={toggleExpand}>
-                <FontAwesomeIcon icon={isExpanded ? faChevronDown : faMessage} />
-            </button>
+    const handleBackdropClick = (e) => {
+        if (e.target === e.currentTarget) {
+            setIsExpanded(false);
+        }
+    };
 
-            {isExpanded && (
-                <div className="messenger-overlay">
-                    <button className="close-overlay-btn" onClick={toggleExpand}>
-                        Close
-                    </button>
-                    <Messenger isOpen={isExpanded} />
-                </div>
-            )}
+    useEffect(() => {
+        if (!isExpanded) return;
+
+        const closeMessengerOnNavClick = (e) => {
+            const isNavbarClick = e.target.closest('.nav-item') || e.target.closest('.nav-toggle');
+            if (isNavbarClick) {
+                setIsExpanded(false);
+            }
+        };
+
+        const navbar = document.querySelector('.navbar');
+        if (navbar) {
+            navbar.addEventListener('click', closeMessengerOnNavClick);
+        }
+
+        return () => {
+            if (navbar) {
+                navbar.removeEventListener('click', closeMessengerOnNavClick);
+            }
+        };
+    }, [isExpanded]);
+
+    return (
+        <>
+        <div className={`nav-toggle`} onClick={toggleExpand}>
+                <div className={variant === 'navbar' ? 'nav-item-icon' : 'toggleable-button'}><FontAwesomeIcon icon={faMessage} /></div>
+                {!isMobile && <div className='nav-item-name'>Messages</div> }
+                {notifications &&<div className="nav-item-notif"><NotificationBadge count={notifications} /> </div>}
         </div>
+                    
+        {isExpanded && ReactDOM.createPortal(
+            <div className="messenger-overlay" onClick={handleBackdropClick}>
+                <Messenger isOpen={isExpanded} />
+            </div>, document.getElementById("modal-root")
+        )}
+        </>
     );
 }
 

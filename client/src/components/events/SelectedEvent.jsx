@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Memory from './Memory';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronUp, faChevronDown } from '@fortawesome/free-solid-svg-icons';
+import { faChevronLeft } from '@fortawesome/free-solid-svg-icons';
 import { useAxios } from "../auth/AxiosProvider";
 import { useAuth } from "../auth/AuthContext";
 import '../../styles/SelectedEvent.css';
 
 function SelectedEvent({ event, handleBackButton, getEvents }) {
     const [memories, setMemories] = useState([]);
-    const [isDescriptionVisible, setDescriptionVisible] = useState(false);
     const [hasSharedMemory, setHasSharedMemory] = useState(false);
     const { axiosInstance } = useAxios();
     const { user } = useAuth();
@@ -25,10 +24,6 @@ function SelectedEvent({ event, handleBackButton, getEvents }) {
         [axiosInstance, setMemories]
     );
 
-    const toggleDescription = () => {
-        setDescriptionVisible((prev) => !prev);
-    };
-
     const updateSharedState = useCallback((newValue) => {
         setHasSharedMemory(newValue);
         getEvents();
@@ -42,38 +37,24 @@ function SelectedEvent({ event, handleBackButton, getEvents }) {
     return (
         <div className="selected-event">
             <button className="back-button" onClick={handleBackButton}>
-                Back to Events
+                <FontAwesomeIcon icon={faChevronLeft} />
             </button>
             <h2>{event.title}</h2>
-            <div><span>{`by ${event.username}`}</span>
-                <div
-                    className="description-toggle-link"
-                    onClick={toggleDescription}
-                >   description
-                    <span className="arrow">
-                        {isDescriptionVisible ? <FontAwesomeIcon icon={faChevronUp} /> : <FontAwesomeIcon icon={faChevronDown} />}
-                    </span>
-                </div>
+            <div><span>{`Shared by ${event.username}`}</span>
             </div>
-            {isDescriptionVisible && (
-                <div className="description">{event.description}</div>
-            )}
-            {new Date(event.reveal_date) < Date.now() ? (
-                <div className='memories-container'>
-                    <Memory
-                        key={event.event_id}
-                        eventId={event.event_id}
-                        userId={user.id}
-                        event={event}
-                        hasShared={hasSharedMemory}
-                        getMemories={getMemories}
-                        updateSharedState={updateSharedState}
-                        memories={memories}
-                    />
-                </div>
-            ) : (
-                <h3>{`This time capsule will open on ${new Date(event.reveal_date).toLocaleDateString()}`}</h3>
-            )}
+
+            <div className='memories-container'>
+                <Memory
+                    key={event.event_id}
+                    eventId={event.event_id}
+                    userId={user.id}
+                    event={event}
+                    hasShared={hasSharedMemory}
+                    getMemories={getMemories}
+                    updateSharedState={updateSharedState}
+                    memories={memories}
+                />
+            </div>
         </div>
     )
 }

@@ -1,0 +1,51 @@
+.right-sidebar {
+    position: relative;
+    top: 0;
+    right: 0;
+    min-width: 200px;
+    max-width: 200px;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 50px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.right-sidebar h3 {
+    color: var(--text-color);
+}
+
+.tip-carousel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    width: 100%;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 5px;
+    min-height: 300px;
+    max-height: 300px;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.tip-image {
+    width: 100%;
+    max-width: 200px;
+    height: 200px;
+    border-radius: 8px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.tip-text {
+    font-size: 0.9rem;
+    color: var(--text-color);
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 5px;
+    max-width: 90%;
+}
+

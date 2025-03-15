@@ -1,13 +1,12 @@
 .chat-window {
     position: fixed;
-    top: 50px;
+    top: 0;
     left: 0;
     right: 300px;
     display: flex;
     flex-direction: column;
-    height: 85vh;
-    font-family: Arial, sans-serif;
-    background: #b35f8d;
+    height: 100%;
+    background: darksalmon;
     border: 1px solid #fff;
     z-index: 1000;
 }
@@ -17,25 +16,34 @@
 }
 
 .chat-container::-webkit-scrollbar-thumb {
-    background: #b35f8d;
+    background: darksalmon;
     border-radius: 4px;
 }
 
 .close-btn {
     align-self: flex-end;
     margin: 10px;
-    background: #e9e9e9;
-    color:#333;
+    background: none;
+    color:#e9e9e9;
     border: none;
     font-size: 16px;
     cursor: pointer;
+    box-shadow: none;
+}
+
+.close-btn:hover{
+    background: none;
+    box-shadow: none;
+    color: #292929;
 }
 
 .chat-container {
     flex: 1;
     overflow-y: auto;
     padding: 10px;
-    background: #333;
+    background: #fff;
+    box-shadow: inset 0px 4px 6px rgba(0, 0, 0, 0.1), 
+    inset 0px -4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .scroll-to-bottom {
@@ -154,7 +162,7 @@
 
 .chat-input button {
     padding: 10px 20px;
-    background: #b35f8d;
+    background: darksalmon;
     color: white;
     border: none;
     border-radius: 5px;
@@ -177,7 +185,6 @@
 @media (max-width: 768px) {
     .conversation-dropdown {
       width: 100%;
-      height: 85vh;
       margin-bottom: 0;
       bottom: 0;
       right: 0;
@@ -185,6 +192,6 @@
     
     .chat-window {
       right: 0;
-      height: 85vh;
+      height: 92.3%;
     }
   }

@@ -100,7 +100,6 @@ function ModeratorTools() {
 
     return (
         <>
-        <h2 className="moderator-tools-header">Moderator Tools</h2>
         <div className="moderator-tools">
             <div className="moderator-tools-group">
                 <section className="audit-log-wrapper">
@@ -164,7 +163,6 @@ function ModeratorTools() {
                     </div>
                 </section>
                 <section id="picture-mod-queue-section">
-                    <h3>Profile Picture Moderation Queue</h3>
                     <ModerationQueue />
                 </section>
             </div>

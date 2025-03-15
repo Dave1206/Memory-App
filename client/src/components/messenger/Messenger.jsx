@@ -12,12 +12,15 @@ function Messenger() {
     const userId = useRef(user.id);
 
     useEffect(() => {
+            const userIdTemp = userId.current
             console.log("Connecting WebSocket for user:", userId.current);
-            WebSocketInstance.connect(userId.current);
+            WebSocketInstance.disconnect();
+            WebSocketInstance.connect(userIdTemp, "messenger");
 
         return () => {
             WebSocketInstance.disconnect();
             console.log("Messenger component unmounted.")
+            WebSocketInstance.connect(userIdTemp, "navbar");
         };
     }, []);
 
@@ -31,7 +34,7 @@ function Messenger() {
     };
 
     return (
-        <div className="messenger-container">
+        <div className="messenger-container" onClick={(e) => e.stopPropagation()}>
             <ConversationList 
                 lastSeenMessageId={lastSeenMessageId}
                 onSelectConversation={handleSelectConversation} 
@@ -49,7 +52,7 @@ function Messenger() {
                 />
             )}
         </div>
-    );
+);
 }
 
 export default Messenger;

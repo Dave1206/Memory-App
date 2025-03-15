@@ -13,8 +13,8 @@
   
     /* Color Palette */
     --primary-color: #A5C1C0;
-    --background-color: #333;
-    --text-color: #e4dbc3;
+    --background-color: #fff;
+    --text-color: #190933;;
     --button-bg: #4CAF50;
     --button-hover-bg: #36803a;
     --button-text-color: #fff;
@@ -26,6 +26,7 @@
   
   /* General */
   body {
+    font-family: 'Poppins', sans-serif;
     margin: 0;
     display: flex;
     flex-direction: column;
@@ -119,8 +120,8 @@
   /* Dark mode adjustments */
   @media (prefers-color-scheme: dark) {
     :root {
-      --background-color: #222;
-      --text-color: #d9d9d9;
+      --background-color: #fff;
+      --text-color: #190933;
       --button-bg: #4CAF50;
       --button-hover-bg: #36803a;
       --link-hover-color: #8e8aff;

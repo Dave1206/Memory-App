@@ -13,14 +13,14 @@
     border-radius: 12px;
     background: linear-gradient(135deg, #ffafbd 0%, #ffc3a0 100%);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
-    color: #333;
+    color: #190933;
     overflow: hidden;
 }
 
 /* Header styles */
 .memories-wrapper h3 {
     font-size: 1.8rem;
-    color: #555;
+    color: #190933;
     margin-bottom: 20px;
     padding: 0 20px;
     text-align: center;
@@ -88,16 +88,17 @@
     padding: 10px;
     border-radius: 8px;
     background-color: #fefefe;
-    color: #444;
+    color: #190933;
     font-size: 1rem;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    user-select: none;
 }
 
 /* Username styling */
 .memory-username {
     font-size: 0.9rem;
     font-weight: bold;
-    color: #555;
+    color: #190933;
     text-align: right;
 }
 
@@ -116,7 +117,7 @@
 }
 
 .blurred-memory {
-    filter: blur(8px);
+    filter: blur(6px);
     position: relative;
 }
 

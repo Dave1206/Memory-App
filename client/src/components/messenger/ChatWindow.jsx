@@ -220,7 +220,7 @@ function ChatWindow({ conversationId, onClose, userId, participants, lastSeenMes
 
     return (
         <div className="chat-window">
-          <button className="close-btn" onClick={onClose}>Close</button>
+          <button className="close-btn" onClick={onClose}>X</button>
           <div className="chat-container" ref={chatContainerRef}>
             {loading && <p>Loading messages...</p>}
             {messages && messages.length > 0 ? (

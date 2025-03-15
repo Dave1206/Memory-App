@@ -2,12 +2,57 @@
     display:flex;
     flex-direction: column;
     padding: 10px;
-    margin-bottom: 10px;
+    margin: 25px 0;
     border-radius: 8px;
     position: relative;
-    gap: 10px;
-    transition: transform 0.3s ease;
+    gap: 5px;
+    line-height: normal;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, filter 0.3s ease;
     user-select: none;
+        filter: brightness(1.1) contrast(1.05);
+        box-shadow:
+            0px 4px 4px rgba(0, 0, 0, 0.4),
+            inset 0px 3px 5px rgba(255, 255, 255, 0.2),
+            inset 0px -3px 5px rgba(0, 0, 0, 0.3);
+}
+
+.feed-post::before {
+    content: "";
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 90%;
+    height: 90%;
+    height: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%);
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.feed-post::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 90%;
+    height: 100%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 15%, rgba(255, 255, 255, 0) 50%);
+    opacity: 0.1;
+    pointer-events: none;
+    transform: rotate(-10deg);
+}
+
+.feed-post:hover {
+    transform: translateY(-3px);
+    filter: brightness(1.15) contrast(1.1);
+    box-shadow: 
+        0px 10px 20px rgba(0, 0, 0, 0.5), 
+        inset 0px 4px 6px rgba(255, 255, 255, 0.25), 
+        inset 0px -4px 6px rgba(0, 0, 0, 0.4);
+}
+
+.feed-post:hover::before {
+    opacity: 0.4;
 }
 
 .feed-post:hover {
@@ -19,15 +64,22 @@
     align-items: center;
     justify-content: space-between;
     position: relative;
-    margin-bottom: 10px;
-    padding: 10px;
+    padding: 20px;
+    margin: 0 10px;
     flex-wrap: wrap;
+    border-bottom: 2px solid rgba(0, 0, 0, 0.315);
 }
 
-.feed-post-header h3{
-    word-wrap: break-word;
-    hyphens:auto;
-    font-weight: bold;
+.user-info {
+    display: flex;
+    flex-direction: column;
+    margin-left: 10px;
+}
+
+.time-ago {
+    font-size: 0.85em;
+    color: #666;
+    margin: 2px 0 0 60px;
 }
 
 .opted-in-icon{
@@ -37,32 +89,68 @@
 }
 
 .profile-picture {
-    width: 60px;
-    height: 60px;
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
-    border: 3px solid #f3f0e7; /* Matches feed background */
+    border: 3px solid #0000008c;
     position: absolute;
-    top: -10px;
-    left: -10px;
+    top: 10px;
+    left: 10px;
     box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .feed-post-username {
-    margin: 0 50px; /* Offset for profile picture */
+    margin: 0 60px;
     font-weight: bold;
     font-size: 1.2em;
+    color: #190933;
+}
+
+.post-notif{
+    position: absolute;
+    right: -10px;
+    top: -10px;
+    height: 25px;
+    width: 25px;
 }
 
 .feed-post-content {
-    padding: 10px 15px;
-    margin: 30px auto;
+    display: flex;
+    flex-direction: column;
+    padding: 0 20px;
+    margin: auto;
+    width: fit-content;
     transition: box-shadow 0.3s ease;
     word-wrap: break-word;
     hyphens:auto;
+
+    /* background: rgba(255, 255, 255, 0.2); */
+    border-radius: 8px;
+    /* box-shadow: 
+        inset 2px 2px 5px rgba(0, 0, 0, 0.2), 
+        inset -2px -2px 5px rgba(255, 255, 255, 0.15); */
+    
+    transition: box-shadow 0.3s ease;
+}
+
+.feed-post-content h3{
+    word-wrap: break-word;
+    hyphens:auto;
+    font-weight: bold;
+    color: #190933;
+}
+
+.long-title {
+    font-size: 1em;
+}
+
+.feed-post-content p {
+    font-size: 1em;
 }
 
 .feed-post-stats {
     font-size: 0.9em;
+    margin: 0 10px;
     display: flex;
     justify-content: space-between;
     margin-top: 10px;
@@ -72,17 +160,9 @@
     color :green;
 }
 
-.feed-post-content h3 {
-    margin: 0;
-    font-size: 1.3em;
-}
-
-.feed-post-content p {
-    font-size: 1em;
-}
-
-.feed-post:hover .feed-post-content {
-    box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.2);
+.blurred-memory {
+    filter: blur(5px);
+    position: relative;
 }
 
 .feed-post-stats {
@@ -91,13 +171,13 @@
     justify-content: space-between;
     font-size: 0.9em;
     padding: 10px 0;
-    border-top: 1px solid #e0e0e0;
+    border-top: 2px solid #0000004f;
     margin-top: 10px;
 }
 
 .feed-post-timestamp {
     flex: 1;
-    text-align: left;
+    text-align: right;
     font-size: 0.85em;
 }
 
@@ -107,4 +187,22 @@
     margin-right: 5px;
     padding: 2px;
     gap: 5px;
+}
+
+@media (max-width: 768px) {
+    .feed-post {
+        margin: 25vh 0;
+        scroll-snap-align: center;
+        scroll-snap-stop: always;
+        /* min-height: 40vh; */
+        max-height: 100%;
+    }
+
+    .feed-post-content {
+        padding: 5px;
+    }
+
+    .feed-post-header h3{
+        font-size: 1em;
+    }
 }

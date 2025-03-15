@@ -86,7 +86,7 @@ function Memory({ event, userId, memories, getMemories }) {
             )}
 
             {/* Memories Section */}
-            <h3>{event.has_shared_memory ? "Here's what everyone remembers:" : "Share your memory to reveal others' memories."}</h3>
+            <h3>{event.has_shared_memory ? "Memories" : "Hidden"}</h3>
             <div className="memory-container">
                 {memories.length === 0 ? (
                     <p>No one has shared a memory for this event yet. Be the first!</p>

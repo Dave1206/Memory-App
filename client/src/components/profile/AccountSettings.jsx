@@ -82,7 +82,11 @@ function AccountSettings({ user }) {
         setHasChanges(true);
         if (field === 'username') setUsername(value);
         if (field === 'email') setEmail(value);
+        if (field === 'currentPassword') setPassword(prev => ({ ...prev, current: value }));
+        if (field === 'newPassword') setPassword(prev => ({ ...prev, new: value }));
+        if (field === 'confirmNewPassword') setPassword(prev => ({ ...prev, confirmNew: value }));
     };
+    
 
     const handleCancelEdit = (field) => {
         setEditingField({ ...editingField, [field]: false });
@@ -180,24 +184,22 @@ function AccountSettings({ user }) {
                                     type="password"
                                     placeholder="Current Password"
                                     value={password.current}
-                                    onChange={(e) => setPassword({ ...password, current: e.target.value })}
+                                    onChange={(e) => handleFieldChange('currentPassword', e.target.value)}
                                 />
                                 <input
                                     type="password"
                                     placeholder="New Password"
                                     value={password.new}
-                                    onChange={(e) => setPassword({ ...password, new: e.target.value })}
+                                    onChange={(e) => handleFieldChange('newPassword', e.target.value)}
                                 />
                                 <input
                                     type="password"
                                     placeholder="Confirm New Password"
                                     value={password.confirmNew}
-                                    onChange={(e) => setPassword({ ...password, confirmNew: e.target.value })}
+                                    onChange={(e) => handleFieldChange('confirmNewPassword', e.target.value)}
                                 />
-                                <div className='button-container'>
                                     <button className="settings-button save-button" onClick={handlePasswordChange}>Save</button>
                                     <button className="settings-button cancel-button" onClick={() => handleCancelEdit('password')}>Cancel</button>
-                                </div>
                             </>
                         ) : (
                             <button

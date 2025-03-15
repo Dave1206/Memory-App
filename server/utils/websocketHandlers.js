@@ -31,26 +31,24 @@ export async function handleSendMessage(message, senderId, connectedClients) {
             [messageId, recipientIds]
         );
 
-        const conversationUpdate = {
-          conversation_id,
-          last_message_content: newMessage.content,
-          last_message_sender: '',
-          last_message_time: newMessage.sent_at,
-        };
-    
         const senderResult = await db.query(
           `SELECT username FROM users WHERE id = $1`,
           [senderId]
         );
-        if (senderResult.rows.length > 0) {
-          conversationUpdate.last_message_sender = senderResult.rows[0].username;
-        }
+        const senderUsername = senderResult.rows[0]?.username || "Unknown";
+
+        const conversationUpdate = {
+          conversation_id,
+          last_message_content: newMessage.content,
+          last_message_sender: senderUsername,
+          last_message_time: newMessage.sent_at,
+        };
 
         const allParticipantIds = participants.rows.map(row => row.user_id);
 
         allParticipantIds.forEach(participantId => {
-            if (connectedClients[participantId]) {
-                connectedClients[participantId].forEach(client => {
+            if (connectedClients.messenger[participantId]) {
+                connectedClients.messenger[participantId].forEach(client => {
                     client.send(JSON.stringify({
                         type: 'new_message',
                         data: newMessage
@@ -62,6 +60,24 @@ export async function handleSendMessage(message, senderId, connectedClients) {
                 });
             }
         });
+
+        recipientIds.forEach(async (recipientId) => {
+          if (!connectedClients.messenger[recipientId]) {
+              console.log(`📩 User ${recipientId} is not in Messenger, sending notification...`);
+              await handleSendNotification(
+                  {
+                      recipientId,
+                      message: `${senderUsername} sent you a new message`,
+                      type: "message",
+                  },
+                  senderId,
+                  connectedClients
+              );
+          } else {
+              console.log(`✅ User ${recipientId} is already in Messenger, skipping notification.`);
+          }
+      });
+
     } catch (error) {
         console.error("Error handling send_message WebSocket event:", error);
     }
@@ -100,7 +116,6 @@ export async function handleMarkSeen(message, userId, connectedClients) {
     }
 
     try {
-      // Optionally broadcast the regular "message_seen" event...
       const participantsResult = await db.query(
         `SELECT user_id FROM conversation_participants 
          WHERE conversation_id = $1 AND user_id != $2`,
@@ -121,7 +136,6 @@ export async function handleMarkSeen(message, userId, connectedClients) {
       console.error("Error broadcasting message_seen:", error);
     }
 
-    // Recalculate the last seen message for the conversation (ignoring messages sent by the user)
     let lastSeenMessageId = null;
     try {
       const lastSeenResult = await db.query(
@@ -161,13 +175,11 @@ export async function handleMarkSeen(message, userId, connectedClients) {
       console.error("Error recalculating last seen message:", error);
     }
 
-    // Build the conversation update payload. You can also include updated preview data if desired.
     const conversationUpdate = {
       conversation_id: conversationId,
       last_seen_message_id: lastSeenMessageId,
     };
 
-    // Broadcast this conversation update event to all participants in the conversation.
     try {
       const partsResult = await db.query(
         `SELECT user_id FROM conversation_participants WHERE conversation_id = $1`,
@@ -190,4 +202,37 @@ export async function handleMarkSeen(message, userId, connectedClients) {
   }, 300);
 
   debounceTimers.set(key, timer);
+}
+
+export async function handleSendNotification(notification, senderId, connectedClients) {
+  const { recipientId, message, type = "general", eventId = null, memoryId = null } = notification;
+
+  console.log(`📩 Sending ${type} notification to user ${recipientId}: ${message}`);
+  
+  try {
+      const insertNotification = await db.query(
+          `INSERT INTO notifications (user_id, message, event_id, memory_id, read, created_at) 
+           VALUES ($1, $2, $3, $4, FALSE, NOW()) 
+           RETURNING *`,
+          [recipientId, message, eventId, memoryId]
+      );
+
+      const newNotification = insertNotification.rows[0];
+      newNotification.type = type;
+
+      if (connectedClients.navbar[recipientId]) {
+        console.log(`📡 Sending WebSocket notification to user ${recipientId}`);
+          connectedClients.navbar[recipientId].forEach(client => {
+              client.send(JSON.stringify({
+                  type: 'new_notification',
+                  data: newNotification
+              }));
+          });
+      } else {
+        console.log(`❌ User ${recipientId} is not connected via WebSocket`);
+      }
+
+  } catch (error) {
+      console.error("Error sending notification:", error);
+  }
 }

@@ -5,33 +5,31 @@ import { useAuth } from "./auth/AuthContext";
 import Footer from './Footer';
 import Login from './auth/Login';
 import UserProfile from './profile/UserProfile';
-import EventList from './events/Eventlist';
+import UserPreferences from './profile/UserPreferences';
 import ResetPassword from './auth/ResetPassword';
 import ForgotPassword from './auth/ForgotPassword';
 import ToggleableList from './ToggleableList';
-import MessengerToggle from './messenger/MessengerToggle';
 import Navbar from './Navbar';
 import Feed from './Feed';
-import Explore from './Explore';
 import LandingToggle from "./LandingToggle";
+import RightSidebar from "./RightSidebar";
+import useMediaQuery from "../hooks/useMediaQuery";
 import '../styles/App.css';
 import ModeratorTools from './moderation/ModeratorTools';
 
 function App() {
   const { user, logout } = useAuth();
   const { axiosInstance, sessionExpired } = useAxios();
-  const [events, setEvents] = useState([]);
   const [eventInvites, setEventInvites] = useState([]);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const isMobile = useMediaQuery("(max-width: 768px)");
 
   const getEvents = useCallback(async () => {
     if (!axiosInstance) return;
     try {
       const response = await axiosInstance.get("/events");
       const fetchedEvents = response.data;
-      const sortedEvents = fetchedEvents.Optins.sort((a, b) => a.has_shared - b.has_shared);
       const sortedEventInvites = fetchedEvents.Invites.sort((a, b) => a.has_shared - b.has_shared);
-      setEvents(sortedEvents);
       setEventInvites(sortedEventInvites);
     } catch (err) {
       console.error("Error fetching events", err.response?.data || err.message);
@@ -70,95 +68,20 @@ function App() {
     <Router>
       <div className="wrapper">
         <LandingToggle />
+        {user && <Navbar events={eventInvites} userId={user?.id} onEventUpdate={handleEventInvite} />}
+        {user && isMobile && <ToggleableList events={eventInvites} onEventUpdate={handleEventInvite} />}
+
         <Routes>
-          {/* Public routes */}
-          <Route path="/login" element={!user ? <Login /> : <Navigate to="/events" />} />
+          <Route path="/login" element={!user ? <Login /> : <Navigate to="/feed" />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
-
-          {/* Protected routes */}
-          <Route
-            path="/events"
-            element={
-              user ? (
-                <>
-                  <MessengerToggle />
-                  <ToggleableList getEvents={getEvents} user={user} onLogout={logout} />
-                  <Navbar events={eventInvites} userId={user?.id} onEventUpdate={handleEventInvite} />
-                  <EventList events={events} getEvents={getEvents} userId={user?.id} />
-                </>
-              ) : (
-                <Navigate to="/login" />
-              )
-            }
-          />
-
-          <Route
-            path="/profile/:userId"
-            element={
-              user ? (
-                <>
-                  <MessengerToggle />
-                  <UserProfile user={user} />
-                  <ToggleableList getEvents={getEvents} user={user} onLogout={logout} />
-                  <Navbar events={eventInvites} userId={user?.id} onEventUpdate={handleEventInvite} />
-                </>
-              ) : (
-                <Navigate to="/login" />
-              )
-            }
-          />
-
-          <Route
-            path="/feed"
-            element={
-              user ? (
-                <>
-                  <MessengerToggle />
-                  <Feed user={user} getEvents={getEvents} />
-                  <ToggleableList getEvents={getEvents} user={user} onLogout={logout} />
-                  <Navbar events={eventInvites} userId={user?.id} />
-                </>
-              ) : (
-                <Navigate to="/login" />
-              )
-            }
-          />
-
-          <Route
-            path="/explore"
-            element={
-              user ? (
-                <>
-                  <MessengerToggle />
-                  <Explore getEvents={getEvents} />
-                  <ToggleableList getEvents={getEvents} user={user} onLogout={logout} />
-                  <Navbar events={eventInvites} userId={user?.id} />
-                </>
-              ) : (
-                <Navigate to="/login" />
-              )
-            }
-          />
-
-          <Route
-            path="/moderator-tools"
-            element={
-              user ? (
-                <>
-                  <MessengerToggle />
-                  <ModeratorTools user={user} />
-                  <ToggleableList getEvents={getEvents} user={user} onLogout={logout} />
-                  <Navbar events={eventInvites} userId={user?.id} />
-                </>
-              ) : (
-                <Navigate to="/login" />
-              )
-            }
-          />
-
-          <Route path="/" element={user ? <Navigate to="/events" /> : <Navigate to="/login" />} />
+          <Route path="/profile/:userId" element={user ? <UserProfile user={user} /> : <Navigate to="/login" />} />
+          <Route path="/settings/:userId" element={user ? <UserPreferences user={user} /> : <Navigate to="/login" />} />
+          <Route path="/feed" element={user ? <Feed user={user} getEvents={getEvents} /> : <Navigate to="/login" />} />
+          <Route path="/moderator-tools" element={user ? <ModeratorTools user={user} /> : <Navigate to="/login" />} />
+          <Route path="/" element={user ? <Navigate to="/feed" /> : <Navigate to="/login" />} />
         </Routes>
+        {!isMobile && <RightSidebar />}
         <Footer />
       </div>
     </Router>

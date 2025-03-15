@@ -9,7 +9,7 @@ const WebSocketInstance = (() => {
     const heartbeatDelay = 30000;
     const heartbeatTimeoutDelay = 10000;
 
-    const connect = (userId) => {
+    const connect = (userId, clientType = "navbar") => {
         if (socket && socket.readyState === WebSocket.OPEN) {
             console.log("WebSocket already connected.");
             return;
@@ -17,7 +17,7 @@ const WebSocketInstance = (() => {
 
         const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
         const wsPort = process.env.NODE_ENV === "production" ? "" : ":4747";
-        const wsUrl = `${wsProtocol}${window.location.hostname}${wsPort}/ws?userId=${userId}`;
+        const wsUrl = `${wsProtocol}${window.location.hostname}${wsPort}/ws?userId=${userId}&type=${clientType}`;
 
         console.log("Attempting to connect to WebSocket:", wsUrl);
         socket = new WebSocket(wsUrl);
@@ -125,6 +125,9 @@ const WebSocketInstance = (() => {
 
     const handleClientMessage = (message) => {
         const { type, data } = message;
+
+        console.log(`WebSocket received message:`, message);
+
         if (listeners[type]) {
             listeners[type](data);
         } else {

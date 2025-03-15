@@ -1,13 +1,18 @@
 /* Container */
-.toggleable-list {
+.toggleable-list.expanded {
     position: fixed;
-    top: 10px;
-    right: 10px;
+    top: 0;
+    left: 0;
+    height: 87vh;
+    min-width: 100vw;
+    max-width: 100vw;
     transition: all 0.3s ease;
-    border-radius: 12px;
     box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15);
     z-index: 1000;
-    background: linear-gradient(135deg, #bd818b 0%, #f0b18d 100%);
+    background: #fff;
+    padding: 20px 0;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Compact (collapsed) state */
@@ -20,12 +25,6 @@
     background-color: transparent;
     background: none;
     box-shadow: none;
-}
-
-/* Expanded state */
-.toggleable-list.expanded {
-    width: 240px;
-    padding: 20px;
 }
 
 /* Toggle Button Styling */
@@ -43,9 +42,11 @@
     background-color: rgba(0, 0, 0, 0.3);
     transition: background-color 0.3s ease, transform 0.2s ease;
     position: absolute;
-    right: 0;
-    top: 0px;
+    right: 10px;
+    top: 10px;
     box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
+    user-select: none;
+    z-index: 10000;
 }
 
 .toggleable-toggle-button:hover {
@@ -62,6 +63,10 @@
 }
 
 /* Profile Picture Styling */
+.toggleable-list.expanded .profile-link {
+    margin: 0 auto;
+}
+
 .toggleable-profile-picture {
     border-radius: 50%;
     object-fit: cover;
@@ -73,83 +78,42 @@
     transition: transform 0.3s ease;
 }
 
-.toggleable-list.expanded .toggleable-profile-picture {
-    height: 80px;
-    width: 80px;
-}
-
-.toggleable-list.expanded .toggleable-profile-picture:hover {
+.toggleable-profile-picture:hover {
     transform: scale(1.05);
 }
 
 /* Expanded List Content */
 .toggleable-list-content {
-    margin-top: 15px;
-    text-align: right;
-    padding-top: 5px;
-}
-
-/* Button Styling */
-.event-button,
-.mod-tools,
-.logout-button {
-    width: 100%;
-    padding: 0.6em;
-    border: none;
-    border-radius: 8px;
-    font-size: 1em;
-    cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.2s;
-    margin-top: 8px;
     display: flex;
+    flex-direction: column;
+    gap: 30px;
+    margin: 50px 0 0 30%;
+}
+
+.toggleable-button {
+    display: flex;
+    gap: 10px;
+    min-width: 25px;
+}
+
+.menu-dropdown {
+    position: fixed;
+    width: 100%;
+    height: 90%;
+    background: #fff;
+    padding-top: 10%;
+}
+
+.close-dropdown {
+    position: absolute;
+    top: -1%;
+    display: flex;
+    justify-content: center;
     align-items: center;
-    text-align: center;
-    justify-content: space-between;
-    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.15);
-    background-color: #8c7051;
-}
-
-.event-button:hover,
-.mod-tools:hover{
-    background-color: #634f38;
-    transform: scale(1.05);
-}
-/* Logout Button */
-.logout-button {
-    background-color: #f44336;
-    color: white;
-}
-
-.logout-button:hover {
-    background-color: #d32f2f;
-    transform: scale(1.05);
-}
-
-/* Moderator Button */
-.mod-button {
-    background-color: #4CAF50;
-    color: white;
-}
-
-.mod-button:hover {
-    background-color: #45a049;
-    transform: scale(1.05);
-}
-
-/* Responsive Adjustments */
-@media (max-width: 768px) {
-    .toggleable-list.expanded .toggleable-profile-picture {
-        height: 60px;
-        width: 60px;
-    }
-    .toggleable-list.compact .toggleable-profile-picture {
-        display:none;
-    }
-
-    .toggleable-button,
-    .mod-button,
-    .logout-button {
-        padding: 0.5em;
-        font-size: 0.9em;
-    }
+    left: 47%;
+    height: 32px;
+    width: 32px;
+    border: 1px solid var(--text-color);
+    border-radius: 50%;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
 }
