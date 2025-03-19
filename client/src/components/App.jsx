@@ -75,7 +75,7 @@ function App({ sessionExpired }) {
         {sessionExpired && <Navigate to="/login" state={{ sessionExpired: true }} replace />}
 
         <Routes>
-          <Route path="/login" element={!user ? <Login /> : <Navigate to="/feed" />} />
+          <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/profile/:userId" element={user ? <UserProfile user={user} /> : <Navigate to="/login" />} />
