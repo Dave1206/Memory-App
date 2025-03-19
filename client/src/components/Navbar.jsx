@@ -232,7 +232,7 @@ function Navbar({ onEventUpdate, events }) {
 
                 {isMobile && (
                     <>
-                        <div className={`nav-item`} onClick={() => handleRouteClick(0, "/feed")}>
+                        <div className={`nav-item`} onClick={() => handleRouteClick(0, "/home")}>
                             <div className="nav-item-icon"><FontAwesomeIcon icon={navItems.feed.icon} /></div>
                         </div>
                         <EventCreator key={"ec-navbar-mobile"} userId={userId} isMobile={isMobile} />
