@@ -80,9 +80,9 @@ function App({ sessionExpired }) {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/profile/:userId" element={user ? <UserProfile user={user} /> : <Navigate to="/login" />} />
           <Route path="/settings/:userId" element={user ? <UserPreferences user={user} /> : <Navigate to="/login" />} />
-          <Route path="/feed" element={user ? <Feed user={user} getEvents={getEvents} /> : <Navigate to="/login" />} />
+          <Route path="/home" element={user ? <Feed user={user} getEvents={getEvents} /> : <Navigate to="/login" />} />
           <Route path="/moderator-tools" element={user ? <ModeratorTools user={user} /> : <Navigate to="/login" />} />
-          <Route path="/" element={user ? <Navigate to="/feed" /> : <Navigate to="/login" />} />
+          <Route path="/" element={user ? <Navigate to="/home" /> : <Navigate to="/login" />} />
         </Routes>
         {!isMobile && user && <RightSidebar />}
         <Footer />

@@ -2517,7 +2517,6 @@ wss.on('connection', async (ws, req) => {
   connectedClients[clientType][userId] = connectedClients[clientType][userId] || [];
   connectedClients[clientType][userId].push(ws);
 
-  //notify friends of online status.
   const friendsResult = await db.query(
     `SELECT friend_id FROM friends WHERE user_id = $1 AND status = 'accepted'`,
     [userId]

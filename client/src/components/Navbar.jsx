@@ -172,7 +172,7 @@ function Navbar({ onEventUpdate, events }) {
                         <div className="nav-items">
                             <EventCreator key={`ec-navbar`} userId={userId} />
 
-                            <div className={`nav-item ${activeRoute === '/feed' ? 'active' : ''}`} onClick={() => handleRouteClick(0, "/feed")}>
+                            <div className={`nav-item ${activeRoute === '/home' ? 'active' : ''}`} onClick={() => handleRouteClick(0, "/home")}>
                                 <div className="nav-item-icon"><FontAwesomeIcon key={`feed-${uuidv4()}`} icon={navItems.feed.icon} /></div>
                                 <div className="nav-item-name">{!isMobile && navItems.feed.name}</div>
                                 <div className="nav-item-notif">{navItems.feed.notifications > 0 && <NotificationBadge key={`nb-${uuidv4()}`} count={navItems.feed.notifications} />}</div>
