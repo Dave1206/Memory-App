@@ -3,7 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFilter, faSortUp, faSortDown, faSearch } from '@fortawesome/free-solid-svg-icons';
 import '../styles/SearchAndFilter.css';
 
-function SearchAndFilter({ onSearch, onFilterChange, onSortOrderChange, filterOptions, sortOptions }) {
+function SearchAndFilter({ onSearch, onFilterChange, onSortOrderChange, sortOptions }) {
     const [searchTerm, setSearchTerm] = useState("");
     const [filters, setFilters] = useState({});
     const [sortOrder, setSortOrder] = useState("desc");
@@ -33,10 +33,6 @@ function SearchAndFilter({ onSearch, onFilterChange, onSortOrderChange, filterOp
         onSortOrderChange(newSortOrder);
     };
 
-    const filteredSortOptions = filters.filterByType
-        ? sortOptions.filter(option => option.value !== "event_type")
-        : sortOptions;
-
     return (
         <div className="search-filter-container">
             <button
@@ -58,21 +54,7 @@ function SearchAndFilter({ onSearch, onFilterChange, onSortOrderChange, filterOp
                             className="search-bar"
                         />
                     </div>
-                    {filterOptions.map((filter) => (
-                        <select
-                            key={filter.key}
-                            value={filters[filter.key] || ""}
-                            onChange={(e) => handleFilterChange(filter.key, e.target.value)}
-                            className="filter-dropdown"
-                        >
-                            <option value="">{filter.label}</option>
-                            {filter.options.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                    {option.label}
-                                </option>
-                            ))}
-                        </select>
-                    ))}
+                
                     <div className="sort-controls">
                         <select
                             value={filters.sortBy || ""}
@@ -80,7 +62,7 @@ function SearchAndFilter({ onSearch, onFilterChange, onSortOrderChange, filterOp
                             className="sort-dropdown"
                         >
                             <option value="">--Sort By--</option>
-                            {filteredSortOptions.map((option) => (
+                            {sortOptions.map((option) => (
                                 <option key={option.value} value={option.value}>
                                     {option.label}
                                 </option>

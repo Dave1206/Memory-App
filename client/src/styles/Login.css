@@ -3,29 +3,28 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
     height: 100%;
     width: 100%;
-    /* font-family: 'Courier New', Courier, monospace; */
-    background-color: #f5e6ca;
+    background-color: #fff;
     color: #3d3b30;
-    padding: 20px;
+    margin-top: 5%;
 }
 
 /* Form card styling */
 .login-card {
     position: relative;
-    background-color: #fff8e1;
+    background-color: darksalmon;
     padding: 40px;
     border-radius: 12px;
     box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1); 
     max-width: 300px;
     text-align: center;
+    border: 5px solid #333;
 }
 
 /* Title styling */
 .login-card h2 {
-    color: #8c7051; 
+    color: #fff; 
     font-size: 1.8em;
     margin-bottom: 20px;
     font-weight: bold;
@@ -73,11 +72,12 @@
 
 /* Link styling */
 .login-card p {
-    color: #8c7051;
+    color: #fff;
     font-size: 0.9em;
     cursor: pointer;
     text-decoration: underline;
     margin-top: 10px;
+    text-decoration: none;
 }
 
 .login-card p:hover {
@@ -88,4 +88,32 @@
     position: absolute;
     left: 15px;
     top: 168px;
+}
+
+.login-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 0;
+}
+
+.login-logo {
+    width: 150px;
+    height: 150px;
+    margin-bottom: 10px;
+}
+
+.login-header h1 {
+    font-size: 2rem;
+    color: #333;
+    text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+/* messages to user */
+
+.session-expired-message,
+.email-verified-message {
+    max-width: 225px;
 }

@@ -16,7 +16,7 @@ import { moderateImageContent } from './contentModeration.js';
 import cloudinary from 'cloudinary';
 import axios from "axios";
 import { WebSocketServer } from "ws";
-import { handleSendMessage, handleMarkSeen, handleSendNotification } from "./utils/websocketHandlers.js";
+import { handleSendMessage, handleMarkSeen, handleSendNotification, handleConversationUpdate } from "./utils/websocketHandlers.js";
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
@@ -62,19 +62,19 @@ app.use(
 
 const sessionOptions = process.env.NODE_ENV === "production"
   ? {
-      // Use the DATABASE_URL provided by Heroku
-      conString: process.env.DATABASE_URL + "?sslmode=no-verify"
-    }
+    // Use the DATABASE_URL provided by Heroku
+    conString: process.env.DATABASE_URL + "?sslmode=no-verify"
+  }
   : {
-      // Local development options
-      conObject: {
-        user: process.env.PG_USER,
-        host: process.env.PG_HOST,
-        database: process.env.PG_DATABASE,
-        password: process.env.PG_PASSWORD,
-        port: process.env.PG_PORT,
-      }
-    };
+    // Local development options
+    conObject: {
+      user: process.env.PG_USER,
+      host: process.env.PG_HOST,
+      database: process.env.PG_DATABASE,
+      password: process.env.PG_PASSWORD,
+      port: process.env.PG_PORT,
+    }
+  };
 
 app.use(
   session({
@@ -150,10 +150,10 @@ const transporter = nodemailer.createTransport({
 const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // Limit size to 5MB
   fileFilter(req, file, cb) {
-      if (!file.originalname.match(/\.(jpg|jpeg|png)$/)) {
-          return cb(new Error('Please upload an image (jpg, jpeg, png).'));
-      }
-      cb(null, true);
+    if (!file.originalname.match(/\.(jpg|jpeg|png)$/)) {
+      return cb(new Error('Please upload an image (jpg, jpeg, png).'));
+    }
+    cb(null, true);
   }
 });
 
@@ -173,22 +173,22 @@ function isAuthenticated(req, res, next) {
 
 function isModerator(req, res, next) {
   if (req.user && (req.user.role === 'moderator' || req.user.role === 'admin')) {
-      return next();
+    return next();
   }
   res.status(403).json({ error: 'Access denied. Moderator status required.' });
 }
 
 function isAdmin(req, res, next) {
   if (req.user && req.user.role === 'admin') {
-      return next();
+    return next();
   }
   res.status(403).json({ error: 'Access denied. Admin status required.' });
 }
 
 async function notifyUser(userId, message) {
   await db.query(
-      `INSERT INTO notifications (user_id, message) VALUES ($1, $2)`,
-      [userId, message]
+    `INSERT INTO notifications (user_id, message) VALUES ($1, $2)`,
+    [userId, message]
   );
 }
 
@@ -206,8 +206,8 @@ async function logActivity(userId, actionType, description, relatedId = null, re
   }
 }
 
-const fetchIP = async() => {
-  try{
+const fetchIP = async () => {
+  try {
     const response = await axios.get('https://api64.ipify.org?format=json');
     const data = response.data;
     return data.ip;
@@ -290,7 +290,7 @@ app.post("/register", async (req, res) => {
       text: `Welcome to the Memory App Alpha.\nClick the following link to verify your email:\n${verificationLink}`,
     });
 
-    res.status(201).json({ message: "User registered successfully. Please verify your email to complete registration"});
+    res.status(201).json({ message: "User registered successfully. Please verify your email to complete registration" });
 
   } catch (err) {
     console.error(err);
@@ -380,6 +380,10 @@ app.post("/logout", (req, res) => {
     if (userId) {
       try {
         await db.query("UPDATE users SET last_online = NOW() WHERE id = $1", [userId]);
+        await db.query(
+          "DELETE FROM session WHERE sess::jsonb->'passport'->>'user' = $1",
+          [String(userId)]
+        );
       } catch (updateErr) {
         console.error("Error updating last_online:", updateErr);
         return res.status(500).json({ message: "Error updating last online status." });
@@ -407,7 +411,7 @@ app.get('/auth/session', isAuthenticated, (req, res) => {
 });
 
 //events routes
-app.get("/events", isAuthenticated, async(req, res) => {
+app.get("/events", isAuthenticated, async (req, res) => {
   const userId = req.user.id;
 
   try {
@@ -441,30 +445,84 @@ app.get("/events", isAuthenticated, async(req, res) => {
 
 app.get("/events/mine", isAuthenticated, async (req, res) => {
   const userId = req.user.id;
+  const { search, filters: rawFilters, sortOrder = 'desc', limit = 10, offset = 0 } = req.query;
 
+  let filters;
   try {
-    const myEvents = await db.query(
-      `SELECT e.event_id, e.title, e.description, e.creation_date, e.event_type, e.reveal_date, 
-              u.username, u.profile_picture, e.created_by, e.visibility, 
-              ep.has_shared_memory, 
-              COUNT(likes.event_id) AS likes_count,
-              COUNT(shares.event_id) AS shares_count,
-              COUNT(ep.interaction_count) AS interaction_count,
-              (SELECT COUNT(*) FROM memories m WHERE m.event_id = e.event_id) AS memories_count,
-              MAX(CASE WHEN ep.user_id = $1 THEN CAST(ep.has_liked AS INTEGER) ELSE 0 END) > 0 AS has_liked,
-              MAX(CASE WHEN ep.user_id = $1 THEN CAST(ep.has_shared_event AS INTEGER) ELSE 0 END) > 0 AS has_shared_event,
-              MAX(CASE WHEN ep.user_id = $1 THEN ep.status ELSE NULL END) AS event_status
+    filters = rawFilters ? JSON.parse(rawFilters) : {};
+  } catch (err) {
+    console.error('Invalid filters:', rawFilters);
+    return res.status(400).json({ error: 'Invalid filters format' });
+  }
+
+  const validSortFields = ['likes_count', 'shares_count', 'memories_count', 'age_in_hours', 'hot_score'];
+  const selectedSortField = validSortFields.includes(filters.sortBy) ? filters.sortBy : 'hot_score';
+  const selectedSortOrder = sortOrder.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
+
+  let query = `
+      SELECT 
+          e.event_id, e.title, e.description, e.creation_date, e.event_type, e.reveal_date, 
+          u.username, u.profile_picture, e.created_by, e.visibility, 
+          ep.has_shared_memory, 
+          COUNT(likes.event_id) AS likes_count,
+          COUNT(shares.event_id) AS shares_count,
+          (SELECT COUNT(*) FROM memories m WHERE m.event_id = e.event_id) AS memories_count,
+          EXTRACT(EPOCH FROM (NOW() - e.creation_date)) / 3600 AS age_in_hours,
+          ARRAY_AGG(DISTINCT t.tag_name) AS tags,
+          (
+              COUNT(likes.event_id) * 1.5 + 
+              COUNT(shares.event_id) * 1.2 + 
+              COUNT(m.event_id) * 1.0 + 
+              COALESCE(SUM(ep.interaction_count), 0) * 1.1 + 
+              COALESCE(LOG(GREATEST(SUM(EXTRACT(EPOCH FROM ep.interaction_duration)::NUMERIC) + 1, 1)), 0) * 0.7
+          ) / POWER((EXTRACT(EPOCH FROM (NOW() - e.creation_date)) / 3600)::NUMERIC + 2, 1.2) AS hot_score
       FROM events e
       JOIN users u ON e.created_by = u.id
       LEFT JOIN event_participation ep ON e.event_id = ep.event_id AND ep.user_id = $1
       LEFT JOIN event_participation likes ON e.event_id = likes.event_id AND likes.has_liked = TRUE
       LEFT JOIN event_participation shares ON e.event_id = shares.event_id AND shares.has_shared_event = TRUE
+      LEFT JOIN memories m ON e.event_id = m.event_id
+      LEFT JOIN event_tag_map etm ON e.event_id = etm.event_id
+      LEFT JOIN event_tags t ON etm.tag_id = t.tag_id
       WHERE e.created_by = $1
-      GROUP BY e.event_id, u.username, u.profile_picture, e.title, e.description, e.creation_date, e.created_by, e.visibility, e.event_type, e.reveal_date, ep.has_shared_memory
-      ORDER BY e.creation_date DESC`,
-      [userId]
-    );
+  `;
 
+  const queryParams = [userId];
+
+  if (search) {
+    const searchTerms = search.trim().split(/\s+/);
+    const searchConditions = searchTerms.map((term, index) => {
+      const paramIndex = queryParams.length + 1;
+      queryParams.push(`%${term}%`);
+
+      return `
+        (
+          e.title ILIKE $${paramIndex} 
+          OR e.description ILIKE $${paramIndex} 
+          OR u.username ILIKE $${paramIndex} 
+          OR e.event_type ILIKE $${paramIndex} 
+          OR e.event_id IN (
+              SELECT etm.event_id FROM event_tag_map etm
+              JOIN event_tags et ON etm.tag_id = et.tag_id
+              WHERE et.tag_name ILIKE $${paramIndex}
+          )
+        )
+      `;
+    });
+
+    query += ` AND (${searchConditions.join(" AND ")})`;
+  }
+
+  query += `
+      GROUP BY e.event_id, u.username, u.profile_picture, e.title, e.description, e.creation_date, e.created_by, e.visibility, e.event_type, e.reveal_date, ep.has_shared_memory
+      ORDER BY ${selectedSortField} ${selectedSortOrder}
+      LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
+  `;
+
+  queryParams.push(limit, offset);
+
+  try {
+    const myEvents = await db.query(query, queryParams);
     res.json(myEvents.rows);
   } catch (err) {
     console.error("Error fetching My Events:", err.message);
@@ -474,30 +532,86 @@ app.get("/events/mine", isAuthenticated, async (req, res) => {
 
 app.get("/events/followed", isAuthenticated, async (req, res) => {
   const userId = req.user.id;
+  const { search, filters: rawFilters, sortOrder = 'desc', limit = 10, offset = 0 } = req.query;
 
+  let filters;
   try {
-    const followedEvents = await db.query(
-      `SELECT e.event_id, e.title, e.description, e.creation_date, e.event_type, e.reveal_date, 
-              u.username, u.profile_picture, e.created_by, e.visibility, 
-              ep.has_shared_memory, 
-              COUNT(likes.event_id) AS likes_count,
-              COUNT(shares.event_id) AS shares_count,
-              COUNT(ep.interaction_count) AS interaction_count,
-              (SELECT COUNT(*) FROM memories m WHERE m.event_id = e.event_id) AS memories_count,
-              MAX(CASE WHEN ep.user_id = $1 THEN CAST(ep.has_liked AS INTEGER) ELSE 0 END) > 0 AS has_liked,
-              MAX(CASE WHEN ep.user_id = $1 THEN CAST(ep.has_shared_event AS INTEGER) ELSE 0 END) > 0 AS has_shared_event,
-              MAX(CASE WHEN ep.user_id = $1 THEN ep.status ELSE NULL END) AS event_status
+    filters = rawFilters ? JSON.parse(rawFilters) : {};
+  } catch (err) {
+    console.error('Invalid filters:', rawFilters);
+    return res.status(400).json({ error: 'Invalid filters format' });
+  }
+
+  const validSortFields = ['likes_count', 'shares_count', 'memories_count', 'age_in_hours', 'hot_score'];
+  const selectedSortField = validSortFields.includes(filters.sortBy) ? filters.sortBy : 'hot_score';
+  const selectedSortOrder = sortOrder.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
+
+  let query = `
+      SELECT 
+          e.event_id, e.title, e.description, e.creation_date, e.event_type, e.reveal_date, 
+          u.username, u.profile_picture, e.created_by, e.visibility, 
+          ep.has_shared_memory, 
+          COUNT(likes.event_id) AS likes_count,
+          COUNT(shares.event_id) AS shares_count,
+          (SELECT COUNT(*) FROM memories m WHERE m.event_id = e.event_id) AS memories_count,
+          EXTRACT(EPOCH FROM (NOW() - e.creation_date)) / 3600 AS age_in_hours,
+          ARRAY_AGG(DISTINCT t.tag_name) AS tags,
+          (
+              COUNT(likes.event_id) * 1.5 + 
+              COUNT(shares.event_id) * 1.2 + 
+              COUNT(m.event_id) * 1.0 + 
+              COALESCE(SUM(ep.interaction_count), 0) * 1.1 + 
+              COALESCE(LOG(GREATEST(SUM(EXTRACT(EPOCH FROM ep.interaction_duration)::NUMERIC) + 1, 1)), 0) * 0.7
+          ) / POWER((EXTRACT(EPOCH FROM (NOW() - e.creation_date)) / 3600)::NUMERIC + 2, 1.2) AS hot_score
       FROM events e
       JOIN users u ON e.created_by = u.id
       JOIN event_participation ep ON e.event_id = ep.event_id
       LEFT JOIN event_participation likes ON e.event_id = likes.event_id AND likes.has_liked = TRUE
       LEFT JOIN event_participation shares ON e.event_id = shares.event_id AND shares.has_shared_event = TRUE
-      WHERE ep.user_id = $1 AND ep.status = 'opted_in'
-      GROUP BY e.event_id, u.username, u.profile_picture, e.title, e.description, e.creation_date, e.created_by, e.visibility, e.event_type, e.reveal_date, ep.has_shared_memory
-      ORDER BY e.creation_date DESC`,
-      [userId]
-    );
+      LEFT JOIN memories m ON e.event_id = m.event_id
+      LEFT JOIN event_tag_map etm ON e.event_id = etm.event_id
+      LEFT JOIN event_tags t ON etm.tag_id = t.tag_id
+      WHERE ep.user_id = $1 
+        AND ep.status = 'opted_in'
+        AND e.created_by <> $1
+  `;
 
+  const queryParams = [userId];
+
+  if (search) {
+    const searchTerms = search.trim().split(/\s+/);
+    const searchConditions = searchTerms.map((term, index) => {
+      const paramIndex = queryParams.length + 1;
+      queryParams.push(`%${term}%`);
+
+      return `
+        (
+          e.title ILIKE $${paramIndex} 
+          OR e.description ILIKE $${paramIndex} 
+          OR u.username ILIKE $${paramIndex} 
+          OR e.event_type ILIKE $${paramIndex} 
+          OR e.event_id IN (
+              SELECT etm.event_id FROM event_tag_map etm
+              JOIN event_tags et ON etm.tag_id = et.tag_id
+              WHERE et.tag_name ILIKE $${paramIndex}
+          )
+        )
+      `;
+    });
+
+    query += ` AND (${searchConditions.join(" AND ")})`;
+  }
+
+  query += `
+      GROUP BY e.event_id, u.username, u.profile_picture, e.title, e.description, e.creation_date, e.created_by, e.visibility, e.event_type, e.reveal_date, ep.has_shared_memory
+      ORDER BY ${selectedSortField} ${selectedSortOrder}
+      LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
+  `;
+
+  queryParams.push(limit, offset);
+
+  try {
+    const followedEvents = await db.query(query, queryParams);
     res.json(followedEvents.rows);
   } catch (err) {
     console.error("Error fetching Followed Events:", err.message);
@@ -505,19 +619,19 @@ app.get("/events/followed", isAuthenticated, async (req, res) => {
   }
 });
 
-app.post("/events", isAuthenticated, async(req,res) => {
+app.post("/events", isAuthenticated, async (req, res) => {
   try {
     const { newEvent, memoryContent } = req.body;
     const { title, invites, eventType, revealDate, visibility, tags, location } = newEvent;
     const userId = req.user.id;
-    const timeStamp = new Date(Date.now()+(1000*60*(-(new Date()).getTimezoneOffset()))).toISOString().replace('T',' ').replace('Z','');
-    
+    const timeStamp = new Date(Date.now() + (1000 * 60 * (-(new Date()).getTimezoneOffset()))).toISOString().replace('T', ' ').replace('Z', '');
+
     const newEventResult = await db.query(
       `INSERT INTO events (title, description, created_by, creation_date, event_type, reveal_date, visibility, location) 
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`, 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
       [title, "No description provided", userId, timeStamp, eventType, revealDate, visibility, location]
     );
-    
+
     const eventId = newEventResult.rows[0].event_id;
 
     await db.query(
@@ -530,7 +644,7 @@ app.post("/events", isAuthenticated, async(req,res) => {
       [eventId, userId, 'opted_in', true]
     );
 
-    if (invites.length > 0){
+    if (invites.length > 0) {
       for (const userId of invites) {
         await db.query(
           "INSERT INTO event_participation (event_id, user_id, status) VALUES ($1, $2, $3)",
@@ -554,10 +668,10 @@ app.post("/events", isAuthenticated, async(req,res) => {
     }
 
     await logActivity(req.user.id, 'created_event', `Created a new event: ${title}`, eventId, 'event');
-   
+
     res.json({ success: true, eventId });
 
-  } catch(err) {
+  } catch (err) {
     console.error(err.message);
     res.status(500).send("Server Error");
   }
@@ -627,7 +741,7 @@ app.post('/events/:eventId/end-interaction', isAuthenticated, async (req, res) =
   }
 });
 
-app.post("/events/:eventId/opt-in", isAuthenticated, async(req,res) => {
+app.post("/events/:eventId/opt-in", isAuthenticated, async (req, res) => {
   try {
     const userId = req.user.id;
     const eventId = req.params.eventId;
@@ -643,7 +757,7 @@ app.post("/events/:eventId/opt-in", isAuthenticated, async(req,res) => {
     );
 
     res.status(200).send("User opted in to event successfully.");
-  } catch(err) {
+  } catch (err) {
     console.error(err.message);
     res.status(500).send("Server Error");
   }
@@ -681,15 +795,15 @@ app.post("/invite/:event_id", isAuthenticated, async (req, res) => {
 
     const event = await db.query(
       "SELECT * FROM events WHERE event_id = $1",
-    [event_id]);
+      [event_id]);
 
     for (let user of users) {
-      await db.query (
+      await db.query(
         "INSERT INTO event_participation (event_id, user_id, status) VALUES ($1, $2, $3)",
-          [event_id, user.id, 'invited']
+        [event_id, user.id, 'invited']
       );
       const notificationMessage = `${req.user.username} invited you to an event: "${event.rows[0].title}"`;
-        await handleSendNotification({ recipientId: user.id, message: notificationMessage, type: "invite", event_id }, req.user.id, connectedClients);
+      await handleSendNotification({ recipientId: user.id, message: notificationMessage, type: "invite", event_id }, req.user.id, connectedClients);
     }
 
   } catch (err) {
@@ -721,7 +835,7 @@ app.post("/deleteevent/:event_id", isAuthenticated, async (req, res) => {
       await db.query("DELETE FROM events WHERE event_id = $1", [event_id]);
 
       await db.query("COMMIT");
-      return res.status(200).json({ message: "Event deleted successfully" });
+      return res.status(200).json({ message: "Event deleted successfully", isCreator: true });
     } else {
       await db.query(
         "DELETE FROM event_participation WHERE event_id = $1 AND user_id = $2",
@@ -733,7 +847,7 @@ app.post("/deleteevent/:event_id", isAuthenticated, async (req, res) => {
       );
 
       await db.query("COMMIT");
-      return res.status(200).json({ message: "Participation removed"});
+      return res.status(200).json({ message: "Participation removed", isCreator: false });
     }
   } catch (err) {
     await db.query("ROLLBACK");
@@ -791,8 +905,8 @@ app.get("/events/:event_id/memories", isAuthenticated, async (req, res) => {
        SET last_checked = NOW()
        WHERE user_id = $1 AND event_id = $2`,
       [userId, eventId]
-    );  
-   
+    );
+
     const invite = await db.query(
       "SELECT * FROM event_participation WHERE event_id = $1 AND user_id = $2",
       [eventId, userId]
@@ -828,6 +942,8 @@ app.post('/events/:eventId/like', isAuthenticated, async (req, res) => {
       return res.status(404).json({ message: 'Event not found' });
     }
 
+    const creatorId = event.rows[0].created_by;
+
     const participation = await db.query(`
       SELECT has_liked FROM event_participation 
       WHERE user_id = $1 AND event_id = $2
@@ -860,7 +976,7 @@ app.post('/events/:eventId/like', isAuthenticated, async (req, res) => {
     await db.query(query, [userId, eventId]);
 
     res.status(200).json({ message });
-    
+
   } catch (error) {
     console.error('Error toggling like on event:', error);
     res.status(500).json({ message: 'Internal server error' });
@@ -872,43 +988,43 @@ app.post('/events/:eventId/share', isAuthenticated, async (req, res) => {
   const eventId = req.params.eventId;
 
   try {
-      const event = await db.query('SELECT * FROM events WHERE event_id = $1', [eventId]);
-      if (event.rows.length === 0) {
-          return res.status(404).json({ message: 'Event not found' });
-      }
+    const event = await db.query('SELECT * FROM events WHERE event_id = $1', [eventId]);
+    if (event.rows.length === 0) {
+      return res.status(404).json({ message: 'Event not found' });
+    }
 
-      const creatorId = event.rows[0].created_by;
+    const creatorId = event.rows[0].created_by;
 
-      const participation = await db.query(`
+    const participation = await db.query(`
         SELECT has_shared_event FROM event_participation 
         WHERE user_id = $1 AND event_id = $2
     `, [userId, eventId]);
 
     if (participation.rows.length > 0 && participation.rows[0].has_shared_event) {
-        return res.status(200).json({ message: 'You have already shared this event' });
+      return res.status(200).json({ message: 'You have already shared this event' });
     }
 
-      const query = `
+    const query = `
             INSERT INTO event_participation (user_id, event_id, has_shared_event)
             VALUES ($1, $2, true)
             ON CONFLICT (user_id, event_id)
             DO UPDATE SET has_shared_event = true;
         `;
 
-        await db.query(query, [userId, eventId]);
+    await db.query(query, [userId, eventId]);
 
-      await logActivity(userId, 'shared_event', `Shared an event: ${event.rows[0].title}`, eventId, 'event');
+    await logActivity(userId, 'shared_event', `Shared an event: ${event.rows[0].title}`, eventId, 'event');
 
-      if (userId !== creatorId) {
-        const notificationMessage = `${req.user.username} shared your event "${event.rows[0].title}"`;
-        await handleSendNotification({ recipientId: creatorId, message: notificationMessage, type: "reaction", eventId }, userId, connectedClients);
-      }
+    if (userId !== creatorId) {
+      const notificationMessage = `${req.user.username} shared your event "${event.rows[0].title}"`;
+      await handleSendNotification({ recipientId: creatorId, message: notificationMessage, type: "reaction", eventId }, userId, connectedClients);
+    }
 
-      res.status(200).json({ message: 'Event successfully shared' });
+    res.status(200).json({ message: 'Event successfully shared' });
 
   } catch (error) {
-      console.error('Error sharing event:', error);
-      res.status(500).json({ message: 'Internal server error' });
+    console.error('Error sharing event:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 
@@ -917,46 +1033,46 @@ app.post('/memories/:memoryId/like', isAuthenticated, async (req, res) => {
   const memoryId = req.params.memoryId;
 
   try {
-      const memory = await db.query("SELECT * FROM memories WHERE memory_id = $1", [memoryId]);
-      if (memory.rows.length === 0) {
-          return res.status(404).json({ message: "Memory not found" });
-      }
+    const memory = await db.query("SELECT * FROM memories WHERE memory_id = $1", [memoryId]);
+    if (memory.rows.length === 0) {
+      return res.status(404).json({ message: "Memory not found" });
+    }
 
-      const creatorId = memory.rows[0].user_id;
+    const creatorId = memory.rows[0].user_id;
 
-      const creator = await db.query("SELECT 1 FROM users WHERE id = $1", [creatorId]);
+    const creator = await db.query("SELECT 1 FROM users WHERE id = $1", [creatorId]);
 
-      const participation = await db.query(
-          `SELECT has_liked FROM memory_participation WHERE user_id = $1 AND memory_id = $2`,
-          [userId, memoryId]
-      );
+    const participation = await db.query(
+      `SELECT has_liked FROM memory_participation WHERE user_id = $1 AND memory_id = $2`,
+      [userId, memoryId]
+    );
 
-      let query, message;
-      if (participation.rows.length > 0 && participation.rows[0].has_liked) {
-          query = `UPDATE memory_participation SET has_liked = false WHERE user_id = $1 AND memory_id = $2`;
-          message = "Memory like removed successfully";
-      } else {
-          query = `
+    let query, message;
+    if (participation.rows.length > 0 && participation.rows[0].has_liked) {
+      query = `UPDATE memory_participation SET has_liked = false WHERE user_id = $1 AND memory_id = $2`;
+      message = "Memory like removed successfully";
+    } else {
+      query = `
               INSERT INTO memory_participation (user_id, memory_id, has_liked)
               VALUES ($1, $2, true)
               ON CONFLICT (user_id, memory_id)
               DO UPDATE SET has_liked = true
           `;
-          message = "Memory liked successfully";
-          await logActivity(userId, 'liked_memory', `Liked a memory by ${creator.username}`, memoryId, 'memory');
-          // Send real-time notification
-          if (userId !== creatorId) {
-            const notificationMessage = `${req.user.username} liked your memory shared on"${memory.event_id}"`;
-            await handleSendNotification({ recipientId: creatorId, message: notificationMessage, type: "reaction", memoryId }, userId, connectedClients);
-          }
+      message = "Memory liked successfully";
+      await logActivity(userId, 'liked_memory', `Liked a memory by ${creator.username}`, memoryId, 'memory');
+      // Send real-time notification
+      if (userId !== creatorId) {
+        const notificationMessage = `${req.user.username} liked your memory shared on"${memory.event_id}"`;
+        await handleSendNotification({ recipientId: creatorId, message: notificationMessage, type: "reaction", memoryId }, userId, connectedClients);
       }
+    }
 
-      await db.query(query, [userId, memoryId]);
-      res.status(200).json({ message });
+    await db.query(query, [userId, memoryId]);
+    res.status(200).json({ message });
 
   } catch (error) {
-      console.error("Error toggling like on memory:", error);
-      res.status(500).json({ message: "Internal server error" });
+    console.error("Error toggling like on memory:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
@@ -1002,10 +1118,10 @@ app.get("/user/:userId", isAuthenticated, async (req, res) => {
     }
 
     res.json({ ...profileUser, blocked: isBlocked, private: isPrivate });
-    
+
   } catch (err) {
-      console.error("Error fetching user data:", err.message);
-      res.status(500).send("Server Error");
+    console.error("Error fetching user data:", err.message);
+    res.status(500).send("Server Error");
   }
 });
 
@@ -1016,8 +1132,8 @@ app.get("/location", isAuthenticated, async (req, res) => {
 
     res.json(locationData);
   } catch (err) {
-      console.error("Error fetching user location:", err.message);
-      res.status(500).send("Server Error");
+    console.error("Error fetching user location:", err.message);
+    res.status(500).send("Server Error");
   }
 });
 
@@ -1027,29 +1143,52 @@ app.get('/feed', isAuthenticated, async (req, res) => {
 
   let filters;
   try {
-      filters = rawFilters ? JSON.parse(rawFilters) : {}; // Parse filters or fallback to empty object
+    filters = rawFilters ? JSON.parse(rawFilters) : {};
   } catch (err) {
-      console.error('Invalid filters:', rawFilters);
-      return res.status(400).json({ error: 'Invalid filters format' });
+    console.error('Invalid filters:', rawFilters);
+    return res.status(400).json({ error: 'Invalid filters format' });
   }
   const validSortFields = ['likes_count', 'memories_count', 'creation_date'];
   const selectedSortField = validSortFields.includes(filters.sortBy) ? filters.sortBy : 'creation_date';
   const selectedSortOrder = sortOrder.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
   let feedQuery = `
-      SELECT e.event_id, e.title, e.description, e.creation_date, e.event_type, e.reveal_date, u.username, e.created_by, u.profile_picture, e.visibility, ep.has_shared_memory,
+      SELECT 
+      e.event_id, 
+      e.title, 
+      e.description, 
+      e.creation_date, 
+      e.event_type, 
+      e.reveal_date, 
+      u.username, 
+      e.created_by, 
+      u.profile_picture, 
+      e.visibility, 
+      ep.has_shared_memory,
             COUNT(likes.event_id) AS likes_count,
             COUNT(shares.event_id) AS shares_count,
             COUNT(ep.interaction_count) AS interaction_count,
             (SELECT COUNT(*) FROM memories m WHERE m.event_id = e.event_id) AS memories_count,
             MAX(CASE WHEN ep.user_id = $1 THEN CAST(ep.has_liked AS INTEGER) ELSE 0 END) > 0 AS has_liked,
             MAX(CASE WHEN ep.user_id = $1 THEN CAST(ep.has_shared_event AS INTEGER) ELSE 0 END) > 0 AS has_shared_event,
-            MAX(CASE WHEN ep.user_id = $1 THEN ep.status ELSE NULL END) AS event_status
+            MAX(CASE WHEN ep.user_id = $1 THEN ep.status ELSE NULL END) AS event_status,
+            ARRAY_AGG(DISTINCT t.tag_name) AS tags,
+          EXTRACT(EPOCH FROM (NOW() - e.creation_date)) / 3600 AS age_in_hours,
+          (
+              COUNT(likes.event_id) * 1.5 + 
+              COUNT(shares.event_id) * 1.2 + 
+              COUNT(m.event_id) * 1.0 + 
+              COALESCE(SUM(ep.interaction_count), 0) * 1.1 + 
+              COALESCE(LOG(GREATEST(SUM(EXTRACT(EPOCH FROM ep.interaction_duration)::NUMERIC) + 1, 1)), 0) * 0.7
+          ) / POWER((EXTRACT(EPOCH FROM (NOW() - e.creation_date)) / 3600)::NUMERIC + 2, 1.2) AS hot_score
       FROM events e
       JOIN users u ON e.created_by = u.id
       LEFT JOIN event_participation ep ON e.event_id = ep.event_id AND ep.user_id = $1
       LEFT JOIN event_participation likes ON e.event_id = likes.event_id AND likes.has_liked = TRUE
       LEFT JOIN event_participation shares ON e.event_id = shares.event_id AND shares.has_shared_event = TRUE
+      LEFT JOIN memories m ON e.event_id = m.event_id
+      LEFT JOIN event_tag_map etm ON e.event_id = etm.event_id
+      LEFT JOIN event_tags t ON etm.tag_id = t.tag_id
       WHERE (e.created_by = $1 
             OR e.created_by IN (
                 SELECT friend_id FROM friends WHERE user_id = $1 AND status = 'accepted'
@@ -1060,19 +1199,32 @@ app.get('/feed', isAuthenticated, async (req, res) => {
   `;
 
   const queryParams = [userId];
-  
+
   if (search) {
-      feedQuery += ` AND (e.title ILIKE $${queryParams.length + 1} OR e.description ILIKE $${queryParams.length + 1} OR u.username ILIKE $${queryParams.length + 1})`;
-      queryParams.push(`%${search}%`);
-  }
+    const searchTerms = search.trim().split(/\s+/);
 
-  if (filters) {
-      if (filters.type) {
-          feedQuery += ` AND e.event_type = $${queryParams.length + 1}`;
-          queryParams.push(filters.type);
-      }
+    const searchConditions = searchTerms.map((term, index) => {
+      const paramIndex = queryParams.length + 1;
+      queryParams.push(`%${term}%`);
+  
+      return `
+        (
+          e.title ILIKE $${paramIndex} 
+          OR e.description ILIKE $${paramIndex} 
+          OR u.username ILIKE $${paramIndex} 
+          OR e.event_type ILIKE $${paramIndex} 
+          OR e.event_id IN (
+              SELECT etm.event_id FROM event_tag_map etm
+              JOIN event_tags et ON etm.tag_id = et.tag_id
+              WHERE et.tag_name ILIKE $${paramIndex}
+          )
+        )
+      `;
+    });
+  
+    feedQuery += ` AND (${searchConditions.join(" AND ")})`;
   }
-
+  
   feedQuery += `
       GROUP BY e.event_id, u.username, u.profile_picture, e.title, e.description, e.creation_date, e.created_by, e.visibility, e.event_type, e.reveal_date, ep.has_shared_memory
       ORDER BY ${selectedSortField} ${selectedSortOrder}
@@ -1082,19 +1234,19 @@ app.get('/feed', isAuthenticated, async (req, res) => {
   queryParams.push(limit, offset);
 
   try {
-      const feedData = await db.query(feedQuery, queryParams);
-      await db.query(`UPDATE users SET last_checked = NOW() WHERE id = $1`, [userId]);
-      await db.query(
-        `UPDATE event_participation 
+    const feedData = await db.query(feedQuery, queryParams);
+    await db.query(`UPDATE users SET last_checked = NOW() WHERE id = $1`, [userId]);
+    await db.query(
+      `UPDATE event_participation 
          SET interaction_count = interaction_count + 1
          WHERE user_id = $1 AND interaction_count = 0`,
-        [userId]
-      );
+      [userId]
+    );
 
-      res.json(feedData.rows);
+    res.json(feedData.rows);
   } catch (err) {
-      console.error("Error retrieving feed data:", err.message);
-      res.status(500).json({ message: "Server error while retrieving feed data" });
+    console.error("Error retrieving feed data:", err.message);
+    res.status(500).json({ message: "Server error while retrieving feed data" });
   }
 });
 
@@ -1112,7 +1264,7 @@ app.get('/explore/trending', isAuthenticated, async (req, res) => {
     return res.status(400).json({ error: 'Invalid filters format' });
   }
 
-  const validSortFields = ['likes_count', 'shares_count', 'memories_count', 'hot_score'];
+  const validSortFields = ['likes_count', 'shares_count', 'memories_count', 'age_in_hours', 'hot_score'];
   const selectedSortField = validSortFields.includes(filters.sortBy) ? filters.sortBy : 'hot_score';
   const selectedSortOrder = sortOrder.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
@@ -1136,33 +1288,51 @@ app.get('/explore/trending', isAuthenticated, async (req, res) => {
           COUNT(shares.event_id) AS shares_count,
           (SELECT COUNT(*) FROM memories m WHERE m.event_id = e.event_id) AS memories_count,
           EXTRACT(EPOCH FROM (NOW() - e.creation_date)) / 3600 AS age_in_hours,
+          ARRAY_AGG(DISTINCT t.tag_name) AS tags,
           (
-            COUNT(likes.event_id) * 1.5 + 
-            COUNT(shares.event_id) * 1.2 + 
-            COUNT(m.event_id) * 1.0 + 
-            COALESCE(SUM(ep.interaction_count), 0) * 1.1 + 
-            COALESCE(SUM(EXTRACT(EPOCH FROM ep.interaction_duration)::NUMERIC), 0) * 0.5
-          ) / ((EXTRACT(EPOCH FROM (NOW() - e.creation_date)) / 3600)::NUMERIC + 1) AS hot_score
+              COUNT(likes.event_id) * 1.5 + 
+              COUNT(shares.event_id) * 1.2 + 
+              COUNT(m.event_id) * 1.0 + 
+              COALESCE(SUM(ep.interaction_count), 0) * 1.1 + 
+              COALESCE(LOG(GREATEST(SUM(EXTRACT(EPOCH FROM ep.interaction_duration)::NUMERIC) + 1, 1)), 0) * 0.7
+          ) / POWER((EXTRACT(EPOCH FROM (NOW() - e.creation_date)) / 3600)::NUMERIC + 2, 1.2) AS hot_score
       FROM events e
       JOIN users u ON e.created_by = u.id
       LEFT JOIN event_participation ep ON e.event_id = ep.event_id AND ep.user_id = $1
       LEFT JOIN event_participation likes ON e.event_id = likes.event_id AND likes.has_liked = TRUE
       LEFT JOIN event_participation shares ON e.event_id = shares.event_id AND shares.has_shared_event = TRUE
       LEFT JOIN memories m ON e.event_id = m.event_id
+      LEFT JOIN event_tag_map etm ON e.event_id = etm.event_id
+      LEFT JOIN event_tags t ON etm.tag_id = t.tag_id
       WHERE e.visibility = 'public'
   `;
 
   const queryParams = [userId];
 
   if (search) {
-    trendingQuery += ` AND (e.title ILIKE $${queryParams.length + 1} OR e.description ILIKE $${queryParams.length + 1} OR u.username ILIKE $${queryParams.length + 1})`;
-    queryParams.push(`%${search}%`);
-  }
-
-  if (filters.type) {
-    trendingQuery += ` AND e.event_type = $${queryParams.length + 1}`;
-    queryParams.push(filters.type);
-  }
+    const searchTerms = search.trim().split(/\s+/);
+  
+    const searchConditions = searchTerms.map((term, index) => {
+      const paramIndex = queryParams.length + 1;
+      queryParams.push(`%${term}%`);
+  
+      return `
+        (
+          e.title ILIKE $${paramIndex} 
+          OR e.description ILIKE $${paramIndex} 
+          OR u.username ILIKE $${paramIndex} 
+          OR e.event_type ILIKE $${paramIndex} 
+          OR e.event_id IN (
+              SELECT etm.event_id FROM event_tag_map etm
+              JOIN event_tags et ON etm.tag_id = et.tag_id
+              WHERE et.tag_name ILIKE $${paramIndex}
+          )
+        )
+      `;
+    });
+  
+    trendingQuery += ` AND (${searchConditions.join(" AND ")})`;
+  }   
 
   trendingQuery += `
       GROUP BY 
@@ -1207,7 +1377,7 @@ app.get('/explore/personalized', isAuthenticated, async (req, res) => {
     return res.status(400).json({ error: 'Invalid filters format' });
   }
 
-  const validSortFields = ['likes_count', 'shares_count', 'memories_count', 'interaction_count'];
+  const validSortFields = ['likes_count', 'shares_count', 'memories_count', 'age_in_hours', 'hot_score'];
   const selectedSortField = validSortFields.includes(filters.sortBy) ? filters.sortBy : 'interaction_count';
   const selectedSortOrder = sortOrder.toLowerCase() === 'desc' ? 'DESC' : 'ASC';
 
@@ -1234,25 +1404,49 @@ app.get('/explore/personalized', isAuthenticated, async (req, res) => {
   }
 
   let personalizedQuery = `
-      SELECT e.event_id, e.title, e.description, e.creation_date, e.event_type, e.reveal_date, e.location, u.username, e.created_by, u.profile_picture, e.visibility, ep.has_liked, ep.has_shared_event, ep.has_shared_memory, ep.status,
-            COUNT(likes.event_id) AS likes_count,
-            COUNT(shares.event_id) AS shares_count,
-            (SELECT COUNT(*) FROM memories m WHERE m.event_id = e.event_id) AS memories_count,
-            COUNT(ep.interaction_count) AS interaction_count,
-            ARRAY_AGG(DISTINCT t.tag_name) AS event_tags,
-            SUM(CASE WHEN t.tag_name IN (
-                SELECT t_user.tag_name
-                FROM event_participation ep_user
-                JOIN event_tag_map etm_user ON ep_user.event_id = etm_user.event_id
-                JOIN event_tags t_user ON etm_user.tag_id = t_user.tag_id
-                WHERE ep_user.user_id = $1
-                  AND ep_user.interaction_count > 0
-            ) THEN 1 ELSE 0 END) AS matching_tag_count
+      SELECT 
+          e.event_id, 
+          e.title, 
+          e.description, 
+          e.creation_date, 
+          e.event_type, 
+          e.reveal_date, 
+          e.location, 
+          u.username, 
+          e.created_by, 
+          u.profile_picture, 
+          e.visibility, 
+          ep.has_liked, 
+          ep.has_shared_event, 
+          ep.has_shared_memory, 
+          ep.status,
+          COUNT(likes.event_id) AS likes_count,
+          COUNT(shares.event_id) AS shares_count,
+          (SELECT COUNT(*) FROM memories m WHERE m.event_id = e.event_id) AS memories_count,
+          COUNT(ep.interaction_count) AS interaction_count,
+          ARRAY_AGG(DISTINCT t.tag_name) AS tags,
+          EXTRACT(EPOCH FROM (NOW() - e.creation_date)) / 3600 AS age_in_hours,
+          (
+              COUNT(likes.event_id) * 1.5 + 
+              COUNT(shares.event_id) * 1.2 + 
+              COUNT(m.event_id) * 1.0 + 
+              COALESCE(SUM(ep.interaction_count), 0) * 1.1 + 
+              COALESCE(LOG(GREATEST(SUM(EXTRACT(EPOCH FROM ep.interaction_duration)::NUMERIC) + 1, 1)), 0) * 0.7
+          ) / POWER((EXTRACT(EPOCH FROM (NOW() - e.creation_date)) / 3600)::NUMERIC + 2, 1.2) AS hot_score,
+          SUM(CASE WHEN t.tag_name IN (
+              SELECT t_user.tag_name
+              FROM event_participation ep_user
+              JOIN event_tag_map etm_user ON ep_user.event_id = etm_user.event_id
+              JOIN event_tags t_user ON etm_user.tag_id = t_user.tag_id
+              WHERE ep_user.user_id = $1
+                AND ep_user.interaction_count > 0
+          ) THEN 1 ELSE 0 END) AS matching_tag_count
       FROM events e
       JOIN users u ON e.created_by = u.id
       LEFT JOIN event_participation ep ON e.event_id = ep.event_id AND ep.user_id = $1
       LEFT JOIN event_participation likes ON e.event_id = likes.event_id AND likes.has_liked = TRUE
       LEFT JOIN event_participation shares ON e.event_id = shares.event_id AND shares.has_shared_event = TRUE
+      LEFT JOIN memories m ON e.event_id = m.event_id
       LEFT JOIN event_tag_map etm ON e.event_id = etm.event_id
       LEFT JOIN event_tags t ON etm.tag_id = t.tag_id
       WHERE e.visibility = 'public'
@@ -1268,17 +1462,49 @@ app.get('/explore/personalized', isAuthenticated, async (req, res) => {
   }
 
   if (search) {
-    personalizedQuery += ` AND (e.title ILIKE $${queryParams.length + 1} OR e.description ILIKE $${queryParams.length + 1} OR u.username ILIKE $${queryParams.length + 1})`;
-    queryParams.push(`%${search}%`);
+    const searchTerms = search.trim().split(/\s+/);
+  
+    const searchConditions = searchTerms.map((term, index) => {
+      const paramIndex = queryParams.length + 1;
+      queryParams.push(`%${term}%`);
+  
+      return `
+        (
+          e.title ILIKE $${paramIndex} 
+          OR e.description ILIKE $${paramIndex} 
+          OR u.username ILIKE $${paramIndex} 
+          OR e.event_type ILIKE $${paramIndex} 
+          OR e.event_id IN (
+              SELECT etm.event_id FROM event_tag_map etm
+              JOIN event_tags et ON etm.tag_id = et.tag_id
+              WHERE et.tag_name ILIKE $${paramIndex}
+          )
+        )
+      `;
+    });
+  
+    personalizedQuery += ` AND (${searchConditions.join(" AND ")})`;
   }
-
-  if (filters.type) {
-    personalizedQuery += ` AND e.event_type = $${queryParams.length + 1}`;
-    queryParams.push(filters.type);
-  }
+  
+  
 
   personalizedQuery += `
-      GROUP BY e.event_id, u.username, u.profile_picture, e.title, e.description, e.creation_date, e.created_by, e.visibility, ep.has_liked, ep.has_shared_event, ep.has_shared_memory, ep.status, e.event_type, e.reveal_date, e.location
+      GROUP BY 
+          e.event_id, 
+          u.username, 
+          u.profile_picture, 
+          e.title, 
+          e.description, 
+          e.creation_date, 
+          e.created_by, 
+          e.visibility, 
+          e.event_type, 
+          e.reveal_date, 
+          e.location, 
+          ep.has_liked, 
+          ep.has_shared_event, 
+          ep.has_shared_memory, 
+          ep.status
       ORDER BY ${selectedSortField} ${selectedSortOrder}
       LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
   `;
@@ -1362,7 +1588,7 @@ app.get('/notifications/:userId', isAuthenticated, async (req, res) => {
     );
 
     const friendRequests = fetchRequests.rows;
-    const onlineFriends = fetchStatuses.rows;
+    const onlineFriends = fetchStatuses.rows.map(row => row.userId);
     const eventInvites = fetchInvites.rows;
     const unseenPosts = fetchUnseenPosts.rows[0].unseen_posts;
     const unreadMessages = fetchUnreadMessages.rows[0].unread_messages;
@@ -1390,11 +1616,11 @@ app.get('/notifications/:userId', isAuthenticated, async (req, res) => {
 
 app.get('/user/preferences/:userId', isAuthenticated, async (req, res) => {
   try {
-      const { userId } = req.params;
-      const result = await db.query("SELECT * FROM user_preferences WHERE user_id = $1", [userId]);
-      res.json(result.rows[0]);
+    const { userId } = req.params;
+    const result = await db.query("SELECT * FROM user_preferences WHERE user_id = $1", [userId]);
+    res.json(result.rows[0]);
   } catch (error) {
-      res.status(500).send("Error retrieving preferences");
+    res.status(500).send("Error retrieving preferences");
   }
 });
 
@@ -1442,6 +1668,12 @@ app.put('/user/preferences/:userId', isAuthenticated, async (req, res) => {
         "INSERT INTO user_tokens (user_id, token, token_type, expires_at) VALUES ($1, $2, 'email_verification', $3)",
         [userId, verificationToken, tokenExpiry]
       );
+
+      await db.query(`
+        UPDATE users 
+        SET email = $1, is_verified = false
+        WHERE id = $2
+      `, [email.toLowerCase(), userId]);
 
       const verificationLink = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
       const mailOptions = {
@@ -1515,10 +1747,10 @@ app.put('/user/change-password', isAuthenticated, async (req, res) => {
 
 app.put('/user/:userId/bio', isAuthenticated, async (req, res) => {
   try {
-      const { userId } = req.params;
-      const { bio, profilePic } = req.body;
+    const { userId } = req.params;
+    const { bio, profilePic } = req.body;
 
-      await db.query(`
+    await db.query(`
           UPDATE users
           SET 
               profile_picture = $1,
@@ -1526,9 +1758,9 @@ app.put('/user/:userId/bio', isAuthenticated, async (req, res) => {
           WHERE id = $3
       `, [profilePic, bio, userId]);
 
-      res.send("Preferences saved");
+    res.send("Preferences saved");
   } catch (error) {
-      res.status(500).send("Error updating preferences");
+    res.status(500).send("Error updating preferences");
   }
 });
 
@@ -1536,17 +1768,17 @@ app.get('/users/:userId/activities', isAuthenticated, async (req, res) => {
   const { userId } = req.params;
 
   try {
-      const { rows } = await db.query(`
+    const { rows } = await db.query(`
           SELECT * FROM activities_log 
           WHERE user_id = $1
           ORDER BY created_at DESC
           LIMIT 20
       `, [userId]);
 
-      res.json(rows);
+    res.json(rows);
   } catch (error) {
-      console.error("Error fetching activities:", error);
-      res.status(500).json({ error: 'Failed to fetch activities.' });
+    console.error("Error fetching activities:", error);
+    res.status(500).json({ error: 'Failed to fetch activities.' });
   }
 });
 
@@ -1643,54 +1875,54 @@ app.post('/conversations', isAuthenticated, async (req, res) => {
   const userId = req.user.id;
 
   try {
-      if (!participantIds.includes(userId)) {
-          participantIds.push(userId);
-      }
+    if (!participantIds.includes(userId)) {
+      participantIds.push(userId);
+    }
 
-      const sortedParticipantIds = [...participantIds].sort((a, b) => a - b);
-      const participantKey = participantIds.length === 2
-          ? `${sortedParticipantIds[0]}_${sortedParticipantIds[1]}`
-          : null;
+    const sortedParticipantIds = [...participantIds].sort((a, b) => a - b);
+    const participantKey = participantIds.length === 2
+      ? `${sortedParticipantIds[0]}_${sortedParticipantIds[1]}`
+      : null;
 
-      if (participantKey) {
-          const existingConversation = await db.query(`
+    if (participantKey) {
+      const existingConversation = await db.query(`
               SELECT conversation_id
               FROM conversations
               WHERE participant_key = $1 AND is_group = FALSE
           `, [participantKey]);
 
-          if (existingConversation.rows.length > 0) {
-              return res.json({ conversation_id: existingConversation.rows[0].conversation_id });
-          }
+      if (existingConversation.rows.length > 0) {
+        return res.json({ conversation_id: existingConversation.rows[0].conversation_id });
       }
+    }
 
-      const newConversation = await db.query(`
+    const newConversation = await db.query(`
           INSERT INTO conversations (title, creator_id, is_group, participant_key) 
           VALUES ($1, $2, $3, $4) RETURNING conversation_id
       `, [
-          title || null,
-          userId,
-          participantIds.length > 2,
-          participantKey,
-      ]);
+      title || null,
+      userId,
+      participantIds.length > 2,
+      participantKey,
+    ]);
 
-      const conversationId = newConversation.rows[0].conversation_id;
+    const conversationId = newConversation.rows[0].conversation_id;
 
-      await db.query(`
+    await db.query(`
           INSERT INTO conversation_participants (conversation_id, user_id, joined_at)
           SELECT $1, unnest($2::int[]), CURRENT_TIMESTAMP
       `, [conversationId, participantIds]);
 
-      res.status(201).json({ conversation_id: conversationId });
+    res.status(201).json({ conversation_id: conversationId });
   } catch (error) {
-      console.error("Error creating conversation:", error);
-      res.status(500).json({ message: "Server error creating conversation" });
+    console.error("Error creating conversation:", error);
+    res.status(500).json({ message: "Server error creating conversation" });
   }
 });
 
 app.get('/conversations/:conversationId/messages', isAuthenticated, async (req, res) => {
   const { conversationId } = req.params;
-  const { limit = 20, offset = 0, before } = req.query;
+  const { limit = 20, offset, before } = req.query;
 
   try {
     const messages = await db.query(`
@@ -1770,134 +2002,134 @@ app.post('/conversations/:conversationId/media', isAuthenticated, upload.single(
 app.post('/friends/request', isAuthenticated, async (req, res) => {
   const { userId, friendUsername } = req.body;
   try {
-      const friendData = await db.query(
-        'SELECT * FROM users WHERE username = $1',
-        [friendUsername]
-      );
-      const friend = friendData.rows[0];
+    const friendData = await db.query(
+      'SELECT * FROM users WHERE username = $1',
+      [friendUsername]
+    );
+    const friend = friendData.rows[0];
 
-      if (!friend) {
-      
-        return res.status(404).json({ message: 'User not found' });
-    }
-      
-      const existingRequest = await db.query(
-          'SELECT * FROM friends WHERE user_id = $1 AND friend_id = $2',
-          [userId, friend.id]
-      );
+    if (!friend) {
 
-      if (existingRequest.rows.length > 0) {
-        const status = existingRequest.rows[0].status;
-        
-        if (status === 'pending') {
-            return res.status(400).json({ message: 'Friend request is already pending.' });
-        }
-        
-        if (status === 'rejected') {
-            return res.status(400).json({ message: 'You cannot send a friend request to this user.' });
-        }
-
-        if (status === 'accepted') {
-            return res.status(400).json({ message: 'You are already friends with this user.' });
-        }
+      return res.status(404).json({ message: 'User not found' });
     }
 
-      await db.query(
-          'INSERT INTO friends (user_id, friend_id, status) VALUES ($1, $2, $3)',
-          [userId, friend.id, 'pending']
-      );
+    const existingRequest = await db.query(
+      'SELECT * FROM friends WHERE user_id = $1 AND friend_id = $2',
+      [userId, friend.id]
+    );
 
-      const notificationMessage = `${req.user.username} sent you a friend request."`;
-        await handleSendNotification({ recipientId: friend.id, message: notificationMessage, type: "friend" }, userId, connectedClients);
+    if (existingRequest.rows.length > 0) {
+      const status = existingRequest.rows[0].status;
 
-      res.status(201).json({ message: 'Friend request sent' });
+      if (status === 'pending') {
+        return res.status(400).json({ message: 'Friend request is already pending.' });
+      }
+
+      if (status === 'rejected') {
+        return res.status(400).json({ message: 'You cannot send a friend request to this user.' });
+      }
+
+      if (status === 'accepted') {
+        return res.status(400).json({ message: 'You are already friends with this user.' });
+      }
+    }
+
+    await db.query(
+      'INSERT INTO friends (user_id, friend_id, status) VALUES ($1, $2, $3)',
+      [userId, friend.id, 'pending']
+    );
+
+    const notificationMessage = `${req.user.username} sent you a friend request."`;
+    await handleSendNotification({ recipientId: friend.id, message: notificationMessage, type: "friend_request" }, userId, connectedClients);
+
+    res.status(201).json({ message: 'Friend request sent' });
   } catch (error) {
     console.error("error sending friend request:", error);
-      res.status(500).json({ error: 'Error sending friend request' });
+    res.status(500).json({ error: 'Error sending friend request' });
   }
 });
 
 app.get('/friends/requests/:userId', isAuthenticated, async (req, res) => {
   const { userId } = req.params;
   try {
-      const fetchRequests = await db.query(
-          'SELECT * FROM friends JOIN users ON friends.user_id = users.id WHERE friend_id = $1 AND status = $2',
-          [userId, 'pending']
-      );
-      const friendRequests = fetchRequests.rows;
-      res.json(friendRequests);
+    const fetchRequests = await db.query(
+      'SELECT * FROM friends JOIN users ON friends.user_id = users.id WHERE friend_id = $1 AND status = $2',
+      [userId, 'pending']
+    );
+    const friendRequests = fetchRequests.rows;
+    res.json(friendRequests);
   } catch (error) {
-      res.status(500).json({ error: 'Error sending friend request' });
+    res.status(500).json({ error: 'Error sending friend request' });
   }
 });
 
-app.post('/friends/accept',  isAuthenticated, async (req, res) => {
+app.post('/friends/accept', isAuthenticated, async (req, res) => {
   const { userId, friendId } = req.body; //in this case, userId references the user with a request
   try {
-      const getFriend = await db.query(`SELECT * FROM users WHERE id =$1`, [friendId]);
-      const friend = getFriend.rows[0];
-      await db.query(
-          'UPDATE friends SET status = $1 WHERE friend_id = $2 AND user_id = $3',
-          ['accepted', userId, friendId ]
-      );
-      await db.query(
-          'INSERT INTO friends (user_id, friend_id, status) VALUES ($1, $2, $3)',
-          [userId, friendId, 'accepted']
-      );
-      await logActivity(userId, 'added_friend', `Became friends with ${friend.username}`, friendId, 'user');
-      res.status(200).json({ message: 'Friend request accepted' });
+    const getFriend = await db.query(`SELECT * FROM users WHERE id =$1`, [friendId]);
+    const friend = getFriend.rows[0];
+    await db.query(
+      'UPDATE friends SET status = $1 WHERE friend_id = $2 AND user_id = $3',
+      ['accepted', userId, friendId]
+    );
+    await db.query(
+      'INSERT INTO friends (user_id, friend_id, status) VALUES ($1, $2, $3)',
+      [userId, friendId, 'accepted']
+    );
+    await logActivity(userId, 'added_friend', `Became friends with ${friend.username}`, friendId, 'user');
+    res.status(200).json({ message: 'Friend request accepted' });
   } catch (error) {
-      res.status(500).json({ error: 'Error accepting friend request' });
+    res.status(500).json({ error: 'Error accepting friend request' });
   }
 });
 
-app.post('/friends/reject',  isAuthenticated, async (req, res) => {
+app.post('/friends/reject', isAuthenticated, async (req, res) => {
   const { userId, friendId } = req.body;
   try {
-      await db.query(
-          'UPDATE friends SET status = $1 WHERE user_id = $2 AND friend_id = $3',
-          ['rejected', friendId, userId]
-      );
-      res.status(200).json({ message: 'Friend request rejected' });
+    await db.query(
+      'UPDATE friends SET status = $1 WHERE user_id = $2 AND friend_id = $3',
+      ['rejected', friendId, userId]
+    );
+    res.status(200).json({ message: 'Friend request rejected' });
   } catch (error) {
-      res.status(500).json({ error: 'Error rejecting friend request' });
+    res.status(500).json({ error: 'Error rejecting friend request' });
   }
 });
 
 app.get('/friends/:userId', isAuthenticated, async (req, res) => {
   const { userId } = req.params;
   try {
-      const fetchFriends = await db.query(
-          `SELECT u.id::text AS id, u.username, u.profile_picture, u.last_online 
+    const fetchFriends = await db.query(
+      `SELECT u.id::text AS id, u.username, u.profile_picture, u.last_online 
            FROM friends f
            JOIN users u ON (u.id = f.friend_id)
            WHERE (f.user_id = $1) AND f.status = 'accepted'
            AND u.id != $1`,
-          [userId]
-      );
+      [userId]
+    );
 
-      const friends = fetchFriends.rows;
+    const friends = fetchFriends.rows;
 
-      const friendIds = friends.map(friend => friend.id);
+    const friendIds = friends.map(friend => friend.id);
 
-      const fetchStatuses = await db.query(
-        `SELECT s.sess -> 'passport' ->> 'user' AS user_id
+    const fetchStatuses = await db.query(
+      `SELECT s.sess -> 'passport' ->> 'user' AS user_id
           FROM session s
           WHERE (s.sess -> 'passport' ->> 'user')::text = ANY($1::text[])`,
-          [friendIds]
-      );
+      [friendIds]
+    );
 
-      const statuses = fetchStatuses.rows;
+    const statuses = fetchStatuses.rows;
 
-      const friendsWithStatus = friends.map(friend => {
-        const onlineStatus = statuses.some(status => String(status.user_id) === String(friend.id));
-        return { ...friend, online: onlineStatus };
-    });    
+    const friendsWithStatus = friends.map(friend => {
+      const onlineStatus = statuses.some(status => String(status.user_id) === String(friend.id));
+      return { ...friend, online: onlineStatus };
+    });
 
-      res.status(200).json(friendsWithStatus);
+    res.status(200).json(friendsWithStatus);
   } catch (error) {
-      console.error("Error retrieving friends with online status:", error);
-      res.status(500).json({ error: 'Error retrieving friends' });
+    console.error("Error retrieving friends with online status:", error);
+    res.status(500).json({ error: 'Error retrieving friends' });
   }
 });
 
@@ -1906,15 +2138,15 @@ app.post('/block-user', isAuthenticated, async (req, res) => {
   const { blockedId } = req.body; // the user being blocked
 
   try {
-      await db.query(`
+    await db.query(`
           INSERT INTO blocks (blocker_id, blocked_id)
           VALUES ($1, $2)
       `, [userId, blockedId]);
 
-      res.status(200).json({ message: 'User successfully blocked' });
+    res.status(200).json({ message: 'User successfully blocked' });
   } catch (error) {
-      console.error('Error blocking user:', error);
-      res.status(500).json({ message: 'Internal server error' });
+    console.error('Error blocking user:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 
@@ -1923,19 +2155,19 @@ app.post('/unblock-user', isAuthenticated, async (req, res) => {
   const { blockedId } = req.body;
 
   try {
-      const result = await db.query(`
+    const result = await db.query(`
           DELETE FROM blocks 
           WHERE blocker_id = $1 AND blocked_id = $2;
       `, [userId, blockedId]);
 
-      if (result.rowCount === 0) {
-          return res.status(404).json({ message: 'User was not blocked.' });
-      }
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: 'User was not blocked.' });
+    }
 
-      res.status(200).json({ message: 'User successfully unblocked' });
+    res.status(200).json({ message: 'User successfully unblocked' });
   } catch (error) {
-      console.error('Error unblocking user:', error);
-      res.status(500).json({ message: 'Internal server error' });
+    console.error('Error unblocking user:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 
@@ -2011,33 +2243,33 @@ app.post("/reset-password", async (req, res) => {
 
 app.post('/upload-profile-picture', isAuthenticated, upload.single('profilePic'), async (req, res) => {
   try {
-      const buffer = await sharp(req.file.buffer)
-          .resize({ width: 250, height: 250 })
-          .toFormat('jpeg')
-          .toBuffer();
+    const buffer = await sharp(req.file.buffer)
+      .resize({ width: 250, height: 250 })
+      .toFormat('jpeg')
+      .toBuffer();
 
-      const isSafe = await moderateImageContent(buffer);
-      if (!isSafe) {
-          return res.status(400).json({ error: 'Uploaded image contains inappropriate content' });
+    const isSafe = await moderateImageContent(buffer);
+    if (!isSafe) {
+      return res.status(400).json({ error: 'Uploaded image contains inappropriate content' });
+    }
+
+    await cloudinary.v2.uploader.upload_stream({
+      resource_type: 'image'
+    }, async (error, result) => {
+      if (error) {
+        return res.status(500).json({ error: 'Failed to upload image to Cloudinary' });
       }
 
-      await cloudinary.v2.uploader.upload_stream({ 
-          resource_type: 'image' 
-      }, async (error, result) => {
-          if (error) {
-              return res.status(500).json({ error: 'Failed to upload image to Cloudinary' });
-          }
-
-          await db.query(
-              `INSERT INTO profile_picture_queue (user_id, image_url, status) VALUES ($1, $2, $3)`,
-              [req.user.id, result.secure_url, 'pending']
-          );
-          res.status(200).json({ message: 'Profile picture uploaded and is pending approval' });
-      }).end(buffer); 
+      await db.query(
+        `INSERT INTO profile_picture_queue (user_id, image_url, status) VALUES ($1, $2, $3)`,
+        [req.user.id, result.secure_url, 'pending']
+      );
+      res.status(200).json({ message: 'Profile picture uploaded and is pending approval' });
+    }).end(buffer);
 
   } catch (error) {
-      console.error('Error in profile picture upload:', error);
-      res.status(500).json({ error: 'Error uploading profile picture' });
+    console.error('Error in profile picture upload:', error);
+    res.status(500).json({ error: 'Error uploading profile picture' });
   }
 });
 
@@ -2048,29 +2280,29 @@ app.post('/moderate/profile-picture/:queueId', isAuthenticated, isModerator, asy
 
   const picture = await db.query(`SELECT * FROM profile_picture_queue WHERE id = $1`, [queueId]);
   if (!picture.rows.length) {
-      return res.status(404).json({ error: 'Picture not found' });
+    return res.status(404).json({ error: 'Picture not found' });
   }
 
   const userId = picture.rows[0].user_id;
   if (action === 'approve') {
-      await db.query(`UPDATE users SET profile_picture = $1 WHERE id = $2`, [picture.rows[0].image_url, userId]);
-      await db.query(`DELETE FROM profile_picture_queue WHERE id = $1`, [queueId]);
-      res.json({ message: 'Profile picture approved and updated' });
+    await db.query(`UPDATE users SET profile_picture = $1 WHERE id = $2`, [picture.rows[0].image_url, userId]);
+    await db.query(`DELETE FROM profile_picture_queue WHERE id = $1`, [queueId]);
+    res.json({ message: 'Profile picture approved and updated' });
   } else if (action === 'deny') {
-      await db.query(`DELETE FROM profile_picture_queue WHERE id = $1`, [queueId]);
-      res.json({ message: 'Profile picture denied and removed' });
+    await db.query(`DELETE FROM profile_picture_queue WHERE id = $1`, [queueId]);
+    res.json({ message: 'Profile picture denied and removed' });
   } else {
-      res.status(400).json({ error: 'Invalid action' });
+    res.status(400).json({ error: 'Invalid action' });
   }
 });
 
 app.get('/moderate/profile-picture/queue', isAuthenticated, isModerator, async (req, res) => {
   try {
-      const result = await db.query('SELECT * FROM profile_picture_queue');
-      res.json(result.rows);
+    const result = await db.query('SELECT * FROM profile_picture_queue');
+    res.json(result.rows);
   } catch (error) {
-      console.error("Error fetching profile picture queue:", error);
-      res.status(500).json({ error: 'Server error fetching moderation queue' });
+    console.error("Error fetching profile picture queue:", error);
+    res.status(500).json({ error: 'Server error fetching moderation queue' });
   }
 });
 
@@ -2083,70 +2315,70 @@ app.delete('/moderate/remove/:type/:contentId', isAuthenticated, isModerator, as
   let userId = 0;
 
   try {
-      switch (type) {
-          case 'event':
-              table = 'events';
-              queryColumn = 'event_id';
+    switch (type) {
+      case 'event':
+        table = 'events';
+        queryColumn = 'event_id';
 
-              const eventResult = await db.query(`SELECT title, created_by FROM events WHERE event_id = $1`, [contentId]);
-              const eventTitle = eventResult.rows[0]?.title;
-              userId = eventResult.rows[0]?.created_by;
+        const eventResult = await db.query(`SELECT title, created_by FROM events WHERE event_id = $1`, [contentId]);
+        const eventTitle = eventResult.rows[0]?.title;
+        userId = eventResult.rows[0]?.created_by;
 
-              if (!eventTitle) return res.status(404).json({ error: 'Event not found' });
+        if (!eventTitle) return res.status(404).json({ error: 'Event not found' });
 
-              message = `Your event titled '${eventTitle}' was deleted by a moderator.`;
-              break;
+        message = `Your event titled '${eventTitle}' was deleted by a moderator.`;
+        break;
 
-          case 'memory':
-              table = 'memories';
-              queryColumn = 'memory_id';
+      case 'memory':
+        table = 'memories';
+        queryColumn = 'memory_id';
 
-              const memoryResult = await db.query(`
+        const memoryResult = await db.query(`
                   SELECT e.title AS event_title, m.user_id 
                   FROM memories m 
                   JOIN events e ON m.event_id = e.event_id 
                   WHERE m.memory_id = $1
               `, [contentId]);
 
-              const memoryEventTitle = memoryResult.rows[0]?.event_title;
-              userId = memoryResult.rows[0]?.user_id;
+        const memoryEventTitle = memoryResult.rows[0]?.event_title;
+        userId = memoryResult.rows[0]?.user_id;
 
-              if (!memoryEventTitle) return res.status(404).json({ error: 'Memory or associated event not found' });
+        if (!memoryEventTitle) return res.status(404).json({ error: 'Memory or associated event not found' });
 
-              message = `Your shared memory for the event '${memoryEventTitle}' was deleted by a moderator.`;
-              break;
+        message = `Your shared memory for the event '${memoryEventTitle}' was deleted by a moderator.`;
+        break;
 
-          case 'bio':
-              table = 'users';
-              queryColumn = 'id';
-              userId = contentId;
+      case 'bio':
+        table = 'users';
+        queryColumn = 'id';
+        userId = contentId;
 
-              message = "Your profile bio was removed by a moderator.";
-              break;
+        message = "Your profile bio was removed by a moderator.";
+        break;
 
-          case 'profile_picture':
-              table = 'users';
-              queryColumn = 'id';
-              userId = contentId;
+      case 'profile_picture':
+        table = 'users';
+        queryColumn = 'id';
+        userId = contentId;
 
-          default:
-              return res.status(400).json({ error: 'Invalid content type' });
-      }
+      default:
+        return res.status(400).json({ error: 'Invalid content type' });
+    }
 
-      if (type === 'profile_bio') {
-          await db.query(`UPDATE users SET bio = NULL WHERE id = $1`, [contentId]);
-      } else if (type ==='profile_picture') {
-          await db.query(`UPDATE users SET profile_picture = NULL WHERE id = $1`, [contentId]);
-      } else {
-          await db.query(`DELETE FROM ${table} WHERE ${queryColumn} = $1`, [contentId]);
-      }
+    if (type === 'profile_bio') {
+      await db.query(`UPDATE users SET bio = NULL WHERE id = $1`, [contentId]);
+    } else if (type === 'profile_picture') {
+      await db.query(`UPDATE users SET profile_picture = NULL WHERE id = $1`, [contentId]);
+    } else {
+      await db.query(`DELETE FROM ${table} WHERE ${queryColumn} = $1`, [contentId]);
+    }
 
-      notifyUser(userId, message);
+    notifyUser(userId, message);
 
-      res.json({ message: `${type.charAt(0).toUpperCase() + type.slice(1)} removed successfully.` });
+    res.json({ message: `${type.charAt(0).toUpperCase() + type.slice(1)} removed successfully.` });
   } catch (error) {
-      console.error("Error removing content:", error);
-      res.status(500).json({ error: 'Server error while removing content' });
+    console.error("Error removing content:", error);
+    res.status(500).json({ error: 'Server error while removing content' });
   }
 });
 
@@ -2205,16 +2437,16 @@ app.get('/moderate/notes', isAuthenticated, isModerator, async (req, res) => {
 //admin routes
 app.get('/admin/ban-history', isAuthenticated, isAdmin, async (req, res) => {
   try {
-      const banHistory = await db.query(`
+    const banHistory = await db.query(`
           SELECT b.user_id, b.banned_until, b.reason, b.banned_by, u.username AS banned_by_username
           FROM bans b
           LEFT JOIN users u ON b.banned_by = u.id
           ORDER BY b.banned_until DESC
       `);
-      
-      res.json(banHistory.rows);
+
+    res.json(banHistory.rows);
   } catch (error) {
-      res.status(500).json({ error: 'Error retrieving ban history' });
+    res.status(500).json({ error: 'Error retrieving ban history' });
   }
 });
 
@@ -2269,7 +2501,7 @@ const connectedClients = {
   navbar: {}
 };
 
-wss.on('connection', (ws, req) => {
+wss.on('connection', async (ws, req) => {
   console.log(`New WebSocket connection: ${req.url}`);
 
   const params = new URLSearchParams(req.url.split('?')[1]);
@@ -2285,14 +2517,47 @@ wss.on('connection', (ws, req) => {
   connectedClients[clientType][userId] = connectedClients[clientType][userId] || [];
   connectedClients[clientType][userId].push(ws);
 
+  //notify friends of online status.
+  const friendsResult = await db.query(
+    `SELECT friend_id FROM friends WHERE user_id = $1 AND status = 'accepted'`,
+    [userId]
+  );
+
+  const friendIds = friendsResult.rows.map(row => row.friend_id);
+
+  if (clientType === 'navbar') {
+    friendIds.forEach(friendId => {
+      if (connectedClients.messenger[friendId] || connectedClients.navbar[friendId]) {
+        const message = {
+          recipientId: friendId,
+          message: `User ${userId} is online.`,
+          type: 'user_online',
+        };
+
+        if (connectedClients.messenger[friendId]) {
+          connectedClients.messenger[friendId].forEach(() => handleSendNotification(message, userId, connectedClients));
+        }
+        if (connectedClients.navbar[friendId]) {
+          connectedClients.navbar[friendId].forEach(() => handleSendNotification(message, userId, connectedClients));
+        }
+      }
+    });
+  }
+
+
   ws.on('message', async (message) => {
     try {
-        const parsedMessage = JSON.parse(message);
-        
-        if (!message.type === 'ping'){
-          console.log('Message received: ', parsedMessage);
-        }
-        
+      const parsedMessage = JSON.parse(message);
+
+      if (!parsedMessage.type) {
+        console.error("❌ Received WebSocket message with missing 'type':", parsedMessage);
+        return;
+      }
+
+      if (parsedMessage.type !== 'ping') {
+        console.log('Message received: ', parsedMessage);
+      }
+
       switch (parsedMessage.type) {
         case 'send_message':
           await handleSendMessage(parsedMessage, userId, connectedClients);
@@ -2303,6 +2568,9 @@ wss.on('connection', (ws, req) => {
         case 'new_notification':
           await handleSendNotification(parsedMessage, userId, connectedClients);
           break;
+        case 'conversation_update':
+          await handleConversationUpdate(parsedMessage, userId, connectedClients);
+          break;
         case 'ping':
           ws.send(JSON.stringify({ type: 'pong' }));
           break;
@@ -2310,8 +2578,8 @@ wss.on('connection', (ws, req) => {
           console.error("Unknown WebSocket message type:", parsedMessage.type);
       }
     } catch (error) {
-        console.error("Error processing WebSocket message:", error);
-        ws.close(1011, "Internal server error");
+      console.error("Error processing WebSocket message:", error);
+      ws.close(1011, "Internal server error");
     }
   });
 
@@ -2319,14 +2587,55 @@ wss.on('connection', (ws, req) => {
     console.error("WebSocket error for user:", userId, error);
   });
 
-  ws.on('close', () => {
+  ws.on('close', async () => {
     connectedClients[clientType][userId] = connectedClients[clientType][userId].filter(client => client !== ws);
+
     if (connectedClients[clientType][userId].length === 0) {
       delete connectedClients[clientType][userId];
     }
+
     console.log(`WebSocket connection closed for user ${userId} (${clientType})`);
+
+    const isUserStillOnline = connectedClients.messenger[userId] || connectedClients.navbar[userId];
+
+    if (!isUserStillOnline && clientType === "navbar") {
+      console.log(`User ${userId} is now offline. Notifying friends...`);
+
+      try {
+        const friendsResult = await db.query(
+          `SELECT friend_id FROM friends WHERE user_id = $1 AND status = 'accepted'`,
+          [userId]
+        );
+
+        const friendIds = friendsResult.rows.map(row => row.friend_id);
+
+        friendIds.forEach(friendId => {
+          if (connectedClients.messenger[friendId] || connectedClients.navbar[friendId]) {
+            const message = {
+              recipientId: friendId,
+              message: `User ${userId} is offline.`,
+              type: 'user_offline',
+            };
+
+            if (connectedClients.messenger[friendId]) {
+              connectedClients.messenger[friendId].forEach(() =>
+                handleSendNotification(message, userId, connectedClients)
+              );
+            }
+            if (connectedClients.navbar[friendId]) {
+              connectedClients.navbar[friendId].forEach(() =>
+                handleSendNotification(message, userId, connectedClients)
+              );
+            }
+          }
+        });
+      } catch (error) {
+        console.error(`Error notifying friends about user ${userId} going offline:`, error);
+      }
+    }
   });
 });
+
 
 //server frontend in production
 if (process.env.NODE_ENV === 'production') {

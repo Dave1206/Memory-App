@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ReactDOM from "react-dom";
 import MemoryModal from './MemoryModal';
 import { useAxios } from '../auth/AxiosProvider';
+import { v4 as uuidv4 } from 'uuid';
 import '../../styles/Modal.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMusic, faBasketballBall, faFlask, faLaptopCode, faPalette, faBookOpen, faUtensils } from '@fortawesome/free-solid-svg-icons';
@@ -203,9 +204,10 @@ function CreateModal({ show, onClose, userId }) {
                             <h3>You must invite someone to a private event.</h3>
                             <ul>
                                 {friends.map(friend => (
-                                    <li key={friend.id}>
-                                        <label for="invites">
+                                    <li key={`${friend.id}-${uuidv4()}`}>
+                                        <label key={`${friend.id}-${uuidv4()}`} for="invites">
                                             <input
+                                                key={`${friend.id}-${uuidv4()}`}
                                                 name="invites"
                                                 type="checkbox"
                                                 checked={newEvent.invites.includes(friend.id)}
@@ -224,11 +226,11 @@ function CreateModal({ show, onClose, userId }) {
                         <div className="tag-buttons">
                             {commonTags.map(tag => (
                                 <button
-                                    key={tag}
+                                    key={`${tag.name}-${uuidv4()}`}
                                     className={newEvent.tags.includes(tag) ? "tag-selected" : "tag-unselected"}
                                     onClick={() => handleTagToggle(tag)}
                                 >
-                                    <FontAwesomeIcon icon={tag.icon} />
+                                    <FontAwesomeIcon key={`${tag.name}-${uuidv4()}`} icon={tag.icon} />
                                     {tag.name}
                                 </button>
                             ))}
@@ -271,6 +273,7 @@ function CreateModal({ show, onClose, userId }) {
 
             {showMemoryModal && (
                 <MemoryModal
+                    key={uuidv4()}
                     show={showMemoryModal}
                     onClose={() => setShowMemoryModal(false)}
                     onCreate={handleCreate}

@@ -75,25 +75,29 @@ function ConversationList({ onSelectConversation, lastSeenMessageId }) {
           if (conv.conversation_id === data.conversation_id) {
             return {
               ...conv,
-              last_seen_message_id: data.last_seen_message_id !== undefined
-                ? data.last_seen_message_id
-                : conv.last_seen_message_id,
-              last_message_content: data.last_message_content !== undefined
-                ? data.last_message_content
-                : conv.last_message_content,
-              last_message_sender: data.last_message_sender !== undefined
-                ? data.last_message_sender
-                : conv.last_message_sender,
-              last_message_time: data.last_message_time !== undefined
-                ? data.last_message_time
-                : conv.last_message_time,
+              last_seen_message_id: data.last_seen_message_id ?? conv.last_seen_message_id,
+              last_message_content: data.last_message_content ?? conv.last_message_content,
+              last_message_sender: data.last_message_sender ?? conv.last_message_sender,
+              last_message_time: data.last_message_time ?? conv.last_message_time,
+              unread_messages: (() => {
+                if (data.last_message_content !== undefined) {
+                  return (conv.unread_messages || 0) + 1;
+                }
+                if (data.seen_messages !== undefined) {
+                  return Math.max((conv.unread_messages || 0) - data.seen_messages.length, 0);
+                }
+                if (data.unread_messages !== undefined){
+                  return data.unread_messages;
+                }
+                return conv.unread_messages;
+              })(),
             };
           }
           return conv;
         })
       );
     };
-
+    
     WebSocketInstance.on('conversation_update', handleConversationUpdate);
 
     return () => {
@@ -163,7 +167,7 @@ function ConversationList({ onSelectConversation, lastSeenMessageId }) {
               const lastMessage = conversation.last_message_content || '';
               const preview =
                 lastMessage.length > 50
-                  ? lastMessage.substring(0, 50) + '...'
+                  ? lastMessage.substring(0, 12) + '...'
                   : lastMessage;
 
               const previewText = conversation.last_message_sender

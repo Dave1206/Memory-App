@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import ReactDOM, { createPortal } from "react-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faDiscord } from '@fortawesome/free-brands-svg-icons';
 import issues from "../data/issuesData";
@@ -41,7 +42,7 @@ const Landing = ({ onClose, toggleButtonRef }) => {
 
   const isNew = (section) => !lastViewed || new Date(lastUpdatedData[section]) > lastViewed;
 
-  return (
+  return ReactDOM.createPortal(
     <div className="landing-container" ref={containerRef}>
       <h1>Welcome to MemoryApp - Testing Phase</h1>
 
@@ -66,7 +67,7 @@ const Landing = ({ onClose, toggleButtonRef }) => {
       <div className="tab-content">
         {activeTab === "welcome" && (
           <div className="welcome-content">
-            <div class="privacy-notice">
+            <div className="privacy-notice">
               <h2>Thank You for Testing MemoryApp!</h2>
               <p>
                 This app is currently in testing. We appreciate your feedback!
@@ -167,7 +168,8 @@ const Landing = ({ onClose, toggleButtonRef }) => {
           </div>
         )}
       </div>
-    </div>
+    </div>,
+        document.getElementById("modal-root")
   );
 };
 

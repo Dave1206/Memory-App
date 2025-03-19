@@ -17,9 +17,9 @@ import useMediaQuery from "../hooks/useMediaQuery";
 import '../styles/App.css';
 import ModeratorTools from './moderation/ModeratorTools';
 
-function App() {
+function App({ sessionExpired }) {
   const { user, logout } = useAuth();
-  const { axiosInstance, sessionExpired } = useAxios();
+  const { axiosInstance } = useAxios();
   const [eventInvites, setEventInvites] = useState([]);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const isMobile = useMediaQuery("(max-width: 768px)");
@@ -50,7 +50,6 @@ function App() {
 
   useEffect(() => {
     if (sessionExpired && user) {
-      alert('Your session has expired. Please log in again.');
       logout();
     }
   }, [sessionExpired, logout, user]);
@@ -67,9 +66,11 @@ function App() {
   return (
     <Router>
       <div className="wrapper">
-        <LandingToggle />
+        {!isMobile && <LandingToggle /> }
         {user && <Navbar events={eventInvites} userId={user?.id} onEventUpdate={handleEventInvite} />}
         {user && isMobile && <ToggleableList events={eventInvites} onEventUpdate={handleEventInvite} />}
+
+        {sessionExpired && <Navigate to="/login" state={{ sessionExpired: true }} replace />}
 
         <Routes>
           <Route path="/login" element={!user ? <Login /> : <Navigate to="/feed" />} />

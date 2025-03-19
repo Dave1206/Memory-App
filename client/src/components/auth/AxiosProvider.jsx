@@ -1,12 +1,11 @@
-import React, { createContext, useContext, useState, useRef } from 'react';
+import React, { createContext, useContext, useRef } from 'react';
 import axios from 'axios';
 import { useAuth } from './AuthContext';
 
 const AxiosContext = createContext();
 
-export const AxiosProvider = ({ children }) => {
+export const AxiosProvider = ({ children, onSessionExpired }) => {
   const { logout } = useAuth();
-  const [sessionExpired, setSessionExpired] = useState(false);
   const logoutTriggered = useRef(false);
 
   const axiosInstance = axios.create({
@@ -18,10 +17,12 @@ export const AxiosProvider = ({ children }) => {
     response => response,
     error => {
       if (error.response && error.response.status === 401) {
-        if (!logoutTriggered.current){
+        if (!logoutTriggered.current) {
           logoutTriggered.current = true;
-          setSessionExpired(true);
           logout();
+          if (onSessionExpired) {
+            onSessionExpired();
+          }
         }
       }
       return Promise.reject(error);
@@ -29,7 +30,7 @@ export const AxiosProvider = ({ children }) => {
   );
 
   return (
-    <AxiosContext.Provider value={{ axiosInstance, sessionExpired, setSessionExpired }}>
+    <AxiosContext.Provider value={{ axiosInstance }}>
       {children}
     </AxiosContext.Provider>
   );

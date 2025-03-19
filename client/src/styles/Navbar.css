@@ -1,13 +1,13 @@
 .navbar-wrapper {
     min-width: 200px;
     width: 15vw;
-    max-width: 15vw;
+    max-width: 225px;
 }
 
 .navbar {
     display: flex;
     color: rgb(25, 9, 51);
-    background: #f2f2f2;
+    background: #fff;
     width: 100%;
     z-index: 1000;
 }
@@ -18,7 +18,6 @@
     height: 234px;
     flex-direction: column;
     align-items: center;
-    margin: 0 0 50px;
     /* background: rgb(160, 178, 163); */
     justify-content: center;
     /* border: 1px solid #646464; */
@@ -88,7 +87,7 @@
         flex-direction: column;
         gap: 20px;
         max-width: 100%;
-        padding: 20px;
+        padding: 0 0 0 40px;
     }
     .nav-item {
         background: #fff;

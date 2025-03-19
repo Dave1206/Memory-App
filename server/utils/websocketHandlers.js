@@ -1,86 +1,87 @@
 import db from '../server.js';
 
 const debounceTimers = new Map();
+const notificationTimers = new Map();
 const pendingMarkSeenEvents = new Map();
 
 export async function handleSendMessage(message, senderId, connectedClients) {
-    const { conversation_id, content, media_url } = message;
-    try {
-        const newMessageResult = await db.query(
-            `INSERT INTO messages (conversation_id, sender_id, content, media_url, sent_at) 
+  const { conversation_id, content, media_url } = message;
+  try {
+    const newMessageResult = await db.query(
+      `INSERT INTO messages (conversation_id, sender_id, content, media_url, sent_at) 
              VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP) 
              RETURNING *`,
-            [conversation_id, senderId, content, media_url]
-        );
+      [conversation_id, senderId, content, media_url]
+    );
 
-        const newMessage = newMessageResult.rows[0];
+    const newMessage = newMessageResult.rows[0];
 
-        const participants = await db.query(
-            `SELECT user_id FROM conversation_participants WHERE conversation_id = $1`,
-            [conversation_id]
-        );
+    const participants = await db.query(
+      `SELECT user_id FROM conversation_participants WHERE conversation_id = $1`,
+      [conversation_id]
+    );
 
-        const messageId = newMessage.message_id;
-        const recipientIds = participants.rows
-        .map(row => row.user_id)
-        .filter(id => parseInt(id) !== parseInt(senderId));
+    const messageId = newMessage.message_id;
+    const recipientIds = participants.rows
+      .map(row => row.user_id)
+      .filter(id => parseInt(id) !== parseInt(senderId));
 
-        await db.query(
-            `INSERT INTO message_status (message_id, user_id, seen, seen_at)
+    await db.query(
+      `INSERT INTO message_status (message_id, user_id, seen, seen_at)
              SELECT $1, unnest($2::int[]), FALSE, NULL`,
-            [messageId, recipientIds]
-        );
+      [messageId, recipientIds]
+    );
 
-        const senderResult = await db.query(
-          `SELECT username FROM users WHERE id = $1`,
-          [senderId]
-        );
-        const senderUsername = senderResult.rows[0]?.username || "Unknown";
+    const senderResult = await db.query(
+      `SELECT username FROM users WHERE id = $1`,
+      [senderId]
+    );
+    const senderUsername = senderResult.rows[0]?.username || "Unknown";
 
-        const conversationUpdate = {
-          conversation_id,
-          last_message_content: newMessage.content,
-          last_message_sender: senderUsername,
-          last_message_time: newMessage.sent_at,
-        };
+    const conversationUpdate = {
+      conversation_id,
+      last_message_content: newMessage.content,
+      last_message_sender: senderUsername,
+      last_message_time: newMessage.sent_at,
+    };
 
-        const allParticipantIds = participants.rows.map(row => row.user_id);
+    const allParticipantIds = participants.rows.map(row => row.user_id);
 
-        allParticipantIds.forEach(participantId => {
-            if (connectedClients.messenger[participantId]) {
-                connectedClients.messenger[participantId].forEach(client => {
-                    client.send(JSON.stringify({
-                        type: 'new_message',
-                        data: newMessage
-                    }));
-                    client.send(JSON.stringify({
-                      type: 'conversation_update',
-                      data: conversationUpdate
-                  }));
-                });
-            }
+    allParticipantIds.forEach(participantId => {
+      if (connectedClients.messenger[participantId]) {
+        connectedClients.messenger[participantId].forEach(client => {
+          client.send(JSON.stringify({
+            type: 'new_message',
+            data: newMessage
+          }));
+          client.send(JSON.stringify({
+            type: 'conversation_update',
+            data: conversationUpdate
+          }));
         });
+      }
+    });
 
-        recipientIds.forEach(async (recipientId) => {
-          if (!connectedClients.messenger[recipientId]) {
-              console.log(`📩 User ${recipientId} is not in Messenger, sending notification...`);
-              await handleSendNotification(
-                  {
-                      recipientId,
-                      message: `${senderUsername} sent you a new message`,
-                      type: "message",
-                  },
-                  senderId,
-                  connectedClients
-              );
-          } else {
-              console.log(`✅ User ${recipientId} is already in Messenger, skipping notification.`);
-          }
-      });
+    recipientIds.forEach(async (recipientId) => {
+      if (!connectedClients.messenger[recipientId]) {
+        console.log(`📩 User ${recipientId} is not in Messenger, sending notification...`);
+        await handleSendNotification(
+          {
+            recipientId,
+            message: `${senderUsername} sent you a new message`,
+            type: "message",
+          },
+          senderId,
+          connectedClients
+        );
+      } else {
+        console.log(`✅ User ${recipientId} is already in Messenger, skipping notification.`);
+      }
+    });
 
-    } catch (error) {
-        console.error("Error handling send_message WebSocket event:", error);
-    }
+  } catch (error) {
+    console.error("Error handling send_message WebSocket event:", error);
+  }
 }
 
 export async function handleMarkSeen(message, userId, connectedClients) {
@@ -115,6 +116,8 @@ export async function handleMarkSeen(message, userId, connectedClients) {
       console.error("Error updating message_status:", error);
     }
 
+    const numMessagesSeen = messageIds.length;
+
     try {
       const participantsResult = await db.query(
         `SELECT user_id FROM conversation_participants 
@@ -123,8 +126,8 @@ export async function handleMarkSeen(message, userId, connectedClients) {
       );
       const participants = participantsResult.rows;
       participants.forEach(participant => {
-        if (connectedClients[participant.user_id]) {
-          connectedClients[participant.user_id].forEach(client => {
+        if (connectedClients.messenger[participant.user_id]) {
+          connectedClients.messenger[participant.user_id].forEach(client => {
             client.send(JSON.stringify({
               type: 'message_seen',
               data: { conversationId, messageIds: idsToUpdate, seenUser: userId }
@@ -178,6 +181,7 @@ export async function handleMarkSeen(message, userId, connectedClients) {
     const conversationUpdate = {
       conversation_id: conversationId,
       last_seen_message_id: lastSeenMessageId,
+      seen_messages: idsToUpdate,
     };
 
     try {
@@ -185,10 +189,12 @@ export async function handleMarkSeen(message, userId, connectedClients) {
         `SELECT user_id FROM conversation_participants WHERE conversation_id = $1`,
         [conversationId]
       );
-      const participantIds = partsResult.rows.map(row => row.user_id);
+      const participantIds = partsResult.rows
+      .map(row => row.user_id)
+      .filter(id => id !== null && id !== userId);
       participantIds.forEach(participantId => {
-        if (connectedClients[participantId]) {
-          connectedClients[participantId].forEach(client => {
+        if (connectedClients.messenger[participantId]) {
+          connectedClients.messenger[participantId].forEach(client => {
             client.send(JSON.stringify({
               type: 'conversation_update',
               data: conversationUpdate
@@ -196,6 +202,16 @@ export async function handleMarkSeen(message, userId, connectedClients) {
           });
         }
       });
+
+      if (numMessagesSeen > 0) {
+        handleSendNotification({
+            recipientId: userId,
+            message: "Updated unread message count",
+            type: "message_seen",
+            read_messages: numMessagesSeen
+        }, userId, connectedClients);
+    }
+
     } catch (error) {
       console.error("Error broadcasting conversation update:", error);
     }
@@ -205,34 +221,97 @@ export async function handleMarkSeen(message, userId, connectedClients) {
 }
 
 export async function handleSendNotification(notification, senderId, connectedClients) {
-  const { recipientId, message, type = "general", eventId = null, memoryId = null } = notification;
+  const { recipientId, message, type = "general", eventId = null, memoryId = null, read_messages = null } = notification;
 
-  console.log(`📩 Sending ${type} notification to user ${recipientId}: ${message}`);
-  
-  try {
+  if (notificationTimers.has(recipientId)) {
+    clearTimeout(notificationTimers.get(recipientId));
+  }
+
+  const timer = setTimeout(async () => {
+    console.log(`📩 Sending ${type} notification to user ${recipientId}: ${message}`);
+
+    try {
+      let newNotification;
+      if (type !== 'message_seen') {
       const insertNotification = await db.query(
-          `INSERT INTO notifications (user_id, message, event_id, memory_id, read, created_at) 
+        `INSERT INTO notifications (user_id, message, event_id, memory_id, read, created_at) 
            VALUES ($1, $2, $3, $4, FALSE, NOW()) 
            RETURNING *`,
-          [recipientId, message, eventId, memoryId]
+        [recipientId, message, eventId, memoryId]
       );
+      newNotification = insertNotification.rows[0];
+    } else {
+      newNotification = {
+        user_id: recipientId,
+        message: message,
+      }
+    }
 
-      const newNotification = insertNotification.rows[0];
       newNotification.type = type;
-
+      newNotification.read_messages = read_messages;
       if (connectedClients.navbar[recipientId]) {
         console.log(`📡 Sending WebSocket notification to user ${recipientId}`);
-          connectedClients.navbar[recipientId].forEach(client => {
-              client.send(JSON.stringify({
-                  type: 'new_notification',
-                  data: newNotification
-              }));
-          });
+        connectedClients.navbar[recipientId].forEach(client => {
+          client.send(JSON.stringify({
+            type: 'new_notification',
+            data: newNotification
+          }));
+        });
       } else {
         console.log(`❌ User ${recipientId} is not connected via WebSocket`);
       }
 
-  } catch (error) {
+    } catch (error) {
       console.error("Error sending notification:", error);
+    } finally {
+      notificationTimers.delete(recipientId);
+    }
+  }, 300);
+
+  notificationTimers.set(recipientId, timer);
+
+}
+
+export async function handleConversationUpdate(message, userId, connectedClients) {
+  try {
+    const { conversation_id, unread_messages } = message;
+    const conversationUpdate = {
+      conversation_id,
+      unread_messages,
+    };
+
+    const participantsResult = await db.query(
+      `SELECT user_id FROM conversation_participants WHERE conversation_id = $1`,
+      [conversation_id]
+    );
+
+    const participantIds = participantsResult.rows
+    .map(row => row.user_id)
+    .filter(id => id !== null && id !== userId);
+
+    participantIds.forEach(participantId => {
+      if (!participantId || isNaN(participantId)) {
+        console.warn(`⚠️ Skipping invalid participantId:`, participantId);
+        return;
+      }
+
+      if (connectedClients.messenger[participantId]) {
+        connectedClients.messenger[participantId].forEach(client => {
+          try {
+            client.send(JSON.stringify({
+              type: 'conversation_update',
+              data: conversationUpdate
+            }));
+          } catch (sendError) {
+            console.error(`❌ Error sending WebSocket message to participant ${participantId}:`, sendError);
+          }
+        });
+      } else {
+        console.warn(`⚠️ No active WebSocket connection for participant ${participantId}`);
+      }
+    });
+
+  } catch (error) {
+    console.error("❌ Error handling conversation update:", error);
   }
 }

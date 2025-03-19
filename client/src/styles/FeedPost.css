@@ -1,8 +1,10 @@
 .feed-post{
     display:flex;
     flex-direction: column;
+    min-width: 94%;
+    max-width: 94%;
     padding: 10px;
-    margin: 25px 0;
+    margin: 25px auto;
     border-radius: 8px;
     position: relative;
     gap: 5px;
@@ -194,7 +196,6 @@
         margin: 25vh 0;
         scroll-snap-align: center;
         scroll-snap-stop: always;
-        /* min-height: 40vh; */
         max-height: 100%;
     }
 

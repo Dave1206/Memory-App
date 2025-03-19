@@ -4,6 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMessage } from '@fortawesome/free-solid-svg-icons';
 import NotificationBadge from '../NotificationBadge';
 import Messenger from './Messenger';
+import { v4 as uuidv4} from 'uuid';
 import '../../styles/MessengerToggle.css';
 
 function MessengerToggle({ notifications, isMobile, variant }) {
@@ -47,12 +48,12 @@ function MessengerToggle({ notifications, isMobile, variant }) {
         <div className={`nav-toggle`} onClick={toggleExpand}>
                 <div className={variant === 'navbar' ? 'nav-item-icon' : 'toggleable-button'}><FontAwesomeIcon icon={faMessage} /></div>
                 {!isMobile && <div className='nav-item-name'>Messages</div> }
-                {notifications &&<div className="nav-item-notif"><NotificationBadge count={notifications} /> </div>}
+                {notifications &&<div className="nav-item-notif"><NotificationBadge key={`nb-${uuidv4()}`} count={notifications} /> </div>}
         </div>
                     
         {isExpanded && ReactDOM.createPortal(
             <div className="messenger-overlay" onClick={handleBackdropClick}>
-                <Messenger isOpen={isExpanded} />
+                <Messenger key={uuidv4()} isOpen={isExpanded} />
             </div>, document.getElementById("modal-root")
         )}
         </>

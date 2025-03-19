@@ -30,12 +30,12 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       await axios.post("/logout", {}, { withCredentials: true });
-      setUser(null);
-      setIsModMode(false);
     } catch (error) {
+      console.error("Logout error:", error.response?.data || error.message);
+    } finally {
       setUser(null);
       setIsModMode(false);
-      console.error("Logout error:", error.response?.data || error.message);
+      window.location.reload();
     }
   };
 

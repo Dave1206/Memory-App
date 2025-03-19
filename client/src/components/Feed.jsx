@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useAxios } from "./auth/AxiosProvider";
+import { useAuth } from "./auth/AuthContext";
 import "../styles/Feed.css";
 import useInteractionTracking from "../hooks/useInteractionTracking";
 import SearchAndFilter from "./SearchAndFilter";
@@ -19,6 +20,7 @@ function Feed({ getEvents }) {
     const [loading, setLoading] = useState(false);
     const [hasMore, setHasMore] = useState(true);
 
+    const { user } = useAuth();
     const postColorsRef = useRef({});
     const feedContainerRef = useRef(null);
     const isFirstRender = useRef(true);
@@ -120,6 +122,85 @@ function Feed({ getEvents }) {
         };
     }, [fetchContent, hasMore, loading]);
 
+    const updatePostInFeed = (postId, updateData) => {
+        setContent((prevFeed) =>
+            prevFeed.map((post) =>
+                post.event_id === postId
+                    ? typeof updateData === 'function'
+                        ? { ...post, ...updateData(post) }
+                        : { ...post, ...updateData }
+                    : post
+            )
+        );
+    };
+
+    const handleLike = async (postId) => {
+        try {
+            await axiosInstance.post(`/events/${postId}/like`);
+            updatePostInFeed(postId, (prevPost) => ({
+                has_liked: !prevPost.has_liked,
+                likes_count: prevPost.has_liked ? Number(prevPost.likes_count) - 1 : Number(prevPost.likes_count) + 1,
+            }));
+        } catch (error) {
+            console.error('Error liking the event:', error);
+        }
+    };
+
+    const handleShare = async (postId) => {
+        try {
+            await axiosInstance.post(`/events/${postId}/share`);
+            updatePostInFeed(postId, (prevPost) => ({
+                has_shared_event: !prevPost.has_shared_event,
+                shares_count: Number(prevPost.shares_count) + 1,
+            }));
+        } catch (error) {
+            console.error('Error sharing the event:', error);
+        }
+    };
+
+    const handleOptIn = async (postId) => {
+        try {
+            await axiosInstance.post(`/events/${postId}/opt-in`);
+            updatePostInFeed(postId, { event_status: 'opted_in' });
+        } catch (error) {
+            console.error('Error opting into the event:', error);
+        }
+    };
+
+    const handleRemove = async (postId) => {
+        try {
+            const response = await axiosInstance.post(`/deleteevent/${postId}`);
+            const { isCreator } = response.data;
+    
+            setContent((prevFeed) => {
+                if (isCreator) {
+                    return prevFeed.filter((post) => post.event_id !== postId);
+                } else {
+                    return prevFeed.map((post) =>
+                        post.event_id === postId
+                            ? { ...post, event_status: null }
+                            : post
+                    );
+                }
+            });
+            fetchContent(true);
+        } catch (error) {
+            console.error('Error removing participation or event:', error);
+        }
+    };    
+
+    const handleBlockUser = async (blockedId, e) => {
+        try {
+            await axiosInstance.post('/block-user', {
+                userId: user.id,
+                blockedId: blockedId,
+            });
+            alert('User has been blocked.');
+        } catch (err) {
+            console.error('Error blocking user:', err);
+        }
+    };
+
     return (
         !selectedEvent ? (
             <div className="feed-wrapper">
@@ -127,8 +208,13 @@ function Feed({ getEvents }) {
                     onSearch={setSearchTerm}
                     onFilterChange={setFilters}
                     onSortOrderChange={setSortOrder}
-                    filterOptions={[{ key: 'filterByType', label: '--Event Type--', options: [{ value: 'regular', label: 'Regular' }, { value: 'time_capsule', label: 'Time Capsule' }] }]}
-                    sortOptions={[{ value: 'creation_date', label: 'Creation Date' }, { value: 'memories_count', label: 'Number of Memories' }, { value: 'likes_count', label: 'Likes' }]}
+                    sortOptions={[
+                        { value: 'age_in_hours', label: 'New' },
+                        { value: 'hot_score', label: 'Trending' },
+                        { value: 'likes_count', label: 'Likes' },
+                        { value: 'shares_count', label: 'Shares' },
+                        { value: 'memories_count', label: 'Memories' }
+                    ]}
                 />
 
                 <div className="feed-nav">
@@ -155,10 +241,11 @@ function Feed({ getEvents }) {
                             key={post.event_id}
                             post={post}
                             handleClick={() => handleSelectEvent(post)}
-                            onLike={() => {}}
-                            onShare={() => {}}
-                            onAddEvent={() => {}}
-                            onRemoveEvent={() => {}}
+                            onLike={handleLike}
+                            onShare={handleShare}
+                            onAddEvent={handleOptIn}
+                            onRemoveEvent={handleRemove}
+                            onBlock={handleBlockUser}
                             colorClass={postColorsRef.current[post.event_id]}
                         />
                     ))}

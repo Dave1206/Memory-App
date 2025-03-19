@@ -8,7 +8,7 @@ import FriendRequest from './friends/FriendRequest';
 import PendingRequests from './friends/PendingRequests';
 import EventInvites from './events/EventInvites';
 import NotificationBadge from './NotificationBadge';
-import UserPreferences from './profile/UserPreferences';
+import LandingToggle from './LandingToggle';
 import { useAuth } from './auth/AuthContext';
 import { useAxios } from './auth/AxiosProvider';
 import WebSocketInstance from '../utils/WebSocket';
@@ -51,12 +51,21 @@ function ToggleableList({ onEventUpdate, events }) {
     useEffect(() => {
         if (!user.id) return;
 
-        WebSocketInstance.disconnect();
-        WebSocketInstance.connect(user.id, "navbar");
-
         WebSocketInstance.off("new_notification");
         WebSocketInstance.on("new_notification", (notification) => {
-            console.log("New notification received:", notification);
+            console.log("New notification received in Mobile Menu:", notification);
+            
+            let friendUserId = null;
+
+        if (notification.type === "user_online" || notification.type === "user_offline") {
+            const matchedUserId = notification.message.match(/User (\d+) is (online|offline)/);
+            friendUserId = matchedUserId ? parseInt(matchedUserId[1], 10) : null;
+
+            if (!friendUserId) {
+                console.warn("⚠️ Could not extract user ID from message:", notification.message);
+                return;
+            }
+        }
 
             setNotifications((prev) => {
                 let updatedNotifications = { ...prev };
@@ -68,8 +77,13 @@ function ToggleableList({ onEventUpdate, events }) {
                     case "message":
                         updatedNotifications.unreadMessages = Number(prev.unreadMessages || 0) + 1;
                         break;
-                    case "friend":
-                        updatedNotifications.onlineFriends = Number(prev.onlineFriends || 0) + 1;
+                    case "user_online":
+                        if (!updatedNotifications.onlineFriends.includes(friendUserId)) {
+                            updatedNotifications.onlineFriends.push(friendUserId);
+                        }
+                        break;
+                    case "user_offline":
+                        updatedNotifications.onlineFriends = updatedNotifications.onlineFriends.filter(id => id !== friendUserId);
                         break;
                     case "invite":
                     case "reaction":
@@ -87,7 +101,6 @@ function ToggleableList({ onEventUpdate, events }) {
 
         return () => {
             WebSocketInstance.off("new_notification");
-            WebSocketInstance.disconnect();
         };
     }, [user.id, fetchNotifications]);
 
@@ -120,6 +133,7 @@ function ToggleableList({ onEventUpdate, events }) {
 
                 {isExpanded && (
                     <>
+                        <LandingToggle />
                         <Link to={`/profile/${user.id}`} className="profile-link" onClick={toggleExpand}>
                             <img src={user.profile_picture} alt={`${user.username}`} className="toggleable-profile-picture" />
                             <p>{user.username}</p>
@@ -134,7 +148,7 @@ function ToggleableList({ onEventUpdate, events }) {
                                 )}
                             </div>
 
-                            <MessengerToggle notifications={notifications?.unreadMessages} />
+                            <MessengerToggle key={`mt-mobile`} notifications={notifications?.unreadMessages} />
 
                             <div className={`nav-item ${activeDropdown === "friends" ? "active" : ""}`} onClick={(e) => handleDropdownClick(e, "friends")}>
                                 <div className='toggleable-button'><FontAwesomeIcon icon={faUserFriends} /> </div>

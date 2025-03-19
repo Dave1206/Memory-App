@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './components/App';
 import { AuthProvider } from './components/auth/AuthContext';
@@ -14,14 +14,25 @@ const setDynamicVh = () => {
 setDynamicVh();
 window.addEventListener('resize', setDynamicVh);
 
+function RootComponent() {
+  const [sessionExpired, setSessionExpired] = useState(false);
 
+  const handleSessionExpired = () => {
+    console.log("Session has expired.");
+    setSessionExpired(true);
+  };
+
+  return (
+    <AuthProvider>
+      <AxiosProvider onSessionExpired={handleSessionExpired}>
+        <App sessionExpired={sessionExpired} />
+      </AxiosProvider>
+    </AuthProvider>
+  );
+}
 
 root.render(
   <React.StrictMode>
-    <AuthProvider>
-      <AxiosProvider>
-        <App />
-      </AxiosProvider>
-    </AuthProvider>
+    <RootComponent />
   </React.StrictMode>
 );
