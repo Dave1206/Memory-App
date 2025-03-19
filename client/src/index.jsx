@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './components/App';
 import { AuthProvider } from './components/auth/AuthContext';
 import { AxiosProvider } from './components/auth/AxiosProvider';
+import { MessengerProvider } from './components/messenger/MessengerContext';
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 
@@ -25,7 +26,9 @@ function RootComponent() {
   return (
     <AuthProvider>
       <AxiosProvider onSessionExpired={handleSessionExpired}>
-        <App sessionExpired={sessionExpired} />
+        <MessengerProvider>
+          <App sessionExpired={sessionExpired} />
+        </MessengerProvider>
       </AxiosProvider>
     </AuthProvider>
   );

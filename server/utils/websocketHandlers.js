@@ -121,8 +121,8 @@ export async function handleMarkSeen(message, userId, connectedClients) {
     try {
       const participantsResult = await db.query(
         `SELECT user_id FROM conversation_participants 
-         WHERE conversation_id = $1 AND user_id != $2`,
-        [conversationId, userId]
+         WHERE conversation_id = $1`,
+        [conversationId]
       );
       const participants = participantsResult.rows;
       participants.forEach(participant => {
@@ -182,6 +182,7 @@ export async function handleMarkSeen(message, userId, connectedClients) {
       conversation_id: conversationId,
       last_seen_message_id: lastSeenMessageId,
       seen_messages: idsToUpdate,
+      seen_user: userId,
     };
 
     try {

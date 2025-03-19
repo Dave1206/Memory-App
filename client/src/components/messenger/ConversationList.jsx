@@ -80,6 +80,8 @@ function ConversationList({ onSelectConversation, lastSeenMessageId }) {
               last_message_sender: data.last_message_sender ?? conv.last_message_sender,
               last_message_time: data.last_message_time ?? conv.last_message_time,
               unread_messages: (() => {
+                if (parseInt(data.seen_user) !== parseInt(userId))
+                  return conv.unread_messages;
                 if (data.last_message_content !== undefined) {
                   return (conv.unread_messages || 0) + 1;
                 }
@@ -103,7 +105,7 @@ function ConversationList({ onSelectConversation, lastSeenMessageId }) {
     return () => {
       WebSocketInstance.off('conversation_update', handleConversationUpdate);
     };
-  }, [setConversations]);
+  }, [setConversations, userId]);
 
   if (loading) {
     return <p>Loading conversations...</p>;
@@ -166,7 +168,7 @@ function ConversationList({ onSelectConversation, lastSeenMessageId }) {
 
               const lastMessage = conversation.last_message_content || '';
               const preview =
-                lastMessage.length > 50
+                lastMessage.length > 12
                   ? lastMessage.substring(0, 12) + '...'
                   : lastMessage;
 

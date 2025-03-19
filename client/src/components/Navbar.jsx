@@ -36,11 +36,8 @@ function Navbar({ onEventUpdate, events }) {
 
     const fetchNotifications = useCallback(async () => {
         try {
-                console.log("📡 Fetching notifications from API...");
                 const response = await axiosInstance.get(`/notifications/${userId}`);
-                console.log("Api request successful.");
                 const notifications = response.data;
-                console.log("📦 Notifications API response:", notifications);
 
                 setNavItems(prev => {
                     if (
@@ -54,7 +51,6 @@ function Navbar({ onEventUpdate, events }) {
                         Number(notifications.likes) +
                         Number(notifications.shares)
                     ) {
-                        console.log("⚠️ No changes in notifications. Skipping state update.");
                         return prev;
                     }
 
@@ -75,7 +71,6 @@ function Navbar({ onEventUpdate, events }) {
                     };
                 });
 
-                console.log("✅ Notifications state updated.");
         } catch (error) {
             console.error("❌ Error fetching notifications:", error);
         }
@@ -91,50 +86,61 @@ function Navbar({ onEventUpdate, events }) {
             console.log("New notification received:", notification);
 
             setNavItems(prev => {
-                let updatedNotifications = { ...prev };
-
-                console.log("Previous notifications:", prev);
-                console.log("Notification type received:", notification.type);
+                const newNavItems = { ...prev };
+                let shouldUpdate = false;
 
                 switch (notification.type) {
                     case "post":
-                        updatedNotifications.feed.notifications = Number(updatedNotifications.feed.notifications || 0) + 1;
+                        newNavItems.feed.notifications = Number(newNavItems.feed.notifications || 0) + 1;
+                        shouldUpdate = true;
                         break;
                     case "message":
-                        updatedNotifications.messages.notifications = Number(updatedNotifications.messages.notifications || 0) + 1;
+                        newNavItems.messages.notifications = Number(newNavItems.messages.notifications || 0) + 1;
+                        shouldUpdate = true;
                         break;
                     case "message_seen":
-                        updatedNotifications.messages.notifications = parseInt(0);
+                        newNavItems.messages.notifications = Number(Math.max(0, newNavItems.messages.notifications - notification.read_messages));
+                        shouldUpdate = true;
                         break;
                     case "user_online":
-                        updatedNotifications.friends.notifications = Number(updatedNotifications.friends.notifications || 0) + 1;
+                        newNavItems.friends.notifications = Number(newNavItems.friends.notifications || 0) + 1;
+                        shouldUpdate = true;
                         break;
                     case "user_offline":
-                        updatedNotifications.friends.notifications = Number(updatedNotifications.friends.notifications || 1) - 1;
+                        newNavItems.friends.notifications = Math.max(0, Number(newNavItems.friends.notifications || 1) - 1);
+                        shouldUpdate = true;
                         break;
                     case "friend_request":
-                        updatedNotifications.notifications.notifications = Number(updatedNotifications.notifications.notifications || 0) + 1;
+                        newNavItems.notifications.notifications = Number(newNavItems.notifications.notifications || 0) + 1;
+                        shouldUpdate = true;
                         break
                     case "invite":
-                        updatedNotifications.notifications.notifications = Number(updatedNotifications.notifications.notifications || 0) + 1;
+                        newNavItems.notifications.notifications = Number(newNavItems.notifications.notifications || 0) + 1;
+                        shouldUpdate = true;
                         break;
                     case "reaction":
-                        updatedNotifications.notifications.notifications = Number(updatedNotifications.notifications.notifications || 0) + 1;
+                        newNavItems.notifications.notifications = Number(newNavItems.notifications.notifications || 0) + 1;
+                        shouldUpdate = true;
                         break;
                     default:
-                        updatedNotifications.notifications.notifications = Number(updatedNotifications.notifications.notifications || 0) + 1;
+                        newNavItems.notifications.notifications = Number(newNavItems.notifications.notifications || 0) + 1;
+                        shouldUpdate = true;
                         break;
                 }
 
-                console.log("Updated notifications:", updatedNotifications);
-                return { ...updatedNotifications };
+                if (shouldUpdate && prev !== newNavItems) {
+                    console.log("📌 Updated notifications:", newNavItems);
+                    return newNavItems;
+                } else {
+                    console.log("⚠️ Skipping redundant state update.");
+                    return prev;
+                }
             });
         });
 
         fetchNotifications();
 
         return () => {
-            console.log("Navbar component unmounted.")
             WebSocketInstance.off("new_notification");
             WebSocketInstance.disconnect("navbar");
         };

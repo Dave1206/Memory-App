@@ -1836,7 +1836,7 @@ app.get('/conversations', isAuthenticated, async (req, res) => {
                    )
                  END
         ) AS last_seen_message_id,
-        COUNT(ms.message_id) FILTER (
+        COUNT(DISTINCT ms.message_id) FILTER (
           WHERE ms.user_id = $1 
             AND ms.seen = FALSE
             AND m.sender_id <> $1

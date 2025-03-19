@@ -10,6 +10,7 @@ import ResetPassword from './auth/ResetPassword';
 import ForgotPassword from './auth/ForgotPassword';
 import ToggleableList from './ToggleableList';
 import Navbar from './Navbar';
+import Messenger from './messenger/Messenger';
 import Feed from './Feed';
 import LandingToggle from "./LandingToggle";
 import RightSidebar from "./RightSidebar";
@@ -67,6 +68,7 @@ function App({ sessionExpired }) {
     <Router>
       <div className="wrapper">
         {!isMobile && <LandingToggle /> }
+        {user && <Messenger />}
         {user && <Navbar events={eventInvites} userId={user?.id} onEventUpdate={handleEventInvite} />}
         {user && isMobile && <ToggleableList events={eventInvites} onEventUpdate={handleEventInvite} />}
 

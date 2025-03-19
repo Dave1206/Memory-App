@@ -37,6 +37,7 @@ function ChatWindow({ title, conversationId, onClose, userId, participants, last
         params: { limit: 20, offset, before },
       });
       const fetched = response.data;
+      console.log(fetched);
       oldestMessageRef.current = fetched[0].sent_at;
       offsetRef.current = offsetRef.current + 20;
       if (before) {
@@ -48,7 +49,7 @@ function ChatWindow({ title, conversationId, onClose, userId, participants, last
           const newHeight = container ? container.scrollHeight : 0;
           container.scrollTop = previousScrollTop + (newHeight - previousHeight);
           isPrependingRef.current = false;
-        }, 50);
+        }, 300);
       } else {
         setMessages(prev => deduplicateMessages([...prev, ...fetched]));
       }
@@ -108,13 +109,12 @@ function ChatWindow({ title, conversationId, onClose, userId, participants, last
       setMessages(prevMessages => {
         const updatedMessages = prevMessages.map(msg => {
           if (
-            msg.conversation_id === data.conversationId &&
             data.messageIds.includes(msg.message_id) &&
             parseInt(msg.sender_id) !== parseInt(data.seenUser)
           ) {
             const updatedSeen = msg.seen_status ? [...msg.seen_status] : [];
             if (!updatedSeen.some(status => status.user_id === data.seenUser)) {
-              updatedSeen.push({ user_id: data.seenUser, seen_at: new Date().toISOString() });
+              updatedSeen.push({ user_id: Number(data.seenUser), seen_at: new Date().toISOString() });
             }
             return { ...msg, seen_status: updatedSeen };
           }
@@ -170,26 +170,23 @@ function ChatWindow({ title, conversationId, onClose, userId, participants, last
     }
   }, [lastSeenMessageId]);
 
-  const handleScroll = useCallback(() => {
+  const handleScroll = debounce(useCallback(() => {
     const container = chatContainerRef.current;
     if (!container) return;
     const threshold = 20;
 
     if (container.scrollTop + container.clientHeight >= container.scrollHeight - threshold) {
       setIsAtBottom(true);
+
       const unseenMessages = messages.filter(msg =>
-        !msg.seen_status?.some(status => status.user_id === userId)
-      );
+            (!msg.seen_status || !msg.seen_status.some(status => status.user_id === userId)) &&
+            msg.sender_id !== userId
+        );
 
       if (unseenMessages.length > 0) {
         WebSocketInstance.sendMessage('messenger', 'mark_seen', {
           conversationId,
           messageIds: unseenMessages.map(msg => msg.message_id),
-        });
-
-        WebSocketInstance.sendMessage('messenger', 'conversation_update', {
-          conversation_id: conversationId,
-          unread_messages: 0
         });
       }
     } else {
@@ -201,17 +198,18 @@ function ChatWindow({ title, conversationId, onClose, userId, participants, last
       setLoading(true);
       fetchMessages(oldestMessageRef.current);
     }
-  }, [fetchMessages, hasMoreMessages, messages, conversationId, userId]);
+  }, 
+   [fetchMessages, hasMoreMessages, messages, conversationId, userId]), 500);
 
   useEffect(() => {
     const container = chatContainerRef.current;
 
       if (container) {
-        container.addEventListener('scroll', debounce(handleScroll, 500));
+        container.addEventListener('scroll', handleScroll);
       }
       return () => {
         if (container) {
-          container.removeEventListener('scroll', debounce(handleScroll, 500));
+          container.removeEventListener('scroll', handleScroll);
         }
       }
   }, [handleScroll]);
