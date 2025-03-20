@@ -9,9 +9,10 @@ import SelectedEvent from "./events/SelectedEvent";
 import backgroundLogo from "../assets/Logo_transparent.png";
 
 function Feed({ getEvents }) {
-    const { axiosInstance } = useAxios();
+    const { axiosInstance,isPageLoaded } = useAxios();
     const { selectedEvent, handleSelectEvent, handleBackButton } = useInteractionTracking(null, "/feed");
-
+    const { user } = useAuth();
+    
     const [activeTab, setActiveTab] = useState("feed");
     const [content, setContent] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
@@ -20,7 +21,7 @@ function Feed({ getEvents }) {
     const [offset, setOffset] = useState(0);
     const [loading, setLoading] = useState(true);
     const [hasMore, setHasMore] = useState(true);
-    const { user } = useAuth();
+    
     const postColorsRef = useRef({});
     const feedContainerRef = useRef(null);
     const isFirstRender = useRef(true);
@@ -95,11 +96,11 @@ function Feed({ getEvents }) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeTab, searchTerm, filters, sortOrder]);
 //Makes sure that data is fetched once the page has fully loaded
-    // useEffect(() => {
-    //     if (isPageLoaded) {
-    //         fetchContent(true);
-    //     }
-    // }, [isPageLoaded, fetchContent]);
+    useEffect(() => {
+        if (isPageLoaded) {
+            fetchContent(true);
+        }
+    }, [isPageLoaded, fetchContent]);
 
     useEffect(() => {
         let debounceTimer;
