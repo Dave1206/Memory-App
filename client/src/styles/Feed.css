@@ -43,6 +43,7 @@
 
 /* Feed Content */
 .feed-container {
+    position: relative;
     max-height: 86.5%;
     overflow-y: auto;
     display: flex;
@@ -53,6 +54,22 @@
     padding: 10px;
     border-radius: 10px;
     box-shadow: inset 0px 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+
+.feed-container::before{
+    content: "";
+    position: fixed;
+    top: 11%;
+    left: 23.5%;
+    width: 50vw;
+    height: 78vh;
+    background-image: url('../assets/Logo_transparent.png');
+    background-size:contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    filter: invert(78%) sepia(6%) saturate(162%) hue-rotate(85deg) brightness(97%) contrast(93%);
+    opacity: 0.4;
 }
 
 /* Scrollbar */
@@ -66,9 +83,9 @@
 }
 
 /* Color variations with contrasting text color */
-.color1 { background-color: rgba(160, 178, 163, 0.5); color: #190933; }
-.color2 { background-color: rgba(233, 151, 124, 0.5); color: #190933; }
-.color3 { background-color: rgba(219, 202, 167, 0.5); color: #190933; }
+.color1 { background-color: rgba(160, 178, 163, .8); color: #190933; }
+.color2 { background-color: rgba(233, 151, 124, .8); color: #190933; }
+.color3 { background-color: rgba(219, 202, 167, .8); color: #190933; }
 
 @media (max-width: 768px) {
     .feed-wrapper{
@@ -84,6 +101,12 @@
         flex-direction: column;
         align-items: center;
     }
+    .feed-container::before{
+        width: 100vw;
+        height: 76vh;
+        left: 0;
+        top: 12%;
+    }
     .feed-nav-button{
         font-size: .9rem;
         padding: 3px;
@@ -93,3 +116,5 @@
         font-weight: normal;
     }
 }
+
+

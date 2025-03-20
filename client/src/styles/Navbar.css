@@ -7,9 +7,12 @@
 .navbar {
     display: flex;
     color: rgb(25, 9, 51);
-    background: #fff;
+    background: none;
     width: 100%;
     z-index: 1000;
+}
+a {
+    text-decoration: none;
 }
 
 .profile-link {
@@ -87,7 +90,7 @@
         flex-direction: column;
         gap: 20px;
         max-width: 100%;
-        padding: 0 0 0 40px;
+        padding: 0 30px 40px;
     }
     .nav-item {
         background: #fff;

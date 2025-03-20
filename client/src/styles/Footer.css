@@ -10,8 +10,7 @@ footer {
     gap: 50px;
     justify-content: flex-start;
     align-items: flex-start;
-    background: #fff;
-    backdrop-filter: blur(5px);
+    background: #ffffff23;
     box-sizing: border-box;
     font-size: 0.9rem;
     text-align: left;

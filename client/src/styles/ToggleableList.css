@@ -16,7 +16,7 @@
 }
 
 /* Compact (collapsed) state */
-.toggleable-list.compact {
+/* .toggleable-list.compact {
     width: fit-content;
     padding: 5px;
     display: flex;
@@ -25,7 +25,7 @@
     background-color: transparent;
     background: none;
     box-shadow: none;
-}
+} */
 
 /* Toggle Button Styling */
 .toggleable-toggle-button {
@@ -87,7 +87,7 @@
     display: flex;
     flex-direction: column;
     gap: 30px;
-    margin: 50px 0 0 30%;
+    margin-left: 30%;
 }
 
 .toggleable-button {

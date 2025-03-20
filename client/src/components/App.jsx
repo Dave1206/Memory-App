@@ -20,7 +20,7 @@ import ModeratorTools from './moderation/ModeratorTools';
 
 function App({ sessionExpired }) {
   const { user, logout } = useAuth();
-  const { axiosInstance } = useAxios();
+  const { axiosInstance, isPageLoaded } = useAxios();
   const [eventInvites, setEventInvites] = useState([]);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const isMobile = useMediaQuery("(max-width: 768px)");
@@ -60,8 +60,13 @@ function App({ sessionExpired }) {
     return () => clearTimeout(timer);
   }, []);
 
-  if (isCheckingSession) {
-    return <div>Loading...</div>;
+  if (isCheckingSession || !isPageLoaded) {
+    return (
+      <div className="loading-container">
+        <p>Loading</p>
+        <div className="spinner"></div>
+      </div>
+    );
   }
 
   return (

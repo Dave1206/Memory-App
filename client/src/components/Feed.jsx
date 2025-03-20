@@ -6,6 +6,7 @@ import useInteractionTracking from "../hooks/useInteractionTracking";
 import SearchAndFilter from "./SearchAndFilter";
 import FeedPost from "./FeedPost";
 import SelectedEvent from "./events/SelectedEvent";
+import backgroundLogo from "../assets/Logo_transparent.png";
 
 function Feed({ getEvents }) {
     const { axiosInstance } = useAxios();
@@ -17,9 +18,8 @@ function Feed({ getEvents }) {
     const [filters, setFilters] = useState({});
     const [sortOrder, setSortOrder] = useState("desc");
     const [offset, setOffset] = useState(0);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [hasMore, setHasMore] = useState(true);
-
     const { user } = useAuth();
     const postColorsRef = useRef({});
     const feedContainerRef = useRef(null);
@@ -36,7 +36,7 @@ function Feed({ getEvents }) {
     const assignColors = useCallback((posts) => {
         const colors = ["color1", "color2", "color3"];
         let lastColor = null;
-    
+
         posts.forEach((post) => {
             if (!postColorsRef.current[post.event_id]) {
                 let availableColors = colors.filter(color => color !== lastColor);
@@ -46,8 +46,8 @@ function Feed({ getEvents }) {
             }
         });
     }, []);
-    
-    const fetchContent = useCallback(async (reset = false) => {
+
+    const fetchContent = useCallback(async (reset = false) => {  
         setLoading(prevLoading => {
             if (prevLoading || !tabEndpoints[activeTab]) return true;
             return true;
@@ -82,7 +82,7 @@ function Feed({ getEvents }) {
             setLoading(false);
         }
     }, [axiosInstance, searchTerm, filters, sortOrder, activeTab, offset, assignColors, tabEndpoints]);
-
+//runs fetchContent(true) which resets the feed data when switching tabs or search
     useEffect(() => {
         if (isFirstRender.current) {
             isFirstRender.current = false;
@@ -94,6 +94,12 @@ function Feed({ getEvents }) {
         fetchContent(true);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeTab, searchTerm, filters, sortOrder]);
+//Makes sure that data is fetched once the page has fully loaded
+    // useEffect(() => {
+    //     if (isPageLoaded) {
+    //         fetchContent(true);
+    //     }
+    // }, [isPageLoaded, fetchContent]);
 
     useEffect(() => {
         let debounceTimer;
@@ -171,7 +177,7 @@ function Feed({ getEvents }) {
         try {
             const response = await axiosInstance.post(`/deleteevent/${postId}`);
             const { isCreator } = response.data;
-    
+
             setContent((prevFeed) => {
                 if (isCreator) {
                     return prevFeed.filter((post) => post.event_id !== postId);
@@ -187,7 +193,7 @@ function Feed({ getEvents }) {
         } catch (error) {
             console.error('Error removing participation or event:', error);
         }
-    };    
+    };
 
     const handleBlockUser = async (blockedId, e) => {
         try {
@@ -235,21 +241,28 @@ function Feed({ getEvents }) {
                     ))}
                 </div>
 
-                <div className="feed-container" ref={feedContainerRef}>
-                    {content.length === 0 && !loading ? <p>No results...</p> : content.map((post) => (
-                        <FeedPost
-                            key={post.event_id}
-                            post={post}
-                            handleClick={() => handleSelectEvent(post)}
-                            onLike={handleLike}
-                            onShare={handleShare}
-                            onAddEvent={handleOptIn}
-                            onRemoveEvent={handleRemove}
-                            onBlock={handleBlockUser}
-                            colorClass={postColorsRef.current[post.event_id]}
-                        />
-                    ))}
+                <div className="feed-bg" style={{
+                            backgroundImage: `url(${backgroundLogo})`,
+                            backgroundSize: 'contain',
+                            backgroundPosition: 'center',
+                        }}>
                 </div>
+                    <div className="feed-container" ref={feedContainerRef}>
+                        {content.length === 0 && !loading ? <p>No results...</p> : content.map((post) => (
+                            <FeedPost
+                                key={post.event_id}
+                                post={post}
+                                handleClick={() => handleSelectEvent(post)}
+                                onLike={handleLike}
+                                onShare={handleShare}
+                                onAddEvent={handleOptIn}
+                                onRemoveEvent={handleRemove}
+                                onBlock={handleBlockUser}
+                                colorClass={postColorsRef.current[post.event_id]}
+                            />
+                        ))}
+                    </div>
+               
             </div>
         ) : (
             <SelectedEvent event={selectedEvent} handleBackButton={handleBackButton} getEvents={getEvents} />
