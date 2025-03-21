@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import ReactDOM from "react-dom";
 import MemoryModal from './MemoryModal';
 import { useAxios } from '../auth/AxiosProvider';
+import { useAuth } from '../auth/AuthContext';
+import { useEventUpdate } from '../events/EventContext';
 import { v4 as uuidv4 } from 'uuid';
 import '../../styles/Modal.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -9,6 +11,8 @@ import { faMusic, faBasketballBall, faFlask, faLaptopCode, faPalette, faBookOpen
 
 function CreateModal({ show, onClose, userId }) {
     const { axiosInstance } = useAxios();
+    const { user } = useAuth();
+    const { addNewEvent } = useEventUpdate();
     const [friends, setFriends] = useState([]); 
     const [showMemoryModal, setShowMemoryModal] = useState(false);
     const [newEvent, setNewEvent] = useState({ 
@@ -33,6 +37,17 @@ function CreateModal({ show, onClose, userId }) {
     ]
     
     const maxTitle = 150;
+
+    const calculateHotScore = (likes, shares, memories, interactions, interactionDuration, ageInHours) => {
+        return (
+            (likes * 1.5 + 
+             shares * 1.2 + 
+             memories * 1.0 + 
+             interactions * 1.1 + 
+             Math.log(Math.max(interactionDuration + 1, 1)) * 0.7)
+            / Math.pow(ageInHours + 2, 1.2)
+        );
+    };
 
     useEffect(() => {
         const fetchFriends = async () => {
@@ -74,6 +89,34 @@ function CreateModal({ show, onClose, userId }) {
 
         const allTags = [...new Set([...newEvent.tags, ...parsedCustomTags])]
         setNewEvent({ ...newEvent, tags: allTags })
+
+        const colors = ["color1", "color2", "color3"];
+        let selectedColor = colors[Math.floor(Math.random() * colors.length)];
+
+        let newEventData = {
+            event_id: uuidv4(),
+            title: newEvent.title,
+            description: "No description provided",
+            creation_date: new Date().toISOString(),
+            event_type: newEvent.eventType,
+            reveal_date: newEvent.revealDate,
+            created_by: userId,
+            username: user.username,
+            profile_picture: user.profile_picture || "",
+            visibility: newEvent.visibility,
+            has_shared_memory: true,
+            has_liked: false,
+            has_shared_event: false,
+            event_status: "opted_in",
+            likes_count: 0,
+            shares_count: 0,
+            memories_count: 1,
+            tags: newEvent.tags,
+            age_in_hours: 0,
+            hot_score: calculateHotScore(0, 0, 1, 0, 0, 0),
+            colorClass: selectedColor,
+        };
+
         try {
             const response = await axiosInstance.post("/events", {
                 newEvent: newEvent, 
@@ -81,6 +124,8 @@ function CreateModal({ show, onClose, userId }) {
             });
 
             console.log("Event & Memory Created:", response.data);
+            newEventData.event_id = response.data.eventId;
+            addNewEvent(newEventData);
 
             setNewEvent({ 
                 title: "", 

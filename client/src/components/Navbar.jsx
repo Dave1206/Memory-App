@@ -41,7 +41,7 @@ function Navbar({ onEventUpdate, events }) {
 
                 setNavItems(prev => {
                     if (
-                        prev.feed.notifications === notifications.unseenPosts.length &&
+                        prev.feed.notifications === notifications.unseenPosts &&
                         prev.messages.notifications === notifications.unreadMessages &&
                         prev.friends.notifications === notifications.onlineFriends.length &&
                         prev.notifications.notifications ===
@@ -56,7 +56,7 @@ function Navbar({ onEventUpdate, events }) {
 
                     return {
                         ...prev,
-                        feed: { ...prev.feed, notifications: notifications.unseenPosts.length },
+                        feed: { ...prev.feed, notifications: notifications.unseenPosts },
                         messages: { ...prev.messages, notifications: notifications.unreadMessages },
                         friends: { ...prev.friends, notifications: notifications.onlineFriends.length },
                         notifications: {
@@ -90,7 +90,7 @@ function Navbar({ onEventUpdate, events }) {
                 let shouldUpdate = false;
 
                 switch (notification.type) {
-                    case "post":
+                    case "new_post":
                         newNavItems.feed.notifications = Number(newNavItems.feed.notifications || 0) + 1;
                         shouldUpdate = true;
                         break;

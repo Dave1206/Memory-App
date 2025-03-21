@@ -4,6 +4,7 @@ import App from './components/App';
 import { AuthProvider } from './components/auth/AuthContext';
 import { AxiosProvider } from './components/auth/AxiosProvider';
 import { MessengerProvider } from './components/messenger/MessengerContext';
+import { EventUpdateProvider } from './components/events/EventContext';
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 
@@ -27,7 +28,9 @@ function RootComponent() {
     <AuthProvider>
       <AxiosProvider onSessionExpired={handleSessionExpired}>
         <MessengerProvider>
-          <App sessionExpired={sessionExpired} />
+          <EventUpdateProvider>
+            <App sessionExpired={sessionExpired} />
+          </EventUpdateProvider>
         </MessengerProvider>
       </AxiosProvider>
     </AuthProvider>

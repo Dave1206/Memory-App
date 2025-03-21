@@ -18,8 +18,13 @@ export const AxiosProvider = ({ children, onSessionExpired }) => {
       window.addEventListener("load", handlePageLoad);
     }
 
+    const fallbackTimeout = setTimeout(() => {
+      setIsPageLoaded(true);
+    }, 3000);
+
     return () => {
       window.removeEventListener("load", handlePageLoad);
+      clearTimeout(fallbackTimeout);
     };
   }, []);
 

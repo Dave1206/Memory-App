@@ -83,9 +83,9 @@
 }
 
 /* Color variations with contrasting text color */
-.color1 { background-color: rgba(160, 178, 163, .8); color: #190933; }
-.color2 { background-color: rgba(233, 151, 124, .8); color: #190933; }
-.color3 { background-color: rgba(219, 202, 167, .8); color: #190933; }
+.color1 { background-color: rgba(160, 178, 163, 1); color: #190933; }
+.color2 { background-color: rgba(233, 151, 124, 1); color: #190933; }
+.color3 { background-color: rgba(219, 202, 167, 1); color: #190933; }
 
 @media (max-width: 768px) {
     .feed-wrapper{

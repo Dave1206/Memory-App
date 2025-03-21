@@ -68,7 +68,7 @@ function FeedPost({ post, onLike, onShare, onAddEvent, onRemoveEvent, onBlock, c
         
         const fetchCreatorMemory = async () => {
             try {
-                const response = await axiosInstance.get(`/events/${post.event_id}/memories`);
+                const response = await axiosInstance.get(`/events/${post.event_id}/memories?markChecked=false`);
                 const creatorMemoryPost = response.data.find(memory => memory.user_id === post.created_by);
 
                 if (creatorMemoryPost) {
@@ -82,7 +82,7 @@ function FeedPost({ post, onLike, onShare, onAddEvent, onRemoveEvent, onBlock, c
         };
 
         fetchCreatorMemory();
-    }, [axiosInstance, post]);
+    }, [axiosInstance, post, post.has_shared_memory, post.memories_count]);
 
     return (
         <div className='feed-post-wrapper'>
@@ -90,7 +90,8 @@ function FeedPost({ post, onLike, onShare, onAddEvent, onRemoveEvent, onBlock, c
                 onMouseLeave={() => setShowMenu(false)}
                 onClick={handleClick}
             >
-                <div className='post-notif'><NotificationBadge count={post.seen === 1 ? '' : 'new'} /></div>
+                {post.is_new_post && <div className='post-notif'><NotificationBadge count='new' /></div>}
+                {!post.is_new_post && post.new_memories_count > 0 && <div className='post-notif'><NotificationBadge count={post.new_memories_count} /></div>}
                 {isModMode && (user.role === 'moderator' || user.role === 'admin') &&
                     <ModOptionsButton />
                 }

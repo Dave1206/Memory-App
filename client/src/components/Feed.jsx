@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useAxios } from "./auth/AxiosProvider";
 import { useAuth } from "./auth/AuthContext";
+import { useEventUpdate } from "./events/EventContext";
 import "../styles/Feed.css";
 import useInteractionTracking from "../hooks/useInteractionTracking";
 import SearchAndFilter from "./SearchAndFilter";
@@ -12,7 +13,8 @@ function Feed({ getEvents }) {
     const { axiosInstance,isPageLoaded } = useAxios();
     const { selectedEvent, handleSelectEvent, handleBackButton } = useInteractionTracking(null, "/feed");
     const { user } = useAuth();
-    
+    const { newEvent } = useEventUpdate();
+
     const [activeTab, setActiveTab] = useState("feed");
     const [content, setContent] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
@@ -101,6 +103,44 @@ function Feed({ getEvents }) {
             fetchContent(true);
         }
     }, [isPageLoaded, fetchContent]);
+//Inserts created events into the feed
+    useEffect(() => {
+        if (newEvent) {
+            setContent((prevContent) => {
+                const shouldInclude = (
+                    (activeTab === "feed") ||
+                    (activeTab === "myEvents") 
+                );
+    
+                if (!shouldInclude) return prevContent;
+
+                const updatedContent = [newEvent, ...prevContent];
+                const uniqueContent = Array.from(new Map(updatedContent.map(post => [post.event_id, post])).values());
+
+                return uniqueContent.sort((a, b) => {
+                    if (filters.sortBy === "age_in_hours") {
+                        return sortOrder === "asc"
+                            ? a.age_in_hours - b.age_in_hours
+                            : b.age_in_hours - a.age_in_hours;
+                    }
+                    if (filters.sortBy === "hot_score") {
+                        return sortOrder === "asc" ? a.hot_score - b.hot_score : b.hot_score - a.hot_score;
+                    }
+                    if (filters.sortBy === "likes_count") {
+                        return sortOrder === "asc" ? a.likes_count - b.likes_count : b.likes_count - a.likes_count;
+                    }
+                    if (filters.sortBy === "shares_count") {
+                        return sortOrder === "asc" ? a.shares_count - b.shares_count : b.shares_count - a.shares_count;
+                    }
+                    if (filters.sortBy === "memories_count") {
+                        return sortOrder === "asc" ? a.memories_count - b.memories_count : b.memories_count - a.memories_count;
+                    }
+                    return 0;
+                });
+            });
+        }
+    }, [newEvent, activeTab, filters, sortOrder, user]);
+    
 
     useEffect(() => {
         let debounceTimer;
@@ -216,8 +256,8 @@ function Feed({ getEvents }) {
                     onFilterChange={setFilters}
                     onSortOrderChange={setSortOrder}
                     sortOptions={[
-                        { value: 'age_in_hours', label: 'New' },
                         { value: 'hot_score', label: 'Trending' },
+                        { value: 'age_in_hours', label: 'New' },
                         { value: 'likes_count', label: 'Likes' },
                         { value: 'shares_count', label: 'Shares' },
                         { value: 'memories_count', label: 'Memories' }
@@ -259,7 +299,7 @@ function Feed({ getEvents }) {
                                 onAddEvent={handleOptIn}
                                 onRemoveEvent={handleRemove}
                                 onBlock={handleBlockUser}
-                                colorClass={postColorsRef.current[post.event_id]}
+                                colorClass={post.colorClass || postColorsRef.current[post.event_id]}
                             />
                         ))}
                     </div>

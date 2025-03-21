@@ -7,7 +7,7 @@ function MemoryModal({ show, onClose, onCreate }) {
     const [newMemory, setNewMemory] = useState("");
     const [isEmojiToolbarVisible, setIsEmojiToolbarVisible] = useState(false);
     const textAreaRef = useRef(null);
-    const maxCharacters = 200;
+    const maxCharacters = 500;
 
     const emojis = ["😊", "😢", "😂", "😎", "🎉", "❤️", "👍", "🙌", "💡"];
 
@@ -40,8 +40,8 @@ function MemoryModal({ show, onClose, onCreate }) {
     };
 
     const handleCreate = () => {
-        if (newMemory.trim() === "") {
-            alert("Memory cannot be empty!");
+        if (newMemory.split(" ").length < 20) {
+            alert("Memory must be 20 words or longer!");
             return;
         }
         onCreate(newMemory);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { useAxios } from './auth/AxiosProvider';
 import { useAuth } from "./auth/AuthContext";
@@ -20,28 +20,10 @@ import ModeratorTools from './moderation/ModeratorTools';
 
 function App({ sessionExpired }) {
   const { user, logout } = useAuth();
-  const { axiosInstance, isPageLoaded } = useAxios();
+  const { isPageLoaded } = useAxios();
   const [eventInvites, setEventInvites] = useState([]);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const isMobile = useMediaQuery("(max-width: 768px)");
-
-  const getEvents = useCallback(async () => {
-    if (!axiosInstance) return;
-    try {
-      const response = await axiosInstance.get("/events");
-      const fetchedEvents = response.data;
-      const sortedEventInvites = fetchedEvents.Invites.sort((a, b) => a.has_shared - b.has_shared);
-      setEventInvites(sortedEventInvites);
-    } catch (err) {
-      console.error("Error fetching events", err.response?.data || err.message);
-    }
-  }, [axiosInstance]);
-
-  useEffect(() => {
-    if (user) {
-      getEvents();
-    }
-  }, [user, getEvents]);
 
   const handleEventInvite = (eventId) => {
     setEventInvites((prevEventInvites) =>
@@ -85,7 +67,7 @@ function App({ sessionExpired }) {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/profile/:userId" element={user ? <UserProfile user={user} /> : <Navigate to="/login" />} />
           <Route path="/settings/:userId" element={user ? <UserPreferences user={user} /> : <Navigate to="/login" />} />
-          <Route path="/home" element={user ? <Feed user={user} getEvents={getEvents} /> : <Navigate to="/login" />} />
+          <Route path="/home" element={user ? <Feed user={user} /> : <Navigate to="/login" />} />
           <Route path="/moderator-tools" element={user ? <ModeratorTools user={user} /> : <Navigate to="/login" />} />
           <Route path="/" element={user ? <Navigate to="/home" /> : <Navigate to="/login" />} />
         </Routes>

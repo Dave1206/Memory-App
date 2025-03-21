@@ -44,13 +44,17 @@ body {
 /* Links */
 a {
   font-weight: 500;
-  color: var(--link-color);
+  color: #56539e;
   text-decoration: none;
   transition: color 0.2s ease;
 }
 
 a:hover {
-  color: var(--link-hover-color);
+  color: #8e8aff;
+}
+
+a:visited {
+  color: #56539e;
 }
 
 /* Typography */

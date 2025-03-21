@@ -61,7 +61,7 @@ function SearchAndFilter({ onSearch, onFilterChange, onSortOrderChange, sortOpti
                             onChange={(e) => handleSortChange(e.target.value)}
                             className="sort-dropdown"
                         >
-                            <option value="">--Sort By--</option>
+                            {/* <option value="">--Sort By--</option> */}
                             {sortOptions.map((option) => (
                                 <option key={option.value} value={option.value}>
                                     {option.label}

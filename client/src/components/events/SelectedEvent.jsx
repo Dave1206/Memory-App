@@ -15,7 +15,7 @@ function SelectedEvent({ event, handleBackButton, getEvents }) {
     const getMemories = useCallback(
         async (eventId) => {
             try {
-                const response = await axiosInstance.get(`/events/${eventId}/memories`);
+                const response = await axiosInstance.get(`/events/${eventId}/memories?markChecked=true`);
                 setMemories(response.data);
             } catch (err) {
                 console.error("Error fetching memories: " + (err.response?.data || err.message));
