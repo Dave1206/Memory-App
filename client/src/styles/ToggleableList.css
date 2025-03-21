@@ -15,18 +15,6 @@
     flex-direction: column;
 }
 
-/* Compact (collapsed) state */
-/* .toggleable-list.compact {
-    width: fit-content;
-    padding: 5px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: transparent;
-    background: none;
-    box-shadow: none;
-} */
-
 /* Toggle Button Styling */
 .toggleable-toggle-button {
     width: 36px;
@@ -106,6 +94,8 @@
 
 .close-dropdown {
     position: absolute;
+    background-color: #555;
+    color: #fff;
     top: -1%;
     display: flex;
     justify-content: center;
@@ -113,7 +103,7 @@
     left: 47%;
     height: 32px;
     width: 32px;
-    border: 1px solid var(--text-color);
+    border: 2px solid darksalmon;
     border-radius: 50%;
     box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
 }

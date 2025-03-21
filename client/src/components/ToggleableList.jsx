@@ -169,7 +169,7 @@ function ToggleableList() {
 
                         {activeDropdown === "friends" && (
                             <div className="menu-dropdown">
-                                <div className='close-dropdown' onClick={() => setActiveDropdown(null)}>X</div>
+                                <div className='close-dropdown' onClick={() => setActiveDropdown(null)}>✖</div>
                                 <FriendRequest userId={user.id} />
                                 <FriendList userId={user.id} />
                             </div>
@@ -177,7 +177,7 @@ function ToggleableList() {
 
                         {activeDropdown === "notifications" && (
                             <div className="menu-dropdown">
-                                <div className='close-dropdown' onClick={() => setActiveDropdown(null)}>X</div>
+                                <div className='close-dropdown' onClick={() => setActiveDropdown(null)}>✖</div>
                                 <Notifications notifications={notifications} setNotifications={setNotifications} />
                             </div>
                         )}
