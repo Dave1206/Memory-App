@@ -2213,6 +2213,15 @@ app.post('/conversations/:conversationId/media', isAuthenticated, upload.single(
 app.post('/friends/request', isAuthenticated, async (req, res) => {
   const { userId, friendUsername } = req.body;
   try {
+    const selfUser = await db.query(
+      'SELECT id FROM users WHERE username = $1',
+      [friendUsername]
+    );
+
+    if (selfUser.rows.length > 0 && selfUser.rows[0].id === userId) {
+      return res.status(400).json({ message: "You cannot send a friend request to yourself." });
+    }
+    
     const friendData = await db.query(
       'SELECT * FROM users WHERE username = $1',
       [friendUsername]
