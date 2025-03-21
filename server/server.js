@@ -411,7 +411,6 @@ app.get('/auth/session', isAuthenticated, (req, res) => {
 });
 
 //events routes
-// Add to your existing Express app
 app.get('/eventdata/:event_id', isAuthenticated, async (req, res) => {
   const userId = req.user.id;
   const eventId = req.params.event_id;
@@ -726,13 +725,28 @@ app.post("/events", isAuthenticated, async (req, res) => {
     );
 
     if (invites.length > 0) {
-      for (const userId of invites) {
+      for (const inviteeId of invites) {
         await db.query(
           "INSERT INTO event_participation (event_id, user_id, status) VALUES ($1, $2, $3)",
-          [eventId, userId, 'invited']
+          [eventId, inviteeId, 'invited']
+        );
+    
+        const message = `${req.user.username} invited you to an event: "${title}"`;
+    
+        await handleSendNotification(
+          {
+            recipientId: inviteeId,
+            message: message,
+            type: "event_invite",
+            eventId: eventId,
+            sender_username: req.user.username,
+            event_title: title
+          },
+          userId,
+          connectedClients
         );
       }
-    }
+    }    
 
     if (tags.length > 0) {
       for (const tag of tags) {
@@ -1932,7 +1946,6 @@ app.get('/notifications/:userId', isAuthenticated, async (req, res) => {
     const unseenPosts = fetchUnseenPosts.rows[0].unseen_posts;
     const unreadMessages = fetchUnreadMessages.rows[0].unread_messages;
     const newMemories = fetchNewMemories.rows[0].new_memories;
-
     const notifications = {
       unseenPosts,
       unreadMessages,
@@ -2212,9 +2225,11 @@ app.post('/friends/request', isAuthenticated, async (req, res) => {
     }
 
     const existingRequest = await db.query(
-      'SELECT * FROM friends WHERE user_id = $1 AND friend_id = $2',
+      `SELECT * FROM friends 
+       WHERE (user_id = $1 AND friend_id = $2) 
+          OR (user_id = $2 AND friend_id = $1)`,
       [userId, friend.id]
-    );
+    );    
 
     if (existingRequest.rows.length > 0) {
       const status = existingRequest.rows[0].status;
@@ -2224,11 +2239,11 @@ app.post('/friends/request', isAuthenticated, async (req, res) => {
       }
 
       if (status === 'rejected') {
-        return res.status(400).json({ message: 'You cannot send a friend request to this user.' });
+        return res.status(400).json({ message: 'You have already sent a request.' });
       }
 
       if (status === 'accepted') {
-        return res.status(400).json({ message: 'You are already friends with this user.' });
+        return res.status(400).json({ message: 'You are already friends.' });
       }
     }
 
@@ -2238,7 +2253,7 @@ app.post('/friends/request', isAuthenticated, async (req, res) => {
     );
 
     const notificationMessage = `${req.user.username} sent you a friend request."`;
-    await handleSendNotification({ recipientId: friend.id, message: notificationMessage, type: "friend_request" }, userId, connectedClients);
+    await handleSendNotification({ recipientId: friend.id, message: notificationMessage, type: "friend_request", sender_username: req.user.username }, userId, connectedClients);
 
     res.status(201).json({ message: 'Friend request sent' });
   } catch (error) {

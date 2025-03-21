@@ -72,11 +72,11 @@ a {
 .nav-dropdown {
     position: absolute;
     left: 250px;
+    top: 50px;
     color: #190933;
     background: darksalmon;
     width: 300px;
-    border-radius: 24px;
-    overflow-x: hidden;
+    border-radius: 10px;
     z-index: 1000;
 }
 

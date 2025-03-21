@@ -1,10 +1,23 @@
 .notifications-dropdown {
     padding: 1rem;
-    max-height: 40vh;
+    min-height: 80vh;
+    max-height: 80vh;
     overflow-y: auto;
     background-color: darksalmon;
-    border-radius: 8px;
+    border-radius: 10px;
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  }
+
+  .notifications-dropdown::-webkit-scrollbar {
+      background-color: darksalmon;
+      width: 8px;
+      border-radius: 50%;
+  }
+
+  .notifications-dropdown::-webkit-scrollbar-thumb {
+      background-color: #999;
+      width: 4px;
+      border-radius: 16px;
   }
   
   .notification-section {
@@ -21,16 +34,23 @@
   
   .notification-item {
     position: relative;
+    display: flex;
+    align-items: center;
+    gap: 15px;
     background-color: #f9f9f9;
-    margin-bottom: 0.5rem;
-    padding: 0.75rem 1rem;
+    margin-bottom: .25rem;
+    padding: 1.5rem 1.5rem 2rem;
     border-radius: 6px;
     transition: background-color 0.2s ease;
     cursor: pointer;
   }
+
+  .notification-item p{
+    margin: 0;
+  }
   
   .notification-item.unread {
-    background-color: #eaf4ff;
+    background-color: #b8cfe9;
     font-weight: 500;
   }
   
@@ -42,8 +62,16 @@
   .notification-item:hover {
     background-color: #e0efff;
   }
+
+  .notification-profile-picture {
+    height: 30px;
+    width: 30px;
+    border-radius: 50%;
+  }
   
   .notification-item .timestamp {
+    position: absolute;
+    bottom: 5px;
     display: block;
     font-size: 0.8rem;
     color: #999;
@@ -66,9 +94,13 @@
   }
   
   .action-buttons {
+    position: absolute;
     display: flex;
     gap: 0.5rem;
     margin-top: 0.5rem;
+    width: fit-content;
+    bottom: 5px;
+    right: 5px;
   }
   
   .action-buttons button {
@@ -77,20 +109,26 @@
     border-radius: 4px;
     border: none;
     cursor: pointer;
-    background-color: #007bff;
-    color: #fff;
+    background: none;
+    color: #333;
     transition: background-color 0.2s ease;
   }
   
-  .action-buttons button:hover {
-    background-color: #0056b3;
+  .action-buttons button:nth-child(1):hover {
+    background-color: #0e6905;
+    color: #fff;
+  }
+
+  .action-buttons button:nth-child(2):hover {
+    background-color: #b30000;
+    color: #fff;
   }
   
   .notification-controls {
     position: sticky;
     background-color: darksalmon;
     padding: 15px;
-    top: -16px;
+    top: 5px;
     display: flex;
     justify-content: space-between;
     margin-bottom: 1rem;
@@ -109,7 +147,7 @@
   }
   
   .notification-controls button:hover {
-    background-color: #000;
+    background-color: #333;
   }
   
   .no-notifications {

@@ -130,10 +130,12 @@ function Notifications({ notifications, setNotifications }) {
                     <h4>Friend Requests</h4>
                     {friendRequests.map((req) => (
                         <div key={req.id} className="notification-item">
-                            <p>{req.username}</p>
+                            <img className='notification-profile-picture' src={`${req.profile_picture}`}></img>
+                            <p>{req.username} wants to be friends.</p>
+                            <span className="timestamp">{new Date(req.created_at).toLocaleString()}</span>
                             <div className="action-buttons">
-                                <button onClick={() => handleAcceptRequest(req.id)}>Accept</button>
-                                <button onClick={() => handleRejectRequest(req.id)}>Reject</button>
+                                <button onClick={() => handleAcceptRequest(req.id)}>✔</button>
+                                <button onClick={() => handleRejectRequest(req.id)}>✖</button>
                             </div>
                         </div>
                     ))}

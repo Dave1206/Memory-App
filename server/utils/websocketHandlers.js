@@ -275,7 +275,9 @@ export async function handleSendNotification(notification, senderId, connectedCl
       } else if (
         type !== 'message_seen' &&
         type !== 'user_online' &&
-        type !== 'user_offline'
+        type !== 'user_offline' &&
+        type !== 'friend_request' && 
+        type !== 'event_invite'
       ) {
         const insertNotification = await db.query(
           `INSERT INTO notifications (user_id, message, event_id, memory_id, read, created_at, sender_username) 
@@ -319,6 +321,7 @@ export async function handleSendNotification(notification, senderId, connectedCl
       newNotification.type = type;
       newNotification.read_messages = read_messages;
       newNotification.sender_username = sender_username;
+      newNotification.sender_id = senderId;
 
       if (connectedClients.navbar[recipientId]) {
         connectedClients.navbar[recipientId].forEach(client => {

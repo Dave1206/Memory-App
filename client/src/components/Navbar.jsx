@@ -133,7 +133,7 @@ function Navbar({ registerClearFeed }) {
                             }
                         ];
                         break;
-                    case "invite":
+                    case "event_invite":
                         updated.eventInvites = [
                             ...(prev.eventInvites || []),
                             {

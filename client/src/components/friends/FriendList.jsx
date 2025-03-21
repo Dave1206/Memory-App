@@ -103,11 +103,10 @@ function FriendList({ userId }) {
                                 </div>
                                 <div className='friend-info'>
                                     <p className="friend-username">{friend.username}</p>
-                                    <p className="last-online">
-                                
-                                    <FontAwesomeIcon icon={faClock} /> {formatLastOnline(friend.last_online)}
-                                    </p>
                                 </div>
+                                <p className="last-online">
+                                    <FontAwesomeIcon icon={faClock} /> {formatLastOnline(friend.last_online)}
+                                </p>
                             </div>
                         ))}
                     </div>
