@@ -461,17 +461,28 @@ app.get("/events/mine", isAuthenticated, async (req, res) => {
 
   let query = `
       SELECT 
-          e.event_id, e.title, e.description, e.creation_date, e.event_type, e.reveal_date, 
-          u.username, u.profile_picture, e.created_by, e.visibility, 
+          e.event_id, 
+          e.title, 
+          e.description, 
+          e.creation_date, 
+          e.event_type, 
+          e.reveal_date, 
+          u.username, 
+          u.profile_picture, 
+          e.created_by, 
+          e.visibility, 
           ep.has_shared_memory, 
-          COUNT(likes.event_id) AS likes_count,
-          COUNT(shares.event_id) AS shares_count,
+          ep.status AS event_status, 
+          ep.has_liked,
+          ep.has_shared_event,
+          COUNT(DISTINCT likes.user_id) AS likes_count,
+          COUNT(DISTINCT shares.user_id) AS shares_count,
           (SELECT COUNT(*) FROM memories m WHERE m.event_id = e.event_id) AS memories_count,
           EXTRACT(EPOCH FROM (NOW() - e.creation_date)) / 3600 AS age_in_hours,
           ARRAY_AGG(DISTINCT t.tag_name) AS tags,
           (
-              COUNT(likes.event_id) * 1.5 + 
-              COUNT(shares.event_id) * 1.2 + 
+              COUNT(DISTINCT likes.user_id) * 1.5 + 
+              COUNT(DISTINCT shares.user_id) * 1.2 + 
               COUNT(m.event_id) * 1.0 + 
               COALESCE(SUM(ep.interaction_count), 0) * 1.1 + 
               COALESCE(LOG(GREATEST(SUM(EXTRACT(EPOCH FROM ep.interaction_duration)::NUMERIC) + 1, 1)), 0) * 0.7
@@ -514,7 +525,21 @@ app.get("/events/mine", isAuthenticated, async (req, res) => {
   }
 
   query += `
-      GROUP BY e.event_id, u.username, u.profile_picture, e.title, e.description, e.creation_date, e.created_by, e.visibility, e.event_type, e.reveal_date, ep.has_shared_memory
+      GROUP BY 
+        e.event_id, 
+        u.username, 
+        u.profile_picture, 
+        e.title, 
+        e.description,
+        e.creation_date, 
+        e.created_by, 
+        e.visibility, 
+        e.event_type, 
+        e.reveal_date, 
+        ep.has_shared_memory, 
+        ep.status, 
+        ep.has_liked,
+        ep.has_shared_event
       ORDER BY ${selectedSortField} ${selectedSortOrder}
       LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
   `;
@@ -548,21 +573,39 @@ app.get("/events/followed", isAuthenticated, async (req, res) => {
 
   let query = `
       SELECT 
-          e.event_id, e.title, e.description, e.creation_date, e.event_type, e.reveal_date, 
-          u.username, u.profile_picture, e.created_by, e.visibility, 
+          e.event_id, 
+          e.title, 
+          e.description, 
+          e.creation_date, 
+          e.event_type, 
+          e.reveal_date, 
+          u.username, 
+          u.profile_picture, 
+          e.created_by, 
+          e.visibility, 
           ep.has_shared_memory, 
-          COUNT(likes.event_id) AS likes_count,
-          COUNT(shares.event_id) AS shares_count,
+          ep.status AS event_status, 
+          ep.has_liked,
+          ep.has_shared_event,
+          COUNT(DISTINCT likes.user_id) AS likes_count,
+          COUNT(DISTINCT shares.user_id) AS shares_count,
           (SELECT COUNT(*) FROM memories m WHERE m.event_id = e.event_id) AS memories_count,
           EXTRACT(EPOCH FROM (NOW() - e.creation_date)) / 3600 AS age_in_hours,
           ARRAY_AGG(DISTINCT t.tag_name) AS tags,
           (
-              COUNT(likes.event_id) * 1.5 + 
-              COUNT(shares.event_id) * 1.2 + 
+              COUNT(DISTINCT likes.user_id) * 1.5 + 
+              COUNT(DISTINCT shares.user_id) * 1.2 + 
               COUNT(m.event_id) * 1.0 + 
               COALESCE(SUM(ep.interaction_count), 0) * 1.1 + 
               COALESCE(LOG(GREATEST(SUM(EXTRACT(EPOCH FROM ep.interaction_duration)::NUMERIC) + 1, 1)), 0) * 0.7
-          ) / POWER((EXTRACT(EPOCH FROM (NOW() - e.creation_date)) / 3600)::NUMERIC + 2, 1.2) AS hot_score
+          ) / POWER((EXTRACT(EPOCH FROM (NOW() - e.creation_date)) / 3600)::NUMERIC + 2, 1.2) AS hot_score,
+          (e.creation_date > (SELECT last_checked FROM users WHERE id = $1)) AS is_new_post,
+          (
+              SELECT COUNT(*) FROM memories m
+              WHERE m.event_id = e.event_id
+              AND m.shared_date > COALESCE((SELECT last_checked FROM event_participation ep2 
+                                              WHERE ep2.event_id = e.event_id AND ep2.user_id = $1), '1970-01-01')
+          ) AS new_memories_count
       FROM events e
       JOIN users u ON e.created_by = u.id
       JOIN event_participation ep ON e.event_id = ep.event_id
@@ -603,7 +646,21 @@ app.get("/events/followed", isAuthenticated, async (req, res) => {
   }
 
   query += `
-      GROUP BY e.event_id, u.username, u.profile_picture, e.title, e.description, e.creation_date, e.created_by, e.visibility, e.event_type, e.reveal_date, ep.has_shared_memory
+      GROUP BY 
+        e.event_id, 
+        u.username, 
+        u.profile_picture, 
+        e.title, 
+        e.description, 
+        e.creation_date, 
+        e.created_by, 
+        e.visibility, 
+        e.event_type, 
+        e.reveal_date, 
+        ep.has_shared_memory, 
+        ep.status, 
+        ep.has_liked,
+        ep.has_shared_event
       ORDER BY ${selectedSortField} ${selectedSortOrder}
       LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
   `;
@@ -665,6 +722,31 @@ app.post("/events", isAuthenticated, async (req, res) => {
 
         await db.query(`INSERT INTO event_tag_map (event_id, tag_id) VALUES ($1, $2)`, [eventId, tagId]);
       }
+    }
+
+    const friendsResult = await db.query(
+      `SELECT friend_id AS friend 
+       FROM friends WHERE user_id = $1 AND status = 'accepted'
+       UNION
+       SELECT user_id AS friend 
+       FROM friends WHERE friend_id = $1 AND status = 'accepted'`,
+      [userId]
+    );
+
+    const friends = friendsResult.rows.map(row => row.friend);
+
+    for (const friendId of friends) {
+      const message = `${req.user.username} just created a new event: "${title}"`;
+      await handleSendNotification(
+        {
+          recipientId: friendId,
+          message: message,
+          type: "new_post",
+          eventId: eventId
+        },
+        userId,
+        connectedClients
+      );
     }
 
     await logActivity(req.user.id, 'created_event', `Created a new event: ${title}`, eventId, 'event');
@@ -898,34 +980,27 @@ app.post("/events/:event_id/memories", isAuthenticated, async (req, res) => {
 app.get("/events/:event_id/memories", isAuthenticated, async (req, res) => {
   try {
     const { event_id: eventId } = req.params;
+    const { markChecked } = req.query;
     const userId = req.user.id;
 
-    await db.query(
-      `UPDATE event_participation
-       SET last_checked = NOW()
-       WHERE user_id = $1 AND event_id = $2`,
-      [userId, eventId]
-    );
-
-    const invite = await db.query(
-      "SELECT * FROM event_participation WHERE event_id = $1 AND user_id = $2",
-      [eventId, userId]
-    );
-
-    if (invite.rows.length > 0) {
-      const memories = await db.query(
-        `SELECT m.user_id, u.username, m.content, m.shared_date 
-         FROM memories m 
-         JOIN users u ON m.user_id = u.id 
-         WHERE m.event_id = $1`,
-        [eventId]
+    if (markChecked === "true") {
+      await db.query(
+        `UPDATE event_participation
+         SET last_checked = NOW()
+         WHERE user_id = $1 AND event_id = $2`,
+        [userId, eventId]
       );
-
-      res.json(memories.rows);
-    } else {
-      res.json([]);
     }
 
+    const memories = await db.query(
+      `SELECT m.user_id, u.username, m.content, m.shared_date 
+       FROM memories m 
+       JOIN users u ON m.user_id = u.id 
+       WHERE m.event_id = $1`,
+      [eventId]
+    );
+
+    res.json(memories.rows);
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Server Error");
@@ -1165,22 +1240,32 @@ app.get('/feed', isAuthenticated, async (req, res) => {
       u.profile_picture, 
       e.visibility, 
       ep.has_shared_memory,
-            COUNT(likes.event_id) AS likes_count,
-            COUNT(shares.event_id) AS shares_count,
+      ep.status AS event_status,
+            COUNT(DISTINCT likes.user_id) AS likes_count,
+            COUNT(DISTINCT shares.user_id) AS shares_count,
             COUNT(ep.interaction_count) AS interaction_count,
             (SELECT COUNT(*) FROM memories m WHERE m.event_id = e.event_id) AS memories_count,
-            MAX(CASE WHEN ep.user_id = $1 THEN CAST(ep.has_liked AS INTEGER) ELSE 0 END) > 0 AS has_liked,
-            MAX(CASE WHEN ep.user_id = $1 THEN CAST(ep.has_shared_event AS INTEGER) ELSE 0 END) > 0 AS has_shared_event,
-            MAX(CASE WHEN ep.user_id = $1 THEN ep.status ELSE NULL END) AS event_status,
+            BOOL_OR(CASE WHEN ep.user_id = $1 THEN ep.has_liked ELSE FALSE END) AS has_liked,
+            BOOL_OR(CASE WHEN ep.user_id = $1 THEN ep.has_shared_event ELSE FALSE END) AS has_shared_event,
             ARRAY_AGG(DISTINCT t.tag_name) AS tags,
           EXTRACT(EPOCH FROM (NOW() - e.creation_date)) / 3600 AS age_in_hours,
           (
-              COUNT(likes.event_id) * 1.5 + 
-              COUNT(shares.event_id) * 1.2 + 
-              COUNT(m.event_id) * 1.0 + 
-              COALESCE(SUM(ep.interaction_count), 0) * 1.1 + 
+              COUNT(likes.event_id) * 1.5 +
+              COUNT(shares.event_id) * 1.2 +
+              COUNT(m.event_id) * 1.0 +
+              COALESCE(SUM(ep.interaction_count), 0) * 1.1 +
               COALESCE(LOG(GREATEST(SUM(EXTRACT(EPOCH FROM ep.interaction_duration)::NUMERIC) + 1, 1)), 0) * 0.7
-          ) / POWER((EXTRACT(EPOCH FROM (NOW() - e.creation_date)) / 3600)::NUMERIC + 2, 1.2) AS hot_score
+          ) / POWER((EXTRACT(EPOCH FROM (NOW() - e.creation_date)) / 3600)::NUMERIC + 2, 1.2) AS hot_score,
+          (
+              e.creation_date AT TIME ZONE 'UTC' > (SELECT last_checked AT TIME ZONE 'UTC' FROM users WHERE id = $1)
+              AND NOW() AT TIME ZONE 'UTC' - (SELECT last_checked AT TIME ZONE 'UTC' FROM users WHERE id = $1) >= INTERVAL '5 minutes'
+          ) AS is_new_post,
+          (
+              SELECT COUNT(*) FROM memories m
+              WHERE m.event_id = e.event_id
+              AND m.shared_date > COALESCE((SELECT last_checked FROM event_participation ep2 
+                                              WHERE ep2.event_id = e.event_id AND ep2.user_id = $1), '1970-01-01')
+          ) AS new_memories_count
       FROM events e
       JOIN users u ON e.created_by = u.id
       LEFT JOIN event_participation ep ON e.event_id = ep.event_id AND ep.user_id = $1
@@ -1226,7 +1311,18 @@ app.get('/feed', isAuthenticated, async (req, res) => {
   }
   
   feedQuery += `
-      GROUP BY e.event_id, u.username, u.profile_picture, e.title, e.description, e.creation_date, e.created_by, e.visibility, e.event_type, e.reveal_date, ep.has_shared_memory
+      GROUP BY 
+        e.event_id, 
+        u.username, 
+        u.profile_picture, 
+        e.title, e.description, 
+        e.creation_date, 
+        e.created_by, 
+        e.visibility, 
+        e.event_type, 
+        e.reveal_date, 
+        ep.has_shared_memory, 
+        ep.status
       ORDER BY ${selectedSortField} ${selectedSortOrder}
       LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
   `;
@@ -1283,9 +1379,9 @@ app.get('/explore/trending', isAuthenticated, async (req, res) => {
           ep.has_liked, 
           ep.has_shared_event, 
           ep.has_shared_memory, 
-          ep.status,
-          COUNT(likes.event_id) AS likes_count,
-          COUNT(shares.event_id) AS shares_count,
+          ep.status AS event_status,
+          COUNT(DISTINCT likes.user_id) AS likes_count,
+          COUNT(DISTINCT shares.user_id) AS shares_count,
           (SELECT COUNT(*) FROM memories m WHERE m.event_id = e.event_id) AS memories_count,
           EXTRACT(EPOCH FROM (NOW() - e.creation_date)) / 3600 AS age_in_hours,
           ARRAY_AGG(DISTINCT t.tag_name) AS tags,
@@ -1419,9 +1515,9 @@ app.get('/explore/personalized', isAuthenticated, async (req, res) => {
           ep.has_liked, 
           ep.has_shared_event, 
           ep.has_shared_memory, 
-          ep.status,
-          COUNT(likes.event_id) AS likes_count,
-          COUNT(shares.event_id) AS shares_count,
+          ep.status AS event_status,
+          COUNT(DISTINCT likes.user_id) AS likes_count,
+          COUNT(DISTINCT shares.user_id) AS shares_count,
           (SELECT COUNT(*) FROM memories m WHERE m.event_id = e.event_id) AS memories_count,
           COUNT(ep.interaction_count) AS interaction_count,
           ARRAY_AGG(DISTINCT t.tag_name) AS tags,
@@ -1556,8 +1652,18 @@ app.get('/notifications/:userId', isAuthenticated, async (req, res) => {
 
     const fetchUnseenPosts = await db.query(
       `SELECT COUNT(*) AS unseen_posts FROM events e
-       LEFT JOIN event_participation ep ON e.event_id = ep.event_id AND ep.user_id = $1
-       WHERE e.creation_date > (SELECT last_checked FROM users WHERE id = $1)`,
+        LEFT JOIN event_participation ep ON e.event_id = ep.event_id AND ep.user_id = $1
+        WHERE e.creation_date > (SELECT last_checked FROM users WHERE id = $1)
+        AND (
+            ep.status = 'opted_in' -- User opted into the event
+            OR (
+                e.created_by IN (
+                    SELECT friend_id FROM friends WHERE user_id = $1 AND status = 'accepted'
+                )
+                AND e.visibility IN ('public', 'friends_only')
+            )
+        );
+        `,
       [userId]
     );
 
