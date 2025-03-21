@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import FriendList from "./friends/FriendList";
 import FriendRequest from "./friends/FriendRequest";
-import PendingRequests from "./friends/PendingRequests";
-import EventInvites from "./events/EventInvites";
+import Notifications from "./Notifications";
 import NotificationBadge from "./NotificationBadge";
 import MessengerToggle from "./messenger/MessengerToggle";
 import EventCreator from "./events/EventCreator";
@@ -17,7 +16,7 @@ import useMediaQuery from "../hooks/useMediaQuery";
 import WebSocketInstance from '../utils/WebSocket';
 import "../styles/Navbar.css";
 
-function Navbar({ onEventUpdate, events }) {
+function Navbar({ registerClearFeed }) {
     const { axiosInstance } = useAxios();
     const { user, logout } = useAuth();
     const navigate = useNavigate();
@@ -25,6 +24,7 @@ function Navbar({ onEventUpdate, events }) {
 
     const [activeRoute, setActiveRoute] = useState(0);
     const [activeDropdown, setActiveDropdown] = useState(null);
+    const [notifications, setNotifications] = useState({});
     const [navItems, setNavItems] = useState({
         feed: { name: "Feed", icon: faNewspaper, notifications: 0 },
         messages: { name: "Messages", icon: faNewspaper, notifications: 0 },
@@ -37,36 +37,37 @@ function Navbar({ onEventUpdate, events }) {
     const fetchNotifications = useCallback(async () => {
         try {
                 const response = await axiosInstance.get(`/notifications/${userId}`);
-                const notifications = response.data;
+                const data = response.data;
+                setNotifications(response.data);
 
                 setNavItems(prev => {
                     if (
-                        prev.feed.notifications === notifications.unseenPosts &&
-                        prev.messages.notifications === notifications.unreadMessages &&
-                        prev.friends.notifications === notifications.onlineFriends.length &&
+                        prev.feed.notifications === data.unseenPosts &&
+                        prev.messages.notifications === data.unreadMessages &&
+                        prev.friends.notifications === data.onlineFriends.length &&
                         prev.notifications.notifications ===
-                        Number(notifications.friendRequests.length) +
-                        Number(notifications.eventInvites.length) +
-                        Number(notifications.newMemories) +
-                        Number(notifications.likes) +
-                        Number(notifications.shares)
+                        Number(data.friendRequests.length) +
+                        Number(data.eventInvites.length) +
+                        Number(data.newMemories) +
+                        Number(data.likes) +
+                        Number(data.shares)
                     ) {
                         return prev;
                     }
 
                     return {
                         ...prev,
-                        feed: { ...prev.feed, notifications: notifications.unseenPosts },
-                        messages: { ...prev.messages, notifications: notifications.unreadMessages },
-                        friends: { ...prev.friends, notifications: notifications.onlineFriends.length },
+                        feed: { ...prev.feed, notifications: data.unseenPosts },
+                        messages: { ...prev.messages, notifications: data.unreadMessages },
+                        friends: { ...prev.friends, notifications: data.onlineFriends.length },
                         notifications: {
                             ...prev.notifications,
                             notifications:
-                                Number(notifications.friendRequests.length) +
-                                Number(notifications.eventInvites.length) +
-                                Number(notifications.newMemories) +
-                                Number(notifications.likes) +
-                                Number(notifications.shares)
+                                Number(data.friendRequests.length) +
+                                Number(data.eventInvites.length) +
+                                Number(data.newMemories) +
+                                Number(data.likes) +
+                                Number(data.shares)
                         }
                     };
                 });
@@ -85,56 +86,68 @@ function Navbar({ onEventUpdate, events }) {
         WebSocketInstance.on("new_notification", (notification) => {
             console.log("New notification received:", notification);
 
-            setNavItems(prev => {
-                const newNavItems = { ...prev };
-                let shouldUpdate = false;
-
+            setNotifications(prev => {
+                const updated = { ...prev };
+        
                 switch (notification.type) {
                     case "new_post":
-                        newNavItems.feed.notifications = Number(newNavItems.feed.notifications || 0) + 1;
-                        shouldUpdate = true;
+                        updated.generalNotifications = [
+                            notification,
+                            ...(prev.generalNotifications || [])
+                        ];
+                        updated.unseenPosts = Number(prev.unseenPosts) + 1;
                         break;
                     case "message":
-                        newNavItems.messages.notifications = Number(newNavItems.messages.notifications || 0) + 1;
-                        shouldUpdate = true;
+                        const alreadyExists = (prev.generalNotifications || []).some(
+                            (note) =>
+                                note.message?.toLowerCase().includes("message") &&
+                                note.sender_username === notification.sender_username
+                        );
+
+                        if (!alreadyExists) {
+                            updated.generalNotifications = [
+                                notification,
+                                ...(prev.generalNotifications || [])
+                            ];
+                        }
+                        updated.unreadMessages = Number(prev.unreadMessages) + 1;
                         break;
                     case "message_seen":
-                        newNavItems.messages.notifications = Number(Math.max(0, newNavItems.messages.notifications - notification.read_messages));
-                        shouldUpdate = true;
-                        break;
-                    case "user_online":
-                        newNavItems.friends.notifications = Number(newNavItems.friends.notifications || 0) + 1;
-                        shouldUpdate = true;
-                        break;
-                    case "user_offline":
-                        newNavItems.friends.notifications = Math.max(0, Number(newNavItems.friends.notifications || 1) - 1);
-                        shouldUpdate = true;
-                        break;
-                    case "friend_request":
-                        newNavItems.notifications.notifications = Number(newNavItems.notifications.notifications || 0) + 1;
-                        shouldUpdate = true;
-                        break
-                    case "invite":
-                        newNavItems.notifications.notifications = Number(newNavItems.notifications.notifications || 0) + 1;
-                        shouldUpdate = true;
+                        updated.unreadMessages = Math.max(0, Number(prev.unreadMessages) - notification.read_messages);
+                        updated.generalNotifications = (prev.generalNotifications || []).filter(
+                            note => !(note.message && note.message.toLowerCase().includes("message"))
+                        );
                         break;
                     case "reaction":
-                        newNavItems.notifications.notifications = Number(newNavItems.notifications.notifications || 0) + 1;
-                        shouldUpdate = true;
+                        updated.generalNotifications = [
+                            notification,
+                            ...(prev.generalNotifications || [])
+                        ];
+                        break;
+                    case "friend_request":
+                        updated.friendRequests = [
+                            ...(prev.friendRequests || []),
+                            {
+                                id: notification.sender_id,
+                                username: notification.sender_username
+                            }
+                        ];
+                        break;
+                    case "invite":
+                        updated.eventInvites = [
+                            ...(prev.eventInvites || []),
+                            {
+                                event_id: notification.event_id,
+                                title: notification.event_title,
+                                inviter_username: notification.sender_username
+                            }
+                        ];
                         break;
                     default:
-                        newNavItems.notifications.notifications = Number(newNavItems.notifications.notifications || 0) + 1;
-                        shouldUpdate = true;
                         break;
                 }
-
-                if (shouldUpdate && prev !== newNavItems) {
-                    console.log("📌 Updated notifications:", newNavItems);
-                    return newNavItems;
-                } else {
-                    console.log("⚠️ Skipping redundant state update.");
-                    return prev;
-                }
+        
+                return updated;
             });
         });
 
@@ -145,6 +158,44 @@ function Navbar({ onEventUpdate, events }) {
             WebSocketInstance.disconnect("navbar");
         };
     }, [userId, fetchNotifications]);
+
+    useEffect(() => {
+        if (!notifications) return;
+      
+        setNavItems(prev => ({
+          ...prev,
+          feed: {
+            ...prev.feed,
+            notifications: notifications.unseenPosts || 0,
+          },
+          messages: {
+            ...prev.messages,
+            notifications: notifications.unreadMessages || 0,
+          },
+          friends: {
+            ...prev.friends,
+            notifications: notifications.onlineFriends?.length || 0,
+          },
+          notifications: {
+            ...prev.notifications,
+            notifications:
+              (notifications.friendRequests?.length || 0) +
+              (notifications.eventInvites?.length || 0) +
+              (notifications.generalNotifications?.filter(note => !note.read).length || 0),
+          }
+        }));
+      }, [notifications]);      
+
+    useEffect(() => {
+        if (registerClearFeed) {
+          registerClearFeed(() => {
+            setNavItems((prev) => ({
+              ...prev,
+              feed: { ...prev.feed, notifications: 0 }
+            }));
+          });
+        }
+      }, [registerClearFeed]);      
 
     const handleRouteClick = (index, path) => {
         setActiveRoute(index);
@@ -200,14 +251,7 @@ function Navbar({ onEventUpdate, events }) {
 
                             {activeDropdown === "notifications" && (
                                 <div className="nav-dropdown">
-                                    {navItems.notifications.notifications === 0 ? (
-                                        <p>No new notifications</p>
-                                    ) : (
-                                        <>
-                                            <PendingRequests userId={userId} />
-                                            <EventInvites events={events} onUpdate={onEventUpdate} />
-                                        </>
-                                    )}
+                                    <Notifications notifications={notifications} setNotifications={setNotifications} />
                                 </div>
                             )}
 

@@ -5,8 +5,7 @@ import { faEllipsisH, faChevronUp, faRightFromBracket, faBell, faUserFriends, fa
 import MessengerToggle from './messenger/MessengerToggle';
 import FriendList from './friends/FriendList';
 import FriendRequest from './friends/FriendRequest';
-import PendingRequests from './friends/PendingRequests';
-import EventInvites from './events/EventInvites';
+import Notifications from './Notifications';
 import NotificationBadge from './NotificationBadge';
 import LandingToggle from './LandingToggle';
 import { useAuth } from './auth/AuthContext';
@@ -14,7 +13,7 @@ import { useAxios } from './auth/AxiosProvider';
 import WebSocketInstance from '../utils/WebSocket';
 import '../styles/ToggleableList.css';
 
-function ToggleableList({ onEventUpdate, events }) {
+function ToggleableList() {
     const [isExpanded, setIsExpanded] = useState(false);
     const [activeRoute, setActiveRoute] = useState(0);
     const [activeDropdown, setActiveDropdown] = useState(null);
@@ -178,18 +177,8 @@ function ToggleableList({ onEventUpdate, events }) {
 
                         {activeDropdown === "notifications" && (
                             <div className="menu-dropdown">
-                                {notifications.notifications === 0 ? (
-                                    <>
-                                        <div className='close-dropdown' onClick={() => setActiveDropdown(null)}>X</div>
-                                        <p>No new notifications</p>
-                                    </>
-                                ) : (
-                                    <>
-                                        <div className='close-dropdown' onClick={() => setActiveDropdown(null)}>X</div>
-                                        <PendingRequests userId={user.id} />
-                                        <EventInvites events={events} onUpdate={onEventUpdate} />
-                                    </>
-                                )}
+                                <div className='close-dropdown' onClick={() => setActiveDropdown(null)}>X</div>
+                                <Notifications notifications={notifications} setNotifications={setNotifications} />
                             </div>
                         )}
                     </>

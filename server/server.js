@@ -411,35 +411,59 @@ app.get('/auth/session', isAuthenticated, (req, res) => {
 });
 
 //events routes
-app.get("/events", isAuthenticated, async (req, res) => {
+// Add to your existing Express app
+app.get('/eventdata/:event_id', isAuthenticated, async (req, res) => {
   const userId = req.user.id;
+  const eventId = req.params.event_id;
 
   try {
-    const eventOptIns = await db.query(
-      `SELECT e.*, u.username, ep.has_shared_event, ep.has_shared_memory, ep.interaction_count, ep.status, ep.last_checked
+    const result = await db.query(`
+      SELECT 
+        e.event_id, 
+        e.title, 
+        e.description, 
+        e.creation_date, 
+        e.event_type, 
+        e.reveal_date, 
+        e.location,
+        u.username, 
+        e.created_by, 
+        u.profile_picture, 
+        e.visibility, 
+        ep.has_liked, 
+        ep.has_shared_event, 
+        ep.has_shared_memory, 
+        ep.status AS event_status,
+        (SELECT COUNT(*) FROM event_participation likes WHERE likes.event_id = e.event_id AND likes.has_liked = TRUE) AS likes_count,
+        (SELECT COUNT(*) FROM event_participation shares WHERE shares.event_id = e.event_id AND shares.has_shared_event = TRUE) AS shares_count,
+        (SELECT COUNT(*) FROM memories m WHERE m.event_id = e.event_id) AS memories_count,
+        COALESCE(ep.interaction_count, 0) AS interaction_count,
+        ARRAY_AGG(DISTINCT t.tag_name) AS tags,
+        EXTRACT(EPOCH FROM (NOW() - e.creation_date)) / 3600 AS age_in_hours,
+        (
+          (SELECT COUNT(*) FROM event_participation likes WHERE likes.event_id = e.event_id AND likes.has_liked = TRUE) * 1.5 +
+          (SELECT COUNT(*) FROM event_participation shares WHERE shares.event_id = e.event_id AND shares.has_shared_event = TRUE) * 1.2 +
+          (SELECT COUNT(*) FROM memories m WHERE m.event_id = e.event_id) * 1.0 +
+          COALESCE(ep.interaction_count, 0) * 1.1 +
+          COALESCE(LOG(GREATEST(EXTRACT(EPOCH FROM ep.interaction_duration)::NUMERIC + 1, 1)), 0) * 0.7
+        ) / POWER((EXTRACT(EPOCH FROM (NOW() - e.creation_date)) / 3600)::NUMERIC + 2, 1.2) AS hot_score
       FROM events e
       JOIN users u ON e.created_by = u.id
-      JOIN event_participation ep ON e.event_id = ep.event_id 
-      WHERE ep.user_id = $1 AND ep.status = 'opted_in'`, [userId]
-    );
+      LEFT JOIN event_participation ep ON e.event_id = ep.event_id AND ep.user_id = $1
+      LEFT JOIN event_tag_map etm ON e.event_id = etm.event_id
+      LEFT JOIN event_tags t ON etm.tag_id = t.tag_id
+      WHERE e.event_id = $2
+      GROUP BY e.event_id, u.username, u.profile_picture, ep.has_liked, ep.has_shared_event, ep.has_shared_memory, ep.status, ep.interaction_count, ep.interaction_duration
+    `, [userId, eventId]);
 
-    const eventInvites = await db.query(
-      `SELECT e.*, u.username, ep.has_shared_memory, ep.interaction_count, ep.status, ep.last_checked
-      FROM events e
-      JOIN users u ON e.created_by = u.id
-      JOIN event_participation ep ON e.event_id = ep.event_id 
-      WHERE ep.user_id = $1 AND ep.status = 'invited'`, [userId]
-    );
-
-    const events = {
-      Optins: eventOptIns.rows,
-      Invites: eventInvites.rows
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Event not found" });
     }
 
-    res.json(events)
+    res.json(result.rows[0]);
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send("Server Error");
+    console.error("Error fetching event:", err.message);
+    res.status(500).json({ error: "Server error retrieving event" });
   }
 });
 
@@ -1616,110 +1640,6 @@ app.get('/explore/personalized', isAuthenticated, async (req, res) => {
   }
 });
 
-app.get('/notifications/:userId', isAuthenticated, async (req, res) => {
-  const { userId } = req.params;
-
-  try {
-    const fetchFriends = await db.query(
-      `SELECT u.id, u.username 
-       FROM friends f
-       JOIN users u ON (u.id = f.friend_id OR u.id = f.user_id)
-       WHERE (f.user_id = $1 OR f.friend_id = $1) AND f.status = 'accepted'
-       AND u.id != $1`,
-      [userId]
-    );
-
-    const friends = fetchFriends.rows.map(friend => friend.id);
-
-    const fetchStatuses = await db.query(
-      `SELECT s.sess -> 'passport' ->> 'user' AS userId
-       FROM session s
-       WHERE (s.sess -> 'passport' ->> 'user')::int = ANY($1::int[])`,
-      [friends]
-    );
-
-    const fetchRequests = await db.query(
-      `SELECT * FROM friends JOIN users ON friends.user_id = users.id 
-       WHERE friend_id = $1 AND status = 'pending'`,
-      [userId]
-    );
-
-    const fetchInvites = await db.query(
-      `SELECT * FROM event_participation 
-       WHERE user_id = $1 AND status = 'invited'`,
-      [userId]
-    );
-
-    const fetchUnseenPosts = await db.query(
-      `SELECT COUNT(*) AS unseen_posts FROM events e
-        LEFT JOIN event_participation ep ON e.event_id = ep.event_id AND ep.user_id = $1
-        WHERE e.creation_date > (SELECT last_checked FROM users WHERE id = $1)
-        AND (
-            ep.status = 'opted_in' -- User opted into the event
-            OR (
-                e.created_by IN (
-                    SELECT friend_id FROM friends WHERE user_id = $1 AND status = 'accepted'
-                )
-                AND e.visibility IN ('public', 'friends_only')
-            )
-        );
-        `,
-      [userId]
-    );
-
-    const fetchUnreadMessages = await db.query(
-      `SELECT COUNT(*) AS unread_messages FROM message_status ms
-       WHERE ms.user_id = $1 AND ms.seen = FALSE`,
-      [userId]
-    );
-
-    const fetchNewMemories = await db.query(
-      `SELECT COUNT(*) AS new_memories FROM memories m
-       JOIN event_participation ep ON m.event_id = ep.event_id AND ep.user_id = $1
-       WHERE ep.status = 'opted_in' 
-       AND m.shared_date > ep.last_checked`,
-      [userId]
-    );
-
-    const fetchLikes = await db.query(
-      `SELECT COUNT(*) AS likes FROM notifications 
-       WHERE user_id = $1 AND message LIKE '%liked%' AND read = FALSE`,
-      [userId]
-    );
-
-    const fetchShares = await db.query(
-      `SELECT COUNT(*) AS shares FROM notifications 
-       WHERE user_id = $1 AND message LIKE '%shared%' AND read = FALSE`,
-      [userId]
-    );
-
-    const friendRequests = fetchRequests.rows;
-    const onlineFriends = fetchStatuses.rows.map(row => row.userId);
-    const eventInvites = fetchInvites.rows;
-    const unseenPosts = fetchUnseenPosts.rows[0].unseen_posts;
-    const unreadMessages = fetchUnreadMessages.rows[0].unread_messages;
-    const newMemories = fetchNewMemories.rows[0].new_memories;
-    const likes = fetchLikes.rows[0].likes;
-    const shares = fetchShares.rows[0].shares;
-
-    const notifications = {
-      unseenPosts,
-      unreadMessages,
-      onlineFriends,
-      friendRequests,
-      eventInvites,
-      newMemories,
-      likes,
-      shares
-    };
-
-    res.status(200).json(notifications);
-  } catch (error) {
-    console.error("Error retrieving notifications:", error);
-    res.status(500).json({ error: "Error retrieving notifications" });
-  }
-});
-
 app.get('/user/preferences/:userId', isAuthenticated, async (req, res) => {
   try {
     const { userId } = req.params;
@@ -1885,6 +1805,178 @@ app.get('/users/:userId/activities', isAuthenticated, async (req, res) => {
   } catch (error) {
     console.error("Error fetching activities:", error);
     res.status(500).json({ error: 'Failed to fetch activities.' });
+  }
+});
+//notifications routes
+app.get('/notifications/:userId', isAuthenticated, async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    const fetchGeneralNotifs = await db.query(
+      `SELECT * FROM notifications WHERE user_id = $1 ORDER BY created_at DESC`,
+      [userId]
+    );
+    const unfinishedNotifications = fetchGeneralNotifs.rows;
+
+    const eventIds = unfinishedNotifications
+      .filter(n => n.event_id)
+      .map(n => n.event_id);
+    const uniqueEventIds = [...new Set(eventIds)];
+
+    let eventMap = {};
+    if (uniqueEventIds.length > 0) {
+      const eventsResult = await db.query(`
+      SELECT 
+        e.event_id, e.title, e.description, e.creation_date, 
+        e.event_type, e.reveal_date, e.location, e.visibility,
+        u.username, u.profile_picture, e.created_by,
+        ep.has_liked, ep.has_shared_event, ep.has_shared_memory,
+        ep.status AS event_status,
+        (SELECT COUNT(*) FROM event_participation likes WHERE likes.event_id = e.event_id AND likes.has_liked = TRUE) AS likes_count,
+        (SELECT COUNT(*) FROM event_participation shares WHERE shares.event_id = e.event_id AND shares.has_shared_event = TRUE) AS shares_count,
+        (SELECT COUNT(*) FROM memories m WHERE m.event_id = e.event_id) AS memories_count,
+        COALESCE(ep.interaction_count, 0) AS interaction_count,
+        ARRAY_AGG(DISTINCT t.tag_name) AS tags,
+        EXTRACT(EPOCH FROM (NOW() - e.creation_date)) / 3600 AS age_in_hours,
+        (
+          (SELECT COUNT(*) FROM event_participation likes WHERE likes.event_id = e.event_id AND likes.has_liked = TRUE) * 1.5 +
+          (SELECT COUNT(*) FROM event_participation shares WHERE shares.event_id = e.event_id AND shares.has_shared_event = TRUE) * 1.2 +
+          (SELECT COUNT(*) FROM memories m WHERE m.event_id = e.event_id) * 1.0 +
+          COALESCE(ep.interaction_count, 0) * 1.1 +
+          COALESCE(LOG(GREATEST(EXTRACT(EPOCH FROM ep.interaction_duration)::NUMERIC + 1, 1)), 0) * 0.7
+        ) / POWER((EXTRACT(EPOCH FROM (NOW() - e.creation_date)) / 3600)::NUMERIC + 2, 1.2) AS hot_score
+      FROM events e
+      JOIN users u ON e.created_by = u.id
+      LEFT JOIN event_participation ep ON e.event_id = ep.event_id AND ep.user_id = $1
+      LEFT JOIN event_tag_map etm ON e.event_id = etm.event_id
+      LEFT JOIN event_tags t ON etm.tag_id = t.tag_id
+      WHERE e.event_id = ANY($2::int[])
+      GROUP BY e.event_id, u.username, u.profile_picture, ep.has_liked, ep.has_shared_event, ep.has_shared_memory, ep.status, ep.interaction_count, ep.interaction_duration
+    `, [userId, uniqueEventIds]);
+
+      eventMap = eventsResult.rows.reduce((map, event) => {
+        map[event.event_id] = event;
+        return map;
+      }, {});
+    }
+
+    const generalNotifications = unfinishedNotifications.map(note => ({
+      ...note,
+      ...(note.event_id ? { event: eventMap[note.event_id] } : {})
+    }));
+
+    const fetchFriends = await db.query(
+      `SELECT u.id, u.username 
+       FROM friends f
+       JOIN users u ON (u.id = f.friend_id OR u.id = f.user_id)
+       WHERE (f.user_id = $1 OR f.friend_id = $1) AND f.status = 'accepted'
+       AND u.id != $1`,
+      [userId]
+    );
+
+    const friends = fetchFriends.rows.map(friend => friend.id);
+
+    const fetchStatuses = await db.query(
+      `SELECT s.sess -> 'passport' ->> 'user' AS userId
+       FROM session s
+       WHERE (s.sess -> 'passport' ->> 'user')::int = ANY($1::int[])`,
+      [friends]
+    );
+
+    const fetchRequests = await db.query(
+      `SELECT * FROM friends JOIN users ON friends.user_id = users.id 
+       WHERE friend_id = $1 AND status = 'pending'`,
+      [userId]
+    );
+
+    const fetchInvites = await db.query(
+      `SELECT * FROM event_participation 
+       WHERE user_id = $1 AND status = 'invited'`,
+      [userId]
+    );
+
+    const fetchUnseenPosts = await db.query(
+      `SELECT COUNT(*) AS unseen_posts FROM events e
+        LEFT JOIN event_participation ep ON e.event_id = ep.event_id AND ep.user_id = $1
+        WHERE e.creation_date > (SELECT last_checked FROM users WHERE id = $1)
+        AND (
+            ep.status = 'opted_in' -- User opted into the event
+            OR (
+                e.created_by IN (
+                    SELECT friend_id FROM friends WHERE user_id = $1 AND status = 'accepted'
+                )
+                AND e.visibility IN ('public', 'friends_only')
+            )
+        );
+        `,
+      [userId]
+    );
+
+    const fetchUnreadMessages = await db.query(
+      `SELECT COUNT(*) AS unread_messages FROM message_status ms
+       WHERE ms.user_id = $1 AND ms.seen = FALSE`,
+      [userId]
+    );
+
+    const fetchNewMemories = await db.query(
+      `SELECT COUNT(*) AS new_memories FROM memories m
+       JOIN event_participation ep ON m.event_id = ep.event_id AND ep.user_id = $1
+       WHERE ep.status = 'opted_in' 
+       AND m.shared_date > ep.last_checked`,
+      [userId]
+    );
+
+    const friendRequests = fetchRequests.rows;
+    const onlineFriends = fetchStatuses.rows.map(row => row.userId);
+    const eventInvites = fetchInvites.rows;
+    const unseenPosts = fetchUnseenPosts.rows[0].unseen_posts;
+    const unreadMessages = fetchUnreadMessages.rows[0].unread_messages;
+    const newMemories = fetchNewMemories.rows[0].new_memories;
+
+    const notifications = {
+      unseenPosts,
+      unreadMessages,
+      onlineFriends,
+      friendRequests,
+      eventInvites,
+      newMemories,
+      generalNotifications
+    };
+
+    res.status(200).json(notifications);
+  } catch (error) {
+    console.error("Error retrieving notifications:", error);
+    res.status(500).json({ error: "Error retrieving notifications" });
+  }
+});
+
+app.post('/notifications/mark-read', isAuthenticated, async (req, res) => {
+  const { ids } = req.body;
+
+  try {
+    await db.query(
+      `UPDATE notifications SET read = TRUE WHERE id = ANY($1::int[])`,
+      [ids]
+    );
+    res.sendStatus(200);
+  } catch (err) {
+    console.error("Error marking notifications as read:", err);
+    res.status(500).send("Server Error");
+  }
+});
+
+app.delete('/notifications', isAuthenticated, async (req, res) => {
+  const { ids } = req.body;
+
+  try {
+    await db.query(
+      `DELETE FROM notifications WHERE id = ANY($1::int[])`,
+      [ids]
+    );
+    res.sendStatus(200);
+  } catch (err) {
+    console.error("Error deleting notifications:", err);
+    res.status(500).send("Server Error");
   }
 });
 
@@ -2151,20 +2243,6 @@ app.post('/friends/request', isAuthenticated, async (req, res) => {
     res.status(201).json({ message: 'Friend request sent' });
   } catch (error) {
     console.error("error sending friend request:", error);
-    res.status(500).json({ error: 'Error sending friend request' });
-  }
-});
-
-app.get('/friends/requests/:userId', isAuthenticated, async (req, res) => {
-  const { userId } = req.params;
-  try {
-    const fetchRequests = await db.query(
-      'SELECT * FROM friends JOIN users ON friends.user_id = users.id WHERE friend_id = $1 AND status = $2',
-      [userId, 'pending']
-    );
-    const friendRequests = fetchRequests.rows;
-    res.json(friendRequests);
-  } catch (error) {
     res.status(500).json({ error: 'Error sending friend request' });
   }
 });

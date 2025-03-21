@@ -70,6 +70,7 @@ export async function handleSendMessage(message, senderId, connectedClients) {
             recipientId,
             message: `${senderUsername} sent you a new message`,
             type: "message",
+            sender_username: senderUsername,
           },
           senderId,
           connectedClients
@@ -222,7 +223,15 @@ export async function handleMarkSeen(message, userId, connectedClients) {
 }
 
 export async function handleSendNotification(notification, senderId, connectedClients) {
-  const { recipientId, message, type = "general", eventId = null, memoryId = null, read_messages = null } = notification;
+  const {
+    recipientId,
+    message,
+    type = "general",
+    eventId = null,
+    memoryId = null,
+    read_messages = null,
+    sender_username = null
+  } = notification;
 
   if (notificationTimers.has(recipientId)) {
     clearTimeout(notificationTimers.get(recipientId));
@@ -233,25 +242,85 @@ export async function handleSendNotification(notification, senderId, connectedCl
 
     try {
       let newNotification;
-      if (type !== 'message_seen') {
-      const insertNotification = await db.query(
-        `INSERT INTO notifications (user_id, message, event_id, memory_id, read, created_at) 
-           VALUES ($1, $2, $3, $4, FALSE, NOW()) 
+
+      // Avoid inserting duplicate message notifications
+      if (
+        type === 'message'
+      ) {
+        const existing = await db.query(
+          `SELECT * FROM notifications
+           WHERE user_id = $1 AND message ILIKE '%message%' AND read = FALSE
+           AND sender_username = $2`,
+          [recipientId, sender_username]
+        );
+
+        if (existing.rows.length > 0) {
+          console.log(`🔁 Skipping duplicate message notification from ${sender_username}`);
+          newNotification = {
+            user_id: recipientId,
+            message,
+            type,
+            sender_username,
+            duplicate: true
+          };
+        } else {
+          const insertNotification = await db.query(
+            `INSERT INTO notifications (user_id, message, event_id, memory_id, read, created_at, sender_username) 
+             VALUES ($1, $2, $3, $4, FALSE, NOW(), $5) 
+             RETURNING *`,
+            [recipientId, message, eventId, memoryId, sender_username]
+          );
+          newNotification = insertNotification.rows[0];
+        }
+      } else if (
+        type !== 'message_seen' &&
+        type !== 'user_online' &&
+        type !== 'user_offline'
+      ) {
+        const insertNotification = await db.query(
+          `INSERT INTO notifications (user_id, message, event_id, memory_id, read, created_at, sender_username) 
+           VALUES ($1, $2, $3, $4, FALSE, NOW(), $5) 
            RETURNING *`,
-        [recipientId, message, eventId, memoryId]
-      );
-      newNotification = insertNotification.rows[0];
-    } else {
-      newNotification = {
-        user_id: recipientId,
-        message: message,
+          [recipientId, message, eventId, memoryId, sender_username]
+        );
+        newNotification = insertNotification.rows[0];
+      } else {
+        newNotification = {
+          user_id: recipientId,
+          message
+        };
       }
-    }
+
+      if (type === 'new_post' && eventId) {
+        const eventResult = await db.query(
+          `SELECT 
+                  e.event_id, 
+                  e.title, 
+                  e.created_by, 
+                  u.username, 
+                  u.profile_picture, 
+                  e.creation_date,
+                  e.event_type,
+                  e.reveal_date,
+                  e.visibility,
+                  ep.has_shared_memory
+           FROM events e
+           JOIN users u ON e.created_by = u.id
+           LEFT JOIN event_participation ep ON ep.user_id = $1 AND ep.event_id = e.event_id
+           WHERE e.event_id = $2`,
+          [recipientId, eventId]
+        );
+
+        if (eventResult.rows.length > 0) {
+          newNotification.event = eventResult.rows[0];
+        }
+      }
 
       newNotification.type = type;
       newNotification.read_messages = read_messages;
+      newNotification.sender_username = sender_username;
+
       if (connectedClients.navbar[recipientId]) {
-        console.log(`📡 Sending WebSocket notification to user ${recipientId}`);
         connectedClients.navbar[recipientId].forEach(client => {
           client.send(JSON.stringify({
             type: 'new_notification',
@@ -261,7 +330,6 @@ export async function handleSendNotification(notification, senderId, connectedCl
       } else {
         console.log(`❌ User ${recipientId} is not connected via WebSocket`);
       }
-
     } catch (error) {
       console.error("Error sending notification:", error);
     } finally {
@@ -270,7 +338,6 @@ export async function handleSendNotification(notification, senderId, connectedCl
   }, 300);
 
   notificationTimers.set(recipientId, timer);
-
 }
 
 export async function handleConversationUpdate(message, userId, connectedClients) {

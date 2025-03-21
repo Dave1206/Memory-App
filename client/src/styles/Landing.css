@@ -1,8 +1,8 @@
 /* Main container */
 .landing-container {
   position: absolute;
-  top: 0;
-  left: 0;
+  inset: 0;
+  margin: auto;
   width: 88vw;
   height: 90vh;
   max-width: 1200px;
@@ -196,6 +196,9 @@
   font-weight: bold;
   margin-bottom: 10px;
   color: #8c7051;
+}
+.welcome-content ul{
+  list-style-type: none;
 }
 
 /* Responsive Design */

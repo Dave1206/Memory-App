@@ -9,7 +9,7 @@ import FeedPost from "./FeedPost";
 import SelectedEvent from "./events/SelectedEvent";
 import backgroundLogo from "../assets/Logo_transparent.png";
 
-function Feed({ getEvents }) {
+function Feed({ onFeedTabView }) {
     const { axiosInstance,isPageLoaded } = useAxios();
     const { selectedEvent, handleSelectEvent, handleBackButton } = useInteractionTracking(null, "/feed");
     const { user } = useAuth();
@@ -140,7 +140,12 @@ function Feed({ getEvents }) {
             });
         }
     }, [newEvent, activeTab, filters, sortOrder, user]);
-    
+
+    useEffect(() => {
+        if (activeTab === "feed" && typeof onFeedTabView === "function") {
+          onFeedTabView();
+        }
+      }, [activeTab, onFeedTabView]);
 
     useEffect(() => {
         let debounceTimer;
@@ -306,7 +311,7 @@ function Feed({ getEvents }) {
                
             </div>
         ) : (
-            <SelectedEvent event={selectedEvent} handleBackButton={handleBackButton} getEvents={getEvents} />
+            <SelectedEvent event={selectedEvent} handleBackButton={handleBackButton} />
         )
     );
 }
