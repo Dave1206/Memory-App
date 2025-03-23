@@ -1,0 +1,165 @@
+  .event-composer {
+    padding: 20px;
+    width: 50vw;
+    background-color: darksalmon;
+    max-width: 500px;
+    border-radius: 12px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    position: relative;
+    overflow-y: auto;
+  }
+  
+  /* Title Input */
+  .title-input {
+    width: 95%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+    margin-bottom: 5px;
+  }
+  
+  /* Character Counter */
+  .character-counter {
+    font-size: 0.8rem;
+    color: #666;
+    text-align: right;
+    margin-bottom: 10px;
+  }
+  
+  /* Memory Section */
+  .memory-section {
+    margin: 10px 0;
+  }
+  
+  /* Memory Toolbar & Emoji Toolbar */
+  .memory-toolbar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 5px;
+  }
+  
+  .emoji-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 10px;
+  }
+  
+  /* Memory Input (Textarea) */
+  .memory-input {
+    width: 95%;
+    height: 100px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    resize: none;
+    font-size: 1rem;
+    margin-bottom: 5px;
+  }
+  
+  /* Checkbox Groups for Event Type, Visibility, and Location Detection */
+  .checkbox-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 10px 0;
+  }
+  
+  .checkbox-group label {
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+  
+  /* Friend Invites */
+  .friend-select {
+    margin: 10px 0;
+  }
+  
+  .friend-select ul {
+    list-style: none;
+    padding: 0;
+    margin: 5px 0;
+  }
+  
+  .friend-select li {
+    margin-bottom: 5px;
+  }
+  
+  /* Tag Selection */
+  .tag-input{
+    max-width: 95%;
+  }
+
+  .tag-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-bottom: 5px;
+  }
+  
+  .tag-selected, .tag-unselected {
+    padding: 5px 10px;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+  
+  .tag-selected {
+    background-color: #a0b2a3;
+    color: #fff;
+  }
+  
+  .tag-unselected {
+    background-color: #f0f0f0;
+    color: #333;
+  }
+  
+  /* Action Buttons */
+  .composer-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 15px;
+  }
+  
+  .composer-actions button {
+    flex: 1;
+    padding: 10px;
+    margin: 0 5px;
+    border: none;
+    border-radius: 8px;
+    background-color: #333;
+    color: #fff;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .composer-actions button:hover {
+    background-color: #555;
+  }
+  
+  .composer-actions button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
+  
+  /* Media Uploader (if any additional styles needed) */
+  .media-uploader {
+    margin: 10px 0;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .event-composer {
+      align-items: flex-start;
+      width: 95vw;
+      max-width: 95vw;
+      min-height: 90vh;
+      max-height: 90vh;
+      padding: 10px;
+      border-radius: 0;
+    }
+  }
+  

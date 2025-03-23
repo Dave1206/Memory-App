@@ -1,98 +1,122 @@
-/* Main container adjustment */
+/* Overall container */
 .moderator-tools {
-    width: 100%;
-    height: 100%; 
-    padding: 20px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    background-color: rgba(255, 255, 255, 0.253);
-    color: #333;
+    min-width: 50vw;
+    max-width: 50vw;
+    margin: 20px auto;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    overflow: hidden;
+    font-family: 'Helvetica', sans-serif;
+  }
+  
+  /* Tabs container */
+  .moderator-tools .tabs {
     display: flex;
-    gap: 20px; 
-    box-sizing: border-box;
-}
-
-/* Flexbox for responsive layout */
-.moderator-tools-group {
-    flex: 1 1 48%; 
-    display: flex;
-    flex-direction: column;
-    padding: 10px;
-    align-items: center;
-    box-sizing: border-box;
-    max-height: 100%;
-    gap: 15px; 
-}
-
-.audit-log-wrapper,
-#ban-user-section,
-.mod-notes-section,
-#picture-mod-queue-section {
-    width: 100%;
-    max-height: calc(50% - 20px);
-    margin-top: 20px;
-}
-
-#ban-user-section{
-    display:flex;
-    flex-direction: column;
+    border-bottom: 1px solid #ddd;
+    background-color: #f7f7f7;
+  }
+  
+  .moderator-tools .tabs .tab {
     flex: 1;
-}
-
-.ban-user-form{
+    padding: 10px;
+    text-align: center;
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-size: 1rem;
+    transition: background-color 0.3s, color 0.3s;
+  }
+  
+  .moderator-tools .tabs .tab:hover {
+    background-color: #e0e0e0;
+  }
+  
+  .moderator-tools .tabs .tab.active {
+    background-color: #a0b2a3;
+    color: #fff;
+    font-weight: bold;
+  }
+  
+  /* Content area */
+  .moderator-tools .tab-content {
+    padding: 15px;
+  }
+  
+  /* Sections within moderator tools */
+  .moderator-tools section {
+    margin-bottom: 20px;
+  }
+  
+  .moderator-tools h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    text-align: center;
+  }
+  
+  /* Audit log & mod notes styling */
+  .audit-log, .mod-notes {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    padding: 10px;
+    border-radius: 5px;
+    background-color: #fafafa;
+  }
+  
+  .audit-log-entry, .mod-note {
+    border-bottom: 1px solid #eee;
+    padding: 5px 0;
+  }
+  
+  .audit-log-entry:last-child, .mod-note:last-child {
+    border-bottom: none;
+  }
+  
+  /* Ban user form */
+  .ban-user-form {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    height: 100%;
-}
-
-.ban-user-form input{
-    min-height: 25px;
-}
-
-#reason-input{
-    flex: 1;
+  }
+  
+  .ban-user-form input[type="text"],
+  .ban-user-form textarea {
     width: 100%;
-    resize: none;
-}
-
-/* Individual Section Styles */
-.audit-log, .mod-notes, #picture-mod-queue-section {
-    max-height: 180px;
-    overflow-y: scroll;
-}
-
-.audit-log-entry, .mod-note {
-    padding: 5px;
-    border-bottom: 1px solid #ddd;
-}
-
-.mod-button{
-    justify-content: center;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .moderator-tools-group {
-        flex: 1 1 100%;
-        align-items: flex-start;
-        margin-bottom: 20px;
-    }
-
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+  
+  /* Buttons */
+  .admin-button, .mod-button {
+    padding: 10px 15px;
+    background-color: #333;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 10px;
+    align-self: center;
+  }
+  
+  .admin-button:hover, .mod-button:hover {
+    background-color: #555;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
     .moderator-tools {
-        flex-direction: column;
-        overflow-y: scroll;
+      min-width: 95vw;
+      max-width: 95vw;
+      padding: 10px;
     }
-
-    .moderator-tools section {
-        width: 100%;
-        margin-top: 20px;
+    .moderator-tools .tabs .tab {
+      font-size: 0.9rem;
+      padding: 8px;
     }
-
-    .ban-user-form input,
-    textarea,
-    .mod-button,
-    .admin-button {
-        width: 100%;
+    .audit-log, .mod-notes {
+      max-height: 200px;
     }
-}
+  }
+  

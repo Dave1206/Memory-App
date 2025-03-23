@@ -12,13 +12,17 @@ import nodemailer from "nodemailer";
 import crypto from "crypto";
 import multer from "multer";
 import sharp from "sharp";
+import ffmpeg from 'fluent-ffmpeg';
+import { Readable } from 'stream';
 import { moderateImageContent } from './contentModeration.js';
+import fs from 'fs';
+import { temporaryFile as tempyFile } from 'tempy';
 import cloudinary from 'cloudinary';
 import axios from "axios";
 import { WebSocketServer } from "ws";
 import { handleSendMessage, handleMarkSeen, handleSendNotification, handleConversationUpdate } from "./utils/websocketHandlers.js";
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { basename, dirname, join } from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -148,10 +152,12 @@ const transporter = nodemailer.createTransport({
 });
 
 const upload = multer({
-  limits: { fileSize: 5 * 1024 * 1024 }, // Limit size to 5MB
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB max for videos
   fileFilter(req, file, cb) {
-    if (!file.originalname.match(/\.(jpg|jpeg|png)$/)) {
-      return cb(new Error('Please upload an image (jpg, jpeg, png).'));
+    const isImage = file.mimetype.match(/^image\/(jpeg|png|jpg)$/);
+    const isVideo = file.mimetype.match(/^video\/(mp4|quicktime)$/); // mp4, mov
+    if (!isImage && !isVideo) {
+      return cb(new Error('Only image and video files are allowed.'));
     }
     cb(null, true);
   }
@@ -162,6 +168,15 @@ cloudinary.v2.config({
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
+
+async function deleteMediaAsset(publicId, resourceType = 'image') {
+  return new Promise((resolve, reject) => {
+    cloudinary.v2.uploader.destroy(publicId, { resource_type: resourceType }, (error, result) => {
+      if (error) return reject(error);
+      resolve(result);
+    });
+  });
+}
 
 //server functions
 function isAuthenticated(req, res, next) {
@@ -699,10 +714,10 @@ app.get("/events/followed", isAuthenticated, async (req, res) => {
   }
 });
 
-app.post("/events", isAuthenticated, async (req, res) => {
+app.post("/events/compose", isAuthenticated, async (req, res) => {
   try {
-    const { newEvent, memoryContent } = req.body;
-    const { title, invites, eventType, revealDate, visibility, tags, location } = newEvent;
+    const { newEvent, memoryContent, mediaToken } = req.body;
+    const { title, invites = [], eventType, revealDate, visibility, tags = [], location } = newEvent;
     const userId = req.user.id;
     const timeStamp = new Date(Date.now() + (1000 * 60 * (-(new Date()).getTimezoneOffset()))).toISOString().replace('T', ' ').replace('Z', '');
 
@@ -715,8 +730,8 @@ app.post("/events", isAuthenticated, async (req, res) => {
     const eventId = newEventResult.rows[0].event_id;
 
     await db.query(
-      "INSERT INTO memories (event_id, user_id, content) VALUES ($1, $2, $3)",
-      [eventId, userId, memoryContent]
+      "INSERT INTO memories (event_id, user_id, content, media_token) VALUES ($1, $2, $3, $4)",
+      [eventId, userId, memoryContent, mediaToken]
     );
 
     await db.query(
@@ -789,7 +804,8 @@ app.post("/events", isAuthenticated, async (req, res) => {
 
     await logActivity(req.user.id, 'created_event', `Created a new event: ${title}`, eventId, 'event');
 
-    res.json({ success: true, eventId });
+    newEvent.event_id = eventId;
+    res.json({ success: true, newEvent: newEvent });
 
   } catch (err) {
     console.error(err.message);
@@ -949,6 +965,25 @@ app.post("/deleteevent/:event_id", isAuthenticated, async (req, res) => {
     const isCreator = userId === eventResult.rows[0].created_by;
 
     if (isCreator) {
+      const memoriesResult = await db.query("SELECT memory_id FROM memories WHERE event_id = $1", [event_id]);
+      const memoryIds = memoriesResult.rows.map(row => row.memory_id);
+
+      if (memoryIds.length > 0) {
+        const mediaResult = await db.query(
+          "SELECT public_id, thumbnail_public_id, media_type FROM memory_media_queue WHERE memory_id = ANY($1)",
+          [memoryIds]
+        );
+
+        for (const row of mediaResult.rows) {
+          if (row.public_id) {
+            await deleteMediaAsset(row.public_id, row.media_type);
+          }
+          if (row.media_type === 'video' && row.thumbnail_public_id) {
+            await deleteMediaAsset(row.thumbnail_public_id, 'image');
+          }
+        }
+        await db.query("DELETE FROM memory_media_queue WHERE memory_id = ANY($1)", [memoryIds]);
+      }
       await db.query("DELETE FROM event_participation WHERE event_id = $1", [event_id]);
       await db.query("DELETE FROM memories WHERE event_id = $1", [event_id]);
       await db.query("DELETE FROM event_tag_map WHERE event_id = $1", [event_id]);
@@ -1031,10 +1066,22 @@ app.get("/events/:event_id/memories", isAuthenticated, async (req, res) => {
     }
 
     const memories = await db.query(
-      `SELECT m.user_id, u.username, m.content, m.shared_date 
+      `SELECT 
+          m.memory_id,
+          m.user_id, 
+          u.username, 
+          m.content, 
+          m.shared_date,
+          m.media_token,
+          COALESCE(
+            array_agg(mm.media_url) FILTER (WHERE mm.media_url IS NOT NULL),
+            '{}'
+          ) AS media_urls
        FROM memories m 
        JOIN users u ON m.user_id = u.id 
-       WHERE m.event_id = $1`,
+       LEFT JOIN memory_media_queue mm ON mm.memory_id = m.memory_id
+       WHERE m.event_id = $1
+       GROUP BY m.memory_id, m.user_id, u.username, m.content, m.shared_date, m.media_token`,
       [eventId]
     );
 
@@ -1186,6 +1233,41 @@ app.post('/memories/:memoryId/like', isAuthenticated, async (req, res) => {
   } catch (error) {
     console.error("Error toggling like on memory:", error);
     res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.delete("/memories/:memoryId", isAuthenticated, async (req, res) => {
+  const { memoryId } = req.params;
+  const userId = req.user.id;
+
+  try {
+    await db.query("BEGIN");
+
+    const memoryRes = await db.query("SELECT * FROM memories WHERE memory_id = $1 AND user_id = $2", [memoryId, userId]);
+    if (memoryRes.rows.length === 0) {
+      await db.query("ROLLBACK");
+      return res.status(404).json({ message: "Memory not found or not authorized" });
+    }
+
+    const mediaRes = await db.query("SELECT public_id, thumbnail_public_id, media_type FROM memory_media_queue WHERE memory_id = $1", [memoryId]);
+    for (const row of mediaRes.rows) {
+      if (row.public_id) {
+        await deleteMediaAsset(row.public_id, row.media_type);
+      }
+      if (row.media_type === 'video' && row.thumbnail_public_id) {
+        await deleteMediaAsset(row.thumbnail_public_id, 'image');
+      }
+    }
+
+    await db.query("DELETE FROM memory_media_queue WHERE memory_id = $1", [memoryId]);
+    await db.query("DELETE FROM memories WHERE memory_id = $1", [memoryId]);
+
+    await db.query("COMMIT");
+    res.json({ message: "Memory and associated media deleted successfully." });
+  } catch (err) {
+    await db.query("ROLLBACK");
+    console.error("Error deleting memory:", err.message);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
@@ -2449,7 +2531,8 @@ app.post("/reset-password", async (req, res) => {
   }
 });
 
-app.post('/upload-profile-picture', isAuthenticated, upload.single('profilePic'), async (req, res) => {
+//media routes
+app.post('/upload/profile-picture', isAuthenticated, upload.single('profilePic'), async (req, res) => {
   try {
     const buffer = await sharp(req.file.buffer)
       .resize({ width: 250, height: 250 })
@@ -2481,6 +2564,140 @@ app.post('/upload-profile-picture', isAuthenticated, upload.single('profilePic')
   }
 });
 
+app.post('/upload/memory-media', isAuthenticated, upload.single('media'), async (req, res) => {
+  try {
+    const { visibility, mediaToken } = req.body;
+    const userId = req.user.id;
+    const fileType = req.file.mimetype.startsWith('video') ? 'video' : 'image';
+
+    if (fileType === 'image') {
+      const buffer = await sharp(req.file.buffer)
+        .resize({ width: 1280 })
+        .jpeg({ quality: 80 })
+        .toBuffer();
+
+      const isSafe = await moderateImageContent(buffer);
+      if (!isSafe) {
+        return res.status(400).json({ error: 'Inappropriate image content' });
+      }
+
+      const cloudinaryStream = cloudinary.v2.uploader.upload_stream(
+        { resource_type: 'image' },
+        async (error, result) => {
+          if (error) return res.status(500).json({ error: 'Cloudinary upload failed' });
+
+          const publicId = result.public_id;
+          const secureUrl = result.secure_url;
+          
+          if (visibility === 'private') {
+            return res.status(200).json({ mediaUrl: sucureUrl, public_id: publicId, resource_type: 'image' });
+          }
+
+          await db.query(
+            `INSERT INTO memory_media_queue (user_id, media_url, media_type, media_token, public_id)
+             VALUES ($1, $2, 'image', $3, $4)`,
+            [userId, secureUrl, mediaToken, publicId]
+          );
+
+          res.status(200).json({ message: 'Image uploaded for moderation' });
+        }
+      );
+
+      Readable.from(buffer).pipe(cloudinaryStream);
+    }
+
+    else {
+      const tempPath = tempyFile({ extension: 'mp4' });
+      fs.writeFileSync(tempPath, req.file.buffer);
+
+      if (!fs.existsSync(tempPath)) {
+        console.error("Temporary file does not exist:", tempPath);
+      } else {
+        const stats = fs.statSync(tempPath);
+      }
+
+      ffmpeg.ffprobe(tempPath, async (err, metadata) => {
+        if (err) {
+          console.error("ffprobe error:", err);
+          return res.status(500).json({ error: 'Error reading video metadata' });
+        }
+
+        const { duration } = metadata.format;
+        if (duration > 60) {
+          return res.status(400).json({ error: 'Video must be under 60 seconds' });
+        }
+
+        const thumbPath = tempyFile({ extension: 'jpg' });
+
+        await new Promise((resolve, reject) => {
+          ffmpeg(tempPath)
+            .screenshots({ timestamps: ['00:00:01.000'], filename: basename(thumbPath), folder: dirname(thumbPath) })
+            .on('end', resolve)
+            .on('error', (err) => {
+              console.error("ffmpeg screenshot error:", err);
+              reject(err);
+        });
+      });
+
+        const thumbnailBuffer = fs.readFileSync(thumbPath);
+
+        const isSafe = await moderateImageContent(thumbnailBuffer);
+        if (!isSafe) {
+          return res.status(400).json({ error: 'Inappropriate video content' });
+        }
+
+        const uploadThumbnail = () => new Promise((resolve, reject) => {
+          const stream = cloudinary.v2.uploader.upload_stream({ resource_type: 'image' }, (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          });
+          Readable.from(thumbnailBuffer).pipe(stream);
+        });
+
+        const uploadVideo = () => new Promise((resolve, reject) => {
+          const stream = cloudinary.v2.uploader.upload_stream({ resource_type: 'video' }, (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          });
+          Readable.from(req.file.buffer).pipe(stream);
+        });
+
+        try {
+          const [thumbResult, vidResult] = await Promise.all([uploadThumbnail(), uploadVideo()]);
+
+          const videoPublicId = vidResult.public_id;
+          const videoSecureUrl = vidResult.secure_url;
+          const thumbnailPublicId = thumbResult.public_id;
+          const thumbnailSecureUrl = thumbResult.secure_url;
+
+          if (visibility === 'private') {
+            return res.status(200).json({ 
+              mediaUrl: vidResult.secure_url, 
+              thumbnailUrl: thumbResult.secure_url,
+              public_id: videoPublicId,
+              resource_type: 'video' 
+            });
+          }
+
+          await db.query(`
+            INSERT INTO memory_media_queue 
+            (user_id, media_url, media_type, thumbnail_url, media_token, public_id, thumbnail_public_id)
+            VALUES ($1, $2, 'video', $3, $4, $5, $6)
+          `, [userId, videoSecureUrl, thumbnailSecureUrl, mediaToken, videoPublicId, thumbnailPublicId]);
+
+          res.status(200).json({ message: 'Video and thumbnail uploaded for moderation' });
+        } catch (uploadErr) {
+          console.error("Upload error:", uploadErr);
+          res.status(500).json({ error: 'Upload to Cloudinary failed' });
+        }
+      });
+    }
+  } catch (error) {
+    console.error("Media upload error:", error);
+    res.status(500).json({ error: 'Failed to upload media' });
+  }
+});
+
 //moderator routes
 app.post('/moderate/profile-picture/:queueId', isAuthenticated, isModerator, async (req, res) => {
   const { queueId } = req.params;
@@ -2506,7 +2723,7 @@ app.post('/moderate/profile-picture/:queueId', isAuthenticated, isModerator, asy
 
 app.get('/moderate/profile-picture/queue', isAuthenticated, isModerator, async (req, res) => {
   try {
-    const result = await db.query('SELECT * FROM profile_picture_queue');
+    const result = await db.query(`SELECT *, 'profile_picture' AS type FROM profile_picture_queue`);
     res.json(result.rows);
   } catch (error) {
     console.error("Error fetching profile picture queue:", error);
@@ -2514,6 +2731,56 @@ app.get('/moderate/profile-picture/queue', isAuthenticated, isModerator, async (
   }
 });
 
+app.post('/moderate/media/:queueId', isAuthenticated, isModerator, async (req, res) => {
+  const { queueId } = req.params;
+  const { action } = req.body;
+
+  // Try finding in profile queue first
+  const memoryMedia = await db.query(`SELECT * FROM memory_media_queue WHERE id = $1`, [queueId]);
+
+  const record = memoryMedia.rows[0];
+  if (!record) {
+    return res.status(404).json({ error: 'Media not found' });
+  }
+
+  if (action === 'approve') {
+    await db.query(`
+      UPDATE memory_media_queue
+      SET status = 'approved',
+          memory_id = (SELECT memory_id FROM memories WHERE media_token = $1),
+          media_token = NULL
+      WHERE id = $2
+    `, [record.media_token, queueId]);
+    await db.query(`
+      UPDATE memories
+      SET media_token = NULL
+      WHERE media_token = $1
+        AND NOT EXISTS (
+          SELECT 1 FROM memory_media_queue WHERE media_token = $1
+        )
+    `, [record.media_token]);
+    return res.json({ message: 'Memory media approved and saved' });
+  } else if (action === 'deny') {
+    await db.query(`DELETE FROM memory_media_queue WHERE id = $1`, [queueId]);
+    return res.json({ message: 'Media denied and removed' });
+  } else {
+    return res.status(400).json({ error: 'Invalid action' });
+  }
+});
+
+app.get('/moderate/media/queue', isAuthenticated, isModerator, async (req, res) => {
+  try {
+    const mediaQueue = await db.query(`
+      SELECT *, 'memory_media' AS type 
+      FROM memory_media_queue 
+      WHERE status = 'pending'
+    `);
+    res.json(mediaQueue.rows);
+  } catch (err) {
+    console.error("Error fetching media queue:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
 
 app.delete('/moderate/remove/:type/:contentId', isAuthenticated, isModerator, async (req, res) => {
   const { type, contentId } = req.params;

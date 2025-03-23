@@ -72,7 +72,7 @@ function FeedPost({ post, onLike, onShare, onAddEvent, onRemoveEvent, onBlock, c
                 const creatorMemoryPost = response.data.find(memory => memory.user_id === post.created_by);
 
                 if (creatorMemoryPost) {
-                    setCreatorMemory(creatorMemoryPost.content);
+                    setCreatorMemory(creatorMemoryPost);
                 }
 
                 setIsBlurred(!post.has_shared_memory);
@@ -124,7 +124,31 @@ function FeedPost({ post, onLike, onShare, onAddEvent, onRemoveEvent, onBlock, c
                 {creatorMemory ? (
                     <div className={`feed-post-content`}>
                         <h3 className={`${post.title.length > titleChecker ? 'long-title' : ''}`}>{post.title}</h3>
-                        <p className={` ${isBlurred ? 'blurred-memory' : ''}`}>{creatorMemory}</p>
+                        <div className={`creator-memory ${isBlurred ? 'blurred-memory' : ''}`}>
+                            <div className="memory-text">{creatorMemory.content}</div>
+                            {creatorMemory.media_urls && creatorMemory.media_urls.length > 0 && (
+                                <div className="memory-media-collage">
+                                    {creatorMemory.media_urls.map((url, i) => {
+                                        // Determine if the media is a video. You might have more reliable logic,
+                                        // but here we check for .mp4 in the URL.
+                                        const isVideo = url.toLowerCase().endsWith('.mp4') || url.includes('video');
+                                        return (
+                                            <div key={i} className={`collage-item ${isVideo ? 'collage-item-video' : ''}`}>
+                                                {isVideo ? (
+                                                    <video
+                                                        src={url}
+                                                        controls
+                                                        className="collage-media"
+                                                    />
+                                                ) : (
+                                                    <img src={url} alt="Memory media" className="collage-media" />
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 ) : (
                     <p className="feed-post-content no-memory">Event creator hasn't shared a memory yet.</p>

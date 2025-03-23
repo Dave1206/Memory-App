@@ -1,0 +1,55 @@
+.media-uploader {
+    border: 2px dashed #a0b2a3;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    background-color: #66666670;
+    transition: border-color 0.3s ease, background-color 0.3s ease;
+    cursor: pointer;
+    position: relative;
+  }
+  
+  .media-uploader:hover {
+    border-color: #4caf50;
+    background-color: #f7f7f7;
+  }
+  
+  /* Instructive text inside the drag-and-drop area */
+  .media-uploader .upload-label {
+    display: block;
+    font-size: 1rem;
+    color: #333;
+    margin-bottom: 10px;
+  }
+  
+  /* Make sure the file input is hidden */
+  .media-uploader input[type="file"] {
+    display: none;
+  }
+  
+  /* Preview container styling if needed */
+  .media-uploader .previews {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 15px;
+  }
+  
+  /* Style for each preview (if you want to show thumbnails) */
+  .media-uploader .preview {
+    position: relative;
+    display: inline-block;
+  }
+  
+  .media-uploader .remove-media {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(0, 0, 0, 0.5);
+    border: none;
+    color: #fff;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+  
