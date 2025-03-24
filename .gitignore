@@ -17,3 +17,4 @@ client/.env
 # Ignore OS/system-specific files
 .DS_Store
 Thumbs.db
+node_modules
