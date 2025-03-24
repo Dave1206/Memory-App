@@ -150,11 +150,11 @@ function EventComposer({ show, onClose }) {
     };
 
     const handleSubmit = async () => {
-        // if (!eventDetails.title.trim() || memory.split(" ").length < 20) {
-        //     alert("Title is required and memory must be at least 20 words.");
-        //     return;
-        // }
-        // For private events, ensure at least one friend is invited
+        if (!eventDetails.title.trim() || memory.split(" ").length < 20) {
+            alert("Title is required and memory must be at least 20 words.");
+            return;
+        }
+
         if (eventDetails.visibility === "private" && eventDetails.invites.length === 0) {
             alert("You must invite at least one friend for a private event.");
             return;
