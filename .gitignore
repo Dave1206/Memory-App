@@ -4,6 +4,7 @@ server/config/google-vision-key.json
 # Ignore Node.js dependencies
 client/node_modules/
 server/node_modules/
+/node_modules
 
 # Ignore build files
 client/build/
@@ -11,7 +12,7 @@ server/build/
 
 # Ignore environment files
 client/.env
-server/.env
+.env
 
 # Ignore OS/system-specific files
 .DS_Store
