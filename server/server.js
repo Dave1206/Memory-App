@@ -12,7 +12,6 @@ import nodemailer from "nodemailer";
 import crypto from "crypto";
 import multer from "multer";
 import sharp from "sharp";
-import ffmpeg from 'fluent-ffmpeg';
 import { Readable } from 'stream';
 import { moderateImageContent } from './contentModeration.js';
 import fs from 'fs';
@@ -23,6 +22,10 @@ import { WebSocketServer } from "ws";
 import { handleSendMessage, handleMarkSeen, handleSendNotification, handleConversationUpdate } from "./utils/websocketHandlers.js";
 import { fileURLToPath } from 'url';
 import { basename, dirname, join } from 'path';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const ffmpeg = require('fluent-ffmpeg');
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
