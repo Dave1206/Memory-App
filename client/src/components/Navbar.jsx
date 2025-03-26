@@ -213,7 +213,8 @@ function Navbar({ registerClearFeed }) {
         const handleClickOutside = (e) => {
           if (
             dropdownRef.current &&
-            !dropdownRef.current.contains(e.target)
+            !dropdownRef.current.contains(e.target) &&
+            !e.target.closest(".nav-toggle")
           ) {
             setActiveDropdown(null);
           }

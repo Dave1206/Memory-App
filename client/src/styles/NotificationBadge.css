@@ -19,6 +19,7 @@
     color:#fff;
     background-color: #190933;
     cursor: default;
+    user-select: none;
 }
 
 /* Styling for smaller screens */
