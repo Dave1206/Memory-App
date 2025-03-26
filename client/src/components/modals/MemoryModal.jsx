@@ -1,6 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronDown } from '@fortawesome/free-solid-svg-icons';
+import DOMPurify from "dompurify";
+import { Filter } from "bad-words";
 import MediaUploader from '../events/MediaUploader';
 import '../../styles/MemoryModal.css';
 
@@ -10,6 +12,7 @@ function MemoryModal({ show, onClose, onCreate, event }) {
     const [uploadMediaFn, setUploadMediaFn] = useState(null);
     const textAreaRef = useRef(null);
     const maxCharacters = 500;
+    const filter = new Filter();
 
     const emojis = ["😊", "😢", "😂", "😎", "🎉", "❤️", "👍", "🙌", "💡"];
 
@@ -32,7 +35,7 @@ function MemoryModal({ show, onClose, onCreate, event }) {
     };
 
     const handleChange = (e) => {
-        const inputText = e.target.value;
+        const inputText = sanitizeInput(e.target.value);
         if (calculateLength(inputText) <= maxCharacters) {
             setNewMemory(inputText);
         } else {
@@ -66,6 +69,11 @@ function MemoryModal({ show, onClose, onCreate, event }) {
     if (!show) {
         return null;
     }
+
+    const sanitizeInput = (text) => {
+        const cleaned = DOMPurify.sanitize(text, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+        return filter.clean(cleaned);
+    };
 
     return (
         <div className="modal-backdrop" onClick={handleBackdropClick}>

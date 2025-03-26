@@ -1,16 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import ReactDOM from "react-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-    faLocationDot,
-    faMusic,
-    faBasketballBall,
-    faFlask,
-    faLaptopCode,
-    faPalette,
-    faBookOpen,
-    faUtensils
-} from "@fortawesome/free-solid-svg-icons";
+import { faLocationDot } from "@fortawesome/free-solid-svg-icons";
 import { useAxios } from "../auth/AxiosProvider";
 import { useAuth } from "../auth/AuthContext";
 import { useEventUpdate } from "../events/EventContext";
@@ -19,6 +10,8 @@ import DOMPurify from "dompurify";
 import { Filter } from "bad-words";
 import MediaUploader from "./MediaUploader";
 import "../../styles/EventComposer.css";
+import "../../styles/Modal.css";
+import TagsInput from "./TagsInput";
 
 const MAX_TITLE = 150;
 const MAX_MEMORY = 500;
@@ -38,7 +31,7 @@ function EventComposer({ show, onClose }) {
         location: ""
     });
 
-    const [customTags, setCustomTags] = useState("");
+    const [selectedTags, setSelectedTags] = useState([]);
     const [friends, setFriends] = useState([]);
     const [autoLocation, setAutoLocation] = useState(false);
 
@@ -47,20 +40,11 @@ function EventComposer({ show, onClose }) {
     const [loading, setLoading] = useState(false);
     const [uploadMediaFn, setUploadMediaFn] = useState(null);
 
+    const today = new Date().toISOString().split("T")[0];
     const userId = user.id;
     const textRef = useRef(null);
     const filter = new Filter();
     const emojis = ["😊", "😢", "😂", "😎", "🎉", "❤️", "👍", "🙌", "💡"];
-
-    const commonTags = [
-        { name: "Sports", icon: faBasketballBall },
-        { name: "Music", icon: faMusic },
-        { name: "Science", icon: faFlask },
-        { name: "Technology", icon: faLaptopCode },
-        { name: "Art", icon: faPalette },
-        { name: "Education", icon: faBookOpen },
-        { name: "Food", icon: faUtensils }
-    ];
 
     useEffect(() => {
         const fetchFriends = async () => {
@@ -114,27 +98,6 @@ function EventComposer({ show, onClose }) {
         }
     };
 
-    const handleTagToggle = (tag) => {
-        setEventDetails((prev) => {
-            const isSelected = prev.tags.includes(tag.name);
-            const updatedTags = isSelected
-                ? prev.tags.filter(t => t !== tag.name)
-                : [...prev.tags, tag.name];
-            setCustomTags(updatedTags.join(", "));
-            return { ...prev, tags: updatedTags };
-        });
-    };
-
-    const handleCustomTagsChange = (e) => {
-        const value = e.target.value;
-        setCustomTags(value);
-        const parsedTags = value.split(",").map(tag => tag.trim()).filter(tag => tag);
-        setEventDetails((prev) => ({
-            ...prev,
-            tags: [...new Set([...prev.tags, ...parsedTags])]
-        }));
-    };
-
     const handleFriendSelect = (friendId) => {
         setEventDetails((prev) => {
             const alreadyInvited = prev.invites.includes(friendId);
@@ -169,20 +132,13 @@ function EventComposer({ show, onClose }) {
 
         setLoading(true);
 
-        const parsedCustomTags = customTags
-            .split(',')
-            .map(tag => tag.trim())
-            .filter(tag => tag);
-        const allTags = [...new Set([...eventDetails.tags, ...parsedCustomTags])];
-        setEventDetails({ ...eventDetails, tags: allTags });
-
         const colors = ["color1", "color2", "color3"];
         const selectedColor = colors[Math.floor(Math.random() * colors.length)];
 
         try {
             const sanitizedTitle = sanitizeInput(eventDetails.title);
             const sanitizedMemory = sanitizeInput(memory);
-            const sanitizedTags = eventDetails.tags.map(tag => sanitizeInput(tag));
+            const sanitizedTags = selectedTags?.map(tag => sanitizeInput(tag));
 
             let token = null;
             if (uploadMediaFn) {
@@ -234,7 +190,7 @@ function EventComposer({ show, onClose }) {
                 location: ""
             });
             setMemory("");
-            setCustomTags("");
+            setSelectedTags("");
             setAutoLocation(false);
             onClose();
         } catch (err) {
@@ -322,6 +278,7 @@ function EventComposer({ show, onClose }) {
                             Reveal Date:
                             <input
                                 type="date"
+                                min={today}
                                 value={eventDetails.revealDate || ""}
                                 onChange={(e) =>
                                     setEventDetails({ ...eventDetails, revealDate: e.target.value })
@@ -398,27 +355,10 @@ function EventComposer({ show, onClose }) {
                 </div>
 
                 {/* Tag Selection */}
-                <div>
-                    <h3>Select Tags</h3>
-                    <div className="tag-buttons">
-                        {commonTags.map((tag) => (
-                            <button
-                                key={tag.name}
-                                className={eventDetails.tags.includes(tag.name) ? "tag-selected" : "tag-unselected"}
-                                onClick={() => handleTagToggle(tag)}
-                            >
-                                <FontAwesomeIcon icon={tag.icon} /> {tag.name}
-                            </button>
-                        ))}
-                    </div>
-                    <textarea
-                        className="tag-input"
-                        name="custom-tags"
-                        placeholder="Add custom tags separated by commas."
-                        value={customTags}
-                        onChange={handleCustomTagsChange}
-                    />
-                </div>
+                <TagsInput 
+                    selectedTags={selectedTags}
+                    setSelectedTags={setSelectedTags}
+                />
 
                 {/* Submit and Cancel Buttons */}
                 <div className="composer-actions">

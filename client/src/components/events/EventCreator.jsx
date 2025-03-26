@@ -1,6 +1,6 @@
 // EventCreator.js
 import React, { useState } from "react";
-import CreateModal from "../modals/CreateModal";
+// import CreateModal from "../modals/CreateModal";
 import EventComposer from "./EventComposer";
 import '../../styles/EventCreator.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -17,13 +17,6 @@ function EventCreator({ isMobile }) {
                 {!isMobile &&<div className="nav-item-name">Create</div>}
             </div>
             {showModal && (
-                // <CreateModal
-                //     key={`cm-${uuidv4()}`}
-                //     show={showModal}
-                //     onClose={() => setShowModal(false)}
-                //     userId={userId}
-                // />
-
                 <EventComposer key={`composer-${uuidv4()}`} show={showModal} onClose={() => setShowModal(false)} />
             )}
         </>
