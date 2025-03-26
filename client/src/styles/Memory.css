@@ -56,16 +56,11 @@
     color: #333;
   }
   
-  .blurred-memory {
-    filter: blur(4px);
-    pointer-events: none;
-  }
-  
   .memory-media-collage {
     display: grid;
     grid-template-columns: repeat(2, minmax(80px, 1fr));
     gap: 8px;
-    margin-top: 50px;
+    /* margin-top: 50px; */
   }
 
   .pending-media-placeholder {
@@ -78,7 +73,7 @@
     border-radius: 6px;
     color: #555;
     font-style: italic;
-    margin-top: 50px;
+    margin-top: 25px;
   }
   
   .collage-item {

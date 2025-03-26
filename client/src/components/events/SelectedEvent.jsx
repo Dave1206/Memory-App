@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronLeft, faLock } from '@fortawesome/free-solid-svg-icons';
 import { useAxios } from "../auth/AxiosProvider";
@@ -8,14 +8,13 @@ import InviteModal from "../modals/InviteModal";
 import Memory from "./Memory";
 import '../../styles/SelectedEvent.css';
 
-function SelectedEvent({ event, handleBackButton, getEvents }) {
+function SelectedEvent({ event, handleBackButton }) {
     const { axiosInstance } = useAxios();
     const { user } = useAuth();
     const [memories, setMemories] = useState([]);
     const [showMemoryModal, setShowMemoryModal] = useState(false);
     const [showInviteModal, setShowInviteModal] = useState(false);
     const [hasSharedMemory, setHasSharedMemory] = useState(event.has_shared_memory);
-    const colors = ["color1", "color2", "color3"];
 
     const fetchMemories = useCallback(async () => {
         try {
@@ -26,35 +25,35 @@ function SelectedEvent({ event, handleBackButton, getEvents }) {
         }
     }, [axiosInstance, event.event_id]);
 
-    useEffect(() => {
-        fetchMemories();
-    }, [fetchMemories]);
-
     const currentDate = new Date();
     const revealDate = new Date(event.reveal_date);
     const isTimeCapsule = event.event_type === 'time_capsule';
     const isRevealed = !isTimeCapsule || (currentDate >= revealDate);
 
-    const shareMemory = async (newMemory) => {
+    const shareMemory = useCallback(async (newMemory, mediaToken) => {
         try {
-            await axiosInstance.post(`/events/${event.event_id}/memories`, { content: newMemory });
+            await axiosInstance.post(`/events/${event.event_id}/memories`, { content: newMemory, mediaToken: mediaToken });
             fetchMemories();
             setHasSharedMemory(true);
-            getEvents();
         } catch (err) {
             console.error("Error sharing memory:", err.response?.data || err.message);
         }
-    };
+    }, [fetchMemories, axiosInstance, event.event_id]);
 
-    const assignColorsToMemories = (memories) => {
+    useEffect(() => {
+        fetchMemories();
+    }, [fetchMemories, shareMemory]);
+
+    const coloredMemories = useMemo(() => {
         let lastColor = "";
-        return memories.map((memory) => {
-            const availableColors = colors.filter(color => color !== lastColor);
-            const randomColor = availableColors[Math.floor(Math.random() * availableColors.length)];
-            lastColor = randomColor;
-            return { ...memory, colorClass: randomColor };
+        const colorOptions = ["color1", "color2", "color3"];
+        return memories.map(memory => {
+          const availableColors = colorOptions.filter(color => color !== lastColor);
+          const randomColor = availableColors[Math.floor(Math.random() * availableColors.length)];
+          lastColor = randomColor;
+          return { ...memory, colorClass: randomColor };
         });
-    };
+      }, [memories]);      
 
     return (
         <div className="selected-event">
@@ -95,19 +94,20 @@ function SelectedEvent({ event, handleBackButton, getEvents }) {
                 show={showMemoryModal}
                 onCreate={shareMemory}
                 onClose={() => setShowMemoryModal(false)}
-                eventId={event.event_id}
+                event={event}
             />
 
             <div className="memories-container">
-                {memories.length === 0 ? (
+                {coloredMemories.length === 0 ? (
                     <p>No memories yet. Be the first to share!</p>
                 ) : (
-                    assignColorsToMemories(memories).map((memory) => (
+                    coloredMemories.map((memory) => (
                         <Memory
                             key={memory.memory_id}
                             event={event}
                             memory={memory}
                             getMemories={fetchMemories}
+                            hasSharedMemory={hasSharedMemory}
                         />
                     ))
                 )}

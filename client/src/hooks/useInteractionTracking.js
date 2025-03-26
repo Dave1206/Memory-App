@@ -9,7 +9,7 @@ const useInteractionTracking = (onInteractionEnd) => {
     const { axiosInstance } = useAxios();
     const location = useLocation();
 
-    const handleSelectEvent = async (event, path) => {
+    const handleSelectEvent = useCallback(async (event, path) => {
         try {
             await axiosInstance.post(`/events/${event.event_id}/start-interaction`);
             setSelectedEvent(event);
@@ -18,7 +18,7 @@ const useInteractionTracking = (onInteractionEnd) => {
         } catch (error) {
             console.error('Error starting interaction:', error);
         }
-    };
+    }, [axiosInstance]);
 
     const handleEndInteraction = useCallback(async () => {
         if (selectedEventRef.current) {

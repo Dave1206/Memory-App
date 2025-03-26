@@ -233,7 +233,7 @@ function Navbar({ registerClearFeed }) {
                             <div className={`nav-toggle ${activeDropdown === "friends" ? "active" : ""}`} onClick={() => handleDropdownClick("friends")}>
                                 <div className="nav-item-icon"><FontAwesomeIcon key={`friends-${uuidv4()}`} icon={navItems.friends.icon} /></div>
                                 <div className="nav-item-name">Friends</div>
-                                <div className="nav-item-notif">{navItems.friends.notifications > 0 && <NotificationBadge key={`nb-${uuidv4()}`} count={navItems.friends.notifications} />}</div>
+                                <div className="nav-item-notif"></div>
                             </div>
 
                             <div className={`nav-toggle ${activeDropdown === "notifications" ? "active" : ""}`} onClick={() => handleDropdownClick("notifications")}>

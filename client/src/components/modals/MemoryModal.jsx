@@ -1,11 +1,13 @@
 import React, { useState, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronDown } from '@fortawesome/free-solid-svg-icons';
+import MediaUploader from '../events/MediaUploader';
 import '../../styles/MemoryModal.css';
 
-function MemoryModal({ show, onClose, onCreate }) {
+function MemoryModal({ show, onClose, onCreate, event }) {
     const [newMemory, setNewMemory] = useState("");
     const [isEmojiToolbarVisible, setIsEmojiToolbarVisible] = useState(false);
+    const [uploadMediaFn, setUploadMediaFn] = useState(null);
     const textAreaRef = useRef(null);
     const maxCharacters = 500;
 
@@ -39,13 +41,20 @@ function MemoryModal({ show, onClose, onCreate }) {
         }
     };
 
-    const handleCreate = () => {
+    const handleCreate = async () => {
         if (newMemory.split(" ").length < 20) {
             alert("Memory must be 20 words or longer!");
             return;
         }
-        onCreate(newMemory);
+        let token = null;
+            if (uploadMediaFn) {
+                const mediaResponses = await uploadMediaFn();
+                token = mediaResponses && mediaResponses.length ? mediaResponses[0].token : null;
+                console.log("Token set: ", token, mediaResponses);
+            }
+        onCreate(newMemory, token);
         setNewMemory("");
+        onClose();
     };
 
     const handleBackdropClick = (e) => {
@@ -99,6 +108,11 @@ function MemoryModal({ show, onClose, onCreate }) {
                     <div className="character-counter">
                         {calculateLength(newMemory)}/{maxCharacters} characters
                     </div>
+
+                    <MediaUploader
+                        visibility={event.visibility}
+                        onRegisterUpload={(fn) => setUploadMediaFn(() => fn)}
+                    />
 
                     <div className="button-container">
                         <button className='modal-button' onClick={handleCreate}>Submit</button>

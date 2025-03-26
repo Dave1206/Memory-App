@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAxios } from "./auth/AxiosProvider";
 import { useAuth } from "./auth/AuthContext";
 import { useEventUpdate } from "./events/EventContext";
@@ -6,14 +7,14 @@ import "../styles/Feed.css";
 import useInteractionTracking from "../hooks/useInteractionTracking";
 import SearchAndFilter from "./SearchAndFilter";
 import FeedPost from "./FeedPost";
-import SelectedEvent from "./events/SelectedEvent";
 import backgroundLogo from "../assets/Logo_transparent.png";
 
 function Feed({ onFeedTabView }) {
     const { axiosInstance,isPageLoaded } = useAxios();
-    const { selectedEvent, handleSelectEvent, handleBackButton } = useInteractionTracking(null, "/feed");
+    const { handleSelectEvent } = useInteractionTracking(null, "/feed");
     const { user } = useAuth();
     const { newEvent } = useEventUpdate();
+    const navigate = useNavigate();
 
     const [activeTab, setActiveTab] = useState("feed");
     const [content, setContent] = useState([]);
@@ -253,8 +254,13 @@ function Feed({ onFeedTabView }) {
         }
     };
 
+    const handlePostClick = async (post) => {
+        const path = `/event/${post.event_id}`;
+            await handleSelectEvent(post, path);
+            navigate(path);
+    }
+
     return (
-        !selectedEvent ? (
             <div className="feed-wrapper">
                 <SearchAndFilter
                     onSearch={setSearchTerm}
@@ -298,7 +304,7 @@ function Feed({ onFeedTabView }) {
                             <FeedPost
                                 key={post.event_id}
                                 post={post}
-                                handleClick={() => handleSelectEvent(post)}
+                                handleClick={() => handlePostClick(post)}
                                 onLike={handleLike}
                                 onShare={handleShare}
                                 onAddEvent={handleOptIn}
@@ -310,9 +316,6 @@ function Feed({ onFeedTabView }) {
                     </div>
                
             </div>
-        ) : (
-            <SelectedEvent event={selectedEvent} handleBackButton={handleBackButton} />
-        )
     );
 }
 

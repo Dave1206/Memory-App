@@ -2,8 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import ReactDOM from "react-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-    faXmark,
-    faLocationArrow,
+    faLocationDot,
     faMusic,
     faBasketballBall,
     faFlask,
@@ -94,6 +93,7 @@ function EventComposer({ show, onClose }) {
 
     const handleAutoDetectLocation = async () => {
         try {
+            if (!autoLocation) {
             const response = await axiosInstance.get("/location");
             const { city, region, country } = response.data;
             setEventDetails((prev) => ({
@@ -101,6 +101,13 @@ function EventComposer({ show, onClose }) {
                 location: `${city}, ${region}, ${country}`
             }));
             setAutoLocation(true);
+        } else {
+            setEventDetails((prev) => ({
+                ...prev,
+                location: ''
+            }));
+            setAutoLocation(false);
+        }
         } catch (error) {
             console.error("Error auto-detecting location:", error);
             setAutoLocation(false);
@@ -140,11 +147,11 @@ function EventComposer({ show, onClose }) {
 
     const calculateHotScore = (likes, shares, memories, interactions, interactionDuration, ageInHours) => {
         return (
-            (likes * 1.5 + 
-             shares * 1.2 + 
-             memories * 1.0 + 
-             interactions * 1.1 + 
-             Math.log(Math.max(interactionDuration + 1, 1)) * 0.7)
+            (likes * 1.5 +
+                shares * 1.2 +
+                memories * 1.0 +
+                interactions * 1.1 +
+                Math.log(Math.max(interactionDuration + 1, 1)) * 0.7)
             / Math.pow(ageInHours + 2, 1.2)
         );
     };
@@ -181,7 +188,6 @@ function EventComposer({ show, onClose }) {
             if (uploadMediaFn) {
                 const mediaResponses = await uploadMediaFn();
                 token = mediaResponses && mediaResponses.length ? mediaResponses[0].token : null;
-                console.log("Token set: ", token, mediaResponses);
             }
 
             let newEventData = {
@@ -207,7 +213,7 @@ function EventComposer({ show, onClose }) {
                 age_in_hours: 0,
                 hot_score: calculateHotScore(0, 0, 1, 0, 0, 0),
                 colorClass: selectedColor,
-              };
+            };
 
             const response = await axiosInstance.post("/events/compose", {
                 newEvent: newEventData,
@@ -377,11 +383,18 @@ function EventComposer({ show, onClose }) {
                 )}
 
                 {/* Location Detection */}
-                <div className="checkbox-group">
-                    <label>
-                        <input type="checkbox" onChange={handleAutoDetectLocation} disabled={autoLocation} />
-                        Detect Location
-                    </label>
+                <div className="location-toggle">
+                    <button
+                        type="button"
+                        onClick={() => { 
+                            handleAutoDetectLocation();
+                            }}
+                        className={`icon-button ${autoLocation ? 'enabled' : ''}`}
+                        title="Auto-detect location"
+                    >
+                        <FontAwesomeIcon icon={faLocationDot} />
+                    </button>
+                    <span>Use auto-detected location</span>
                 </div>
 
                 {/* Tag Selection */}

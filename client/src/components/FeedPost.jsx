@@ -17,6 +17,7 @@ function FeedPost({ post, onLike, onShare, onAddEvent, onRemoveEvent, onBlock, c
     const [creatorMemory, setCreatorMemory] = useState(null);
     const [isBlurred, setIsBlurred] = useState(false);
     const [timeAgo, setTimeAgo] = useState("");
+    const [enlargedImage, setEnlargedImage] = useState(null);
     const titleChecker = 75;
 
     const getTimeAgo = (creationDate) => {
@@ -65,7 +66,7 @@ function FeedPost({ post, onLike, onShare, onAddEvent, onRemoveEvent, onBlock, c
 
     useEffect(() => {
         setTimeAgo(getTimeAgo(post.creation_date));
-        
+
         const fetchCreatorMemory = async () => {
             try {
                 const response = await axiosInstance.get(`/events/${post.event_id}/memories?markChecked=false`);
@@ -84,11 +85,42 @@ function FeedPost({ post, onLike, onShare, onAddEvent, onRemoveEvent, onBlock, c
         fetchCreatorMemory();
     }, [axiosInstance, post, post.has_shared_memory, post.memories_count]);
 
+    const handlePostClick = (e) => {
+        // Prevent navigation when interacting with media
+        if (
+            e.target.tagName === "VIDEO" ||
+            e.target.tagName === "IMG" ||
+            e.target.closest(".media-preview")
+        ) {
+            return;
+        }
+        handleClick();
+    };
+
+    const handleImageClick = (e, url) => {
+        e.stopPropagation();
+        setEnlargedImage(url);
+    };
+
+    const handleCloseImage = () => setEnlargedImage(null);
+
+    const scrambleText = (text) => {
+        return text
+          .split(" ")
+          .map(word => {
+            return word
+              .split("")
+              .sort(() => 0.5 - Math.random())
+              .join("");
+          })
+          .join(" ");
+      };      
+
     return (
         <div className='feed-post-wrapper'>
             <div className={`feed-post ${colorClass}`}
                 onMouseLeave={() => setShowMenu(false)}
-                onClick={handleClick}
+                onClick={handlePostClick}
             >
                 {post.is_new_post && <div className='post-notif'><NotificationBadge count='new' /></div>}
                 {!post.is_new_post && post.new_memories_count > 0 && <div className='post-notif'><NotificationBadge count={post.new_memories_count} /></div>}
@@ -98,12 +130,12 @@ function FeedPost({ post, onLike, onShare, onAddEvent, onRemoveEvent, onBlock, c
                 <div className="feed-post-header">
                     <img src={post.profile_picture || '/default-avatar.jpg'} alt="Profile" className="profile-picture" />
                     <div className='user-info'>
-                    <Link to={`/profile/${post.created_by}`} className={`feed-post-username`}>
-                        {post.username}
-                    </Link>
-                    <span className='time-ago'>{timeAgo}</span>
+                        <Link to={`/profile/${post.created_by}`} className={`feed-post-username`}>
+                            {post.username}
+                        </Link>
+                        <span className='time-ago'>{timeAgo}</span>
                     </div>
-                    
+
                     {post.event_status === 'opted_in' && post.created_by !== user.id ? (
                         <span className="opted-in-icon" title="You have opted in to this event">
                             <FontAwesomeIcon icon={faCheckCircle} />
@@ -125,12 +157,10 @@ function FeedPost({ post, onLike, onShare, onAddEvent, onRemoveEvent, onBlock, c
                     <div className={`feed-post-content`}>
                         <h3 className={`${post.title.length > titleChecker ? 'long-title' : ''}`}>{post.title}</h3>
                         <div className={`creator-memory ${isBlurred ? 'blurred-memory' : ''}`}>
-                            <div className="memory-text">{creatorMemory.content}</div>
-                            {creatorMemory.media_urls && creatorMemory.media_urls.length > 0 && (
+                            <div className="memory-text">{isBlurred ? scrambleText(creatorMemory.content) : creatorMemory.content}</div>
+                            {creatorMemory.media_urls && creatorMemory.media_urls.length > 0 ? (
                                 <div className="memory-media-collage">
                                     {creatorMemory.media_urls.map((url, i) => {
-                                        // Determine if the media is a video. You might have more reliable logic,
-                                        // but here we check for .mp4 in the URL.
                                         const isVideo = url.toLowerCase().endsWith('.mp4') || url.includes('video');
                                         return (
                                             <div key={i} className={`collage-item ${isVideo ? 'collage-item-video' : ''}`}>
@@ -141,11 +171,20 @@ function FeedPost({ post, onLike, onShare, onAddEvent, onRemoveEvent, onBlock, c
                                                         className="collage-media"
                                                     />
                                                 ) : (
-                                                    <img src={url} alt="Memory media" className="collage-media" />
+                                                    <img
+                                                        src={url}
+                                                        alt="Memory media"
+                                                        className={isBlurred ? "blurred collage-media" : "collage-media"}
+                                                        onClick={(e) => !isBlurred && handleImageClick(e, url)}
+                                                    />
                                                 )}
                                             </div>
                                         );
                                     })}
+                                </div>
+                            ) : creatorMemory.media_token && (
+                                <div className="pending-media-placeholder">
+                                    <p>Media awaiting moderator approval...</p>
                                 </div>
                             )}
                         </div>
@@ -180,6 +219,11 @@ function FeedPost({ post, onLike, onShare, onAddEvent, onRemoveEvent, onBlock, c
                     </span>
                 </div>
             </div>
+            {enlargedImage && (
+                <div className="lightbox" onClick={handleCloseImage}>
+                    <img src={enlargedImage} alt="enlarged" />
+                </div>
+            )}
         </div>
     );
 }

@@ -29,11 +29,8 @@ function DataSettings({ user }) {
       metadata_enabled: metadataEnabled,
       location_enabled: locationEnabled
     };
-
     try {
-      await axiosInstance.put(`/user/preferences/${user.id}`, {
-        dataSettings
-    });
+      await axiosInstance.put(`/user/preferences/${user.id}`, { dataSettings });
       setStatusMessage("Preferences updated successfully.");
       setHasChanges(false);
     } catch (error) {
@@ -43,9 +40,9 @@ function DataSettings({ user }) {
   };
 
   const handleCheckboxChange = (setter) => {
-    setter((prev) => !prev);
-    setHasChanges(true); 
-};
+    setter(prev => !prev);
+    setHasChanges(true);
+  };
 
   return (
     <div className="data-settings-wrapper">
@@ -72,9 +69,9 @@ function DataSettings({ user }) {
         </label>
 
         <button 
-            className="settings-button save-button" 
-            onClick={handleSave}
-            disabled={!hasChanges}
+          className="settings-button save-button" 
+          onClick={handleSave}
+          disabled={!hasChanges}
         >
           Save Changes
         </button>

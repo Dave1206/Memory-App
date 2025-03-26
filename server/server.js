@@ -1017,7 +1017,7 @@ app.post("/deleteevent/:event_id", isAuthenticated, async (req, res) => {
 app.post("/events/:event_id/memories", isAuthenticated, async (req, res) => {
   try {
     const { event_id } = req.params;
-    const { content } = req.body;
+    const { content, mediaToken } = req.body;
     const userId = req.user.id;
 
     const participation = await db.query(
@@ -1035,8 +1035,8 @@ app.post("/events/:event_id/memories", isAuthenticated, async (req, res) => {
     }
 
     await db.query(
-      "INSERT INTO memories (event_id, user_id, content) VALUES ($1, $2, $3)",
-      [event_id, userId, content]
+      "INSERT INTO memories (event_id, user_id, content, media_token) VALUES ($1, $2, $3, $4)",
+      [event_id, userId, content, mediaToken]
     );
 
     await db.query(
@@ -1814,6 +1814,11 @@ app.put('/user/preferences/:userId', isAuthenticated, async (req, res) => {
       return res.json({ message: "Verification email sent. Please verify your new email before it updates." });
     }
 
+    // Update bio if provided in accountSettings
+    if (accountSettings && accountSettings.bio !== undefined) {
+      await db.query("UPDATE users SET bio = $1 WHERE id = $2", [accountSettings.bio, userId]);
+    }
+
     // Update other preferences
     await db.query(`
         UPDATE user_preferences
@@ -1870,25 +1875,6 @@ app.put('/user/change-password', isAuthenticated, async (req, res) => {
   }
 });
 
-app.put('/user/:userId/bio', isAuthenticated, async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const { bio, profilePic } = req.body;
-
-    await db.query(`
-          UPDATE users
-          SET 
-              profile_picture = $1,
-              bio = $2
-          WHERE id = $3
-      `, [profilePic, bio, userId]);
-
-    res.send("Preferences saved");
-  } catch (error) {
-    res.status(500).send("Error updating preferences");
-  }
-});
-
 app.get('/users/:userId/activities', isAuthenticated, async (req, res) => {
   const { userId } = req.params;
 
@@ -1906,6 +1892,76 @@ app.get('/users/:userId/activities', isAuthenticated, async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch activities.' });
   }
 });
+
+app.get("/posts/top/:userId", isAuthenticated, async (req, res) => {
+  const profileUserId = req.params.userId;
+  const { limit = 10, offset = 0 } = req.query;
+
+  let query = `
+  SELECT 
+      e.event_id, 
+      e.title, 
+      e.description, 
+      e.creation_date, 
+      e.event_type, 
+      e.reveal_date, 
+      u.username, 
+      u.profile_picture, 
+      e.created_by, 
+      e.visibility, 
+      ep.has_shared_memory, 
+      ep.status AS event_status, 
+      ep.has_liked,
+      ep.has_shared_event,
+      COUNT(DISTINCT likes.user_id) AS likes_count,
+      COUNT(DISTINCT shares.user_id) AS shares_count,
+      (SELECT COUNT(*) FROM memories m WHERE m.event_id = e.event_id) AS memories_count,
+      EXTRACT(EPOCH FROM (NOW() - e.creation_date)) / 3600 AS age_in_hours,
+      ARRAY_AGG(DISTINCT t.tag_name) AS tags,
+      (
+          COUNT(DISTINCT likes.user_id) * 1.5 + 
+          COUNT(DISTINCT shares.user_id) * 1.2 + 
+          COUNT(m.event_id) * 1.0 + 
+          COALESCE(SUM(ep.interaction_count), 0) * 1.1 + 
+          COALESCE(LOG(GREATEST(SUM(EXTRACT(EPOCH FROM ep.interaction_duration)::NUMERIC) + 1, 1)), 0) * 0.7
+      ) / POWER((EXTRACT(EPOCH FROM (NOW() - e.creation_date)) / 3600)::NUMERIC + 2, 1.2) AS hot_score
+  FROM events e
+  JOIN users u ON e.created_by = u.id
+  LEFT JOIN event_participation ep ON e.event_id = ep.event_id AND ep.user_id = $1
+  LEFT JOIN event_participation likes ON e.event_id = likes.event_id AND likes.has_liked = TRUE
+  LEFT JOIN event_participation shares ON e.event_id = shares.event_id AND shares.has_shared_event = TRUE
+  LEFT JOIN memories m ON e.event_id = m.event_id
+  LEFT JOIN event_tag_map etm ON e.event_id = etm.event_id
+  LEFT JOIN event_tags t ON etm.tag_id = t.tag_id
+  WHERE e.created_by = $1
+  GROUP BY 
+      e.event_id, 
+      u.username, 
+      u.profile_picture, 
+      e.title, 
+      e.description, 
+      e.creation_date, 
+      e.event_type, 
+      e.reveal_date, 
+      e.created_by, 
+      e.visibility,
+      ep.has_shared_memory,
+      ep.status,
+      ep.has_liked,
+      ep.has_shared_event
+  ORDER BY hot_score DESC
+  LIMIT $2 OFFSET $3
+`;
+
+  try {
+    const topPosts = await db.query(query, [profileUserId, limit, offset]);
+    res.json(topPosts.rows);
+  } catch (err) {
+    console.error("Error fetching top rated posts:", err.message);
+    res.status(500).send("Server Error");
+  }
+});
+
 //notifications routes
 app.get('/notifications/:userId', isAuthenticated, async (req, res) => {
   const { userId } = req.params;
@@ -2538,6 +2594,7 @@ app.post("/reset-password", async (req, res) => {
 app.post('/upload/profile-picture', isAuthenticated, upload.single('profilePic'), async (req, res) => {
   try {
     const buffer = await sharp(req.file.buffer)
+      .rotate()
       .resize({ width: 250, height: 250 })
       .toFormat('jpeg')
       .toBuffer();
@@ -2575,6 +2632,7 @@ app.post('/upload/memory-media', isAuthenticated, upload.single('media'), async 
 
     if (fileType === 'image') {
       const buffer = await sharp(req.file.buffer)
+        .rotate()
         .resize({ width: 1280 })
         .jpeg({ quality: 80 })
         .toBuffer();

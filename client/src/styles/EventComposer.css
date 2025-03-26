@@ -1,6 +1,9 @@
   .event-composer {
     padding: 20px;
-    width: 50vw;
+    min-width: 60vw;
+    max-width: 60vw;
+    min-height: 90vh;
+    max-height: 90vh;
     background-color: darksalmon;
     max-width: 500px;
     border-radius: 12px;
@@ -70,6 +73,27 @@
     font-size: 0.9rem;
     cursor: pointer;
   }
+
+  .location-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+  
+  .icon-button {
+    border: none;
+    background: transparent;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: gray;
+    transition: color 0.2s ease;
+  }
+  
+  .icon-button.enabled {
+    color: #3e9cff;
+  }
+  
   
   /* Friend Invites */
   .friend-select {
@@ -121,6 +145,8 @@
     display: flex;
     justify-content: space-between;
     margin-top: 15px;
+    max-width: 250px;
+    min-width: 250px;
   }
   
   .composer-actions button {
@@ -156,10 +182,19 @@
       align-items: flex-start;
       width: 95vw;
       max-width: 95vw;
-      min-height: 90vh;
-      max-height: 90vh;
+      min-height: 70vh;
+      max-height: 70vh;
       padding: 10px;
       border-radius: 0;
+    }
+
+    .composer-actions{
+      position: fixed;
+      min-width: 94%;
+      max-width: 94%;
+      align-items: center;
+      justify-content: center;
+      bottom: 60px;
     }
   }
   

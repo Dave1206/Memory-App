@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAxios } from '../auth/AxiosProvider';
 import { useAuth } from '../auth/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -6,15 +6,16 @@ import { faTrashAlt, faCrown } from '@fortawesome/free-solid-svg-icons';
 import ModOptionsButton from '../moderation/ModOptionsButton';
 import '../../styles/Memory.css';
 
-function Memory({ event, memory, getMemories }) {
+function Memory({ event, memory, getMemories, hasSharedMemory }) {
     const { axiosInstance } = useAxios();
     const { user } = useAuth();
+    const [enlargedImage, setEnlargedImage] = useState(null);
     const memoryId = memory.memory_id;
 
     const currentDate = new Date();
     const revealDate = new Date(event.reveal_date);
     const isTimeCapsule = event.event_type === 'time_capsule';
-    const shouldBlur = isTimeCapsule ? (currentDate < revealDate) : (!event.has_shared_memory);
+    const shouldBlur = isTimeCapsule ? (currentDate < revealDate) : (!hasSharedMemory);
 
     const handleDelete = async () => {
         try {
@@ -26,6 +27,25 @@ function Memory({ event, memory, getMemories }) {
     };
 
     const isMainMemory = memory.user_id === event.created_by;
+
+    const handleImageClick = (e, url) => {
+        e.stopPropagation();
+        setEnlargedImage(url);
+    };
+
+    const handleCloseImage = () => setEnlargedImage(null);
+
+    const scrambleText = (text) => {
+        return text
+          .split(" ")
+          .map(word => {
+            return word
+              .split("")
+              .sort(() => 0.5 - Math.random())
+              .join("");
+          })
+          .join(" ");
+      };      
 
     return (
         <div className={`memory-entry ${memory.colorClass} ${isMainMemory ? 'main-memory' : ''}`}>
@@ -50,10 +70,10 @@ function Memory({ event, memory, getMemories }) {
                 )}
             </div>
             <div className={`memory-content ${shouldBlur ? 'blurred-memory' : ''}`}>
-                <p>{memory.content}</p>
+                <p>{shouldBlur? scrambleText(memory.content) : memory.content}</p>
             </div>
             {memory.media_urls && memory.media_urls.length > 0 ? (
-                    <div className="memory-media-collage">
+                    <div className={`memory-media-collage ${shouldBlur ? 'blurred-memory' : ''}`}>
                         {memory.media_urls.map((url, i) => {
                             const isVideo = url.toLowerCase().endsWith('.mp4') || url.includes('video');
                             return (
@@ -65,7 +85,12 @@ function Memory({ event, memory, getMemories }) {
                                             className="collage-media"
                                         />
                                     ) : (
-                                        <img src={url} alt="Memory media" className="collage-media" />
+                                        <img 
+                                            src={url} 
+                                            alt="Memory media" 
+                                            className="collage-media" 
+                                            onClick={(e) => !shouldBlur && handleImageClick(e, url)}
+                                        />
                                     )}
                                 </div>
                             );
@@ -77,6 +102,11 @@ function Memory({ event, memory, getMemories }) {
                         <p>Media awaiting moderator approval...</p>
                     </div>
                 )
+            )}
+            {enlargedImage && (
+                <div className="lightbox" onClick={handleCloseImage}>
+                    <img src={enlargedImage} alt="enlarged" />
+                </div>
             )}
         </div>
     );

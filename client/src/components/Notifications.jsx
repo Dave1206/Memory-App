@@ -45,7 +45,6 @@ function Notifications({ notifications, setNotifications }) {
 
     const handleNotificationClick = async (note) => {
         if (!note.read) markAsRead(note.id);
-        if (note.memory_id) navigate(`/memory/${note.memory_id}`);
         if (note.event) {
             const path = `/event/${note.event.event_id}`;
             await handleSelectEvent(note.event, path);
@@ -130,7 +129,7 @@ function Notifications({ notifications, setNotifications }) {
                     <h4>Friend Requests</h4>
                     {friendRequests.map((req) => (
                         <div key={req.id} className="notification-item">
-                            <img className='notification-profile-picture' src={`${req.profile_picture}`}></img>
+                            <img className='notification-profile-picture' src={`${req.profile_picture}`} alt={req.username}></img>
                             <p>{req.username} wants to be friends.</p>
                             <span className="timestamp">{new Date(req.created_at).toLocaleString()}</span>
                             <div className="action-buttons">
