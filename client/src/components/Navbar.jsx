@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import FriendList from "./friends/FriendList";
 import FriendRequest from "./friends/FriendRequest";
 import Notifications from "./Notifications";
@@ -25,6 +25,8 @@ function Navbar({ registerClearFeed }) {
     const [activeRoute, setActiveRoute] = useState(0);
     const [activeDropdown, setActiveDropdown] = useState(null);
     const [notifications, setNotifications] = useState({});
+    const dropdownRef = useRef(null);
+
     const [navItems, setNavItems] = useState({
         feed: { name: "Feed", icon: faNewspaper, notifications: 0 },
         messages: { name: "Messages", icon: faNewspaper, notifications: 0 },
@@ -207,6 +209,25 @@ function Navbar({ registerClearFeed }) {
         setActiveDropdown(activeDropdown === dropdown ? null : dropdown);
     };
 
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+          if (
+            dropdownRef.current &&
+            !dropdownRef.current.contains(e.target)
+          ) {
+            setActiveDropdown(null);
+          }
+        };
+      
+        if (activeDropdown) {
+          document.addEventListener("mousedown", handleClickOutside);
+        }
+      
+        return () => {
+          document.removeEventListener("mousedown", handleClickOutside);
+        };
+      }, [activeDropdown]);      
+
     return (
         <div className="navbar-wrapper">
             <nav className="navbar">
@@ -243,14 +264,14 @@ function Navbar({ registerClearFeed }) {
                             </div>
 
                             {activeDropdown === "friends" && (
-                                <div className="nav-dropdown">
+                                <div className="nav-dropdown" ref={dropdownRef}>
                                     <FriendRequest userId={userId} />
                                     <FriendList userId={userId} />
                                 </div>
                             )}
 
                             {activeDropdown === "notifications" && (
-                                <div className="nav-dropdown">
+                                <div className="nav-dropdown" ref={dropdownRef}>
                                     <Notifications notifications={notifications} setNotifications={setNotifications} />
                                 </div>
                             )}
