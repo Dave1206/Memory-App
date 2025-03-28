@@ -214,7 +214,8 @@ function Navbar({ registerClearFeed }) {
           if (
             dropdownRef.current &&
             !dropdownRef.current.contains(e.target) &&
-            !e.target.closest(".nav-toggle")
+            !e.target.closest(".nav-toggle") &&
+            !e.target.closest(".ellipsis-menu")
           ) {
             setActiveDropdown(null);
           }

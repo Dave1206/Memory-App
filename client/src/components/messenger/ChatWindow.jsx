@@ -5,7 +5,20 @@ import WebSocketInstance from '../../utils/WebSocket';
 import debounce from '../../utils/Debounce';
 import '../../styles/ChatWindow.css';
 
-function ChatWindow({ title, conversationId, onClose, userId, participants, lastSeenMessageId, onUpdateLastSeen }) {
+function ChatWindow({
+  title,
+  conversationId,
+  onClose,
+  userId,
+  participants,
+  lastSeenMessageId,
+  onUpdateLastSeen,
+  incomingMessages,
+  onClearIncomingMessages,
+  incomingSeen,
+  onClearIncomingSeen,
+  style,
+}) {
   const { axiosInstance } = useAxios();
   const { user } = useAuth();
   const [messages, setMessages] = useState([]);
@@ -67,7 +80,7 @@ function ChatWindow({ title, conversationId, onClose, userId, participants, last
     setHasMoreMessages(true);
     initialLoadRef.current = false;
     offsetRef.current = 0;
-    oldestMessageRef.current = (null);
+    oldestMessageRef.current = null;
     fetchMessages();
   }, [conversationId, fetchMessages]);
 
@@ -76,57 +89,43 @@ function ChatWindow({ title, conversationId, onClose, userId, participants, last
   }, [fetchMessages]);
 
   useEffect(() => {
-    const handleNewMessage = (message) => {
-      console.log("New message received.")
-      if (message.conversation_id === conversationId) {
-        setMessages(prev => {
-          if (prev.some((m) => m.message_id === message.message_id)) {
-            return prev;
-          }
-          if (chatContainerRef.current && !isPrependingRef.current) {
-            const container = chatContainerRef.current;
-            const threshold = 0;
-            wasAtBottomRef.current = (container.scrollTop + container.clientHeight >= container.scrollHeight - threshold);
-          }
-          return deduplicateMessages([...prev, message]);
-        });
+    if (incomingMessages && incomingMessages.length > 0) {
+      setMessages(prev => deduplicateMessages([...prev, ...incomingMessages]));
+      if (chatContainerRef.current && wasAtBottomRef.current) {
+        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
       }
-    };
-
-    WebSocketInstance.on('new_message', handleNewMessage);
-
-    return () => {
-      WebSocketInstance.off('new_message', handleNewMessage);
-    };
-  }, [conversationId]);
+      if (typeof onClearIncomingMessages === 'function') {
+        onClearIncomingMessages(conversationId);
+      }
+    }
+  }, [incomingMessages, conversationId, onClearIncomingMessages]);
 
   useEffect(() => {
-    const handleMessageSeen = (data) => {
-      if (!data?.messageIds || !Array.isArray(data.messageIds)) {
-        console.error("❌ Invalid message_seen data:", data);
+    if (incomingSeen && incomingSeen.messageIds.length > 0) {
+      if (!incomingSeen?.messageIds || !Array.isArray(incomingSeen.messageIds)) {
+        console.error("❌ Invalid incoming seen data:", incomingSeen);
         return;
-    }
+      }
       setMessages(prevMessages => {
         const updatedMessages = prevMessages.map(msg => {
           if (
-            data.messageIds.includes(msg.message_id) &&
-            parseInt(msg.sender_id) !== parseInt(data.seenUser)
+            incomingSeen.messageIds.includes(msg.message_id) &&
+            parseInt(msg.sender_id) !== parseInt(incomingSeen.seenUser)
           ) {
             const updatedSeen = msg.seen_status ? [...msg.seen_status] : [];
-            if (!updatedSeen.some(status => status.user_id === data.seenUser)) {
-              updatedSeen.push({ user_id: Number(data.seenUser), seen_at: new Date().toISOString() });
+            if (!updatedSeen.some(status => status.user_id === incomingSeen.seenUser)) {
+              updatedSeen.push({ user_id: Number(incomingSeen.seenUser), seen_at: new Date().toISOString() });
             }
             return { ...msg, seen_status: updatedSeen };
           }
           return msg;
         });
-
+  
         const seenMessages = updatedMessages.filter(msg =>
-          (msg.seen_status &&
-            msg.seen_status.some(status => status.user_id === userId)) ||
+          (msg.seen_status && msg.seen_status.some(status => status.user_id === userId)) ||
           msg.sender_id === userId
         );
-
+  
         if (seenMessages.length > 0) {
           seenMessages.sort((a, b) => new Date(b.sent_at) - new Date(a.sent_at));
           const newLastSeen = seenMessages[0].message_id;
@@ -134,16 +133,14 @@ function ChatWindow({ title, conversationId, onClose, userId, participants, last
             onUpdateLastSeen(newLastSeen);
           }
         }
-
         return updatedMessages;
       });
-    };
-
-    WebSocketInstance.on('message_seen', handleMessageSeen);
-    return () => {
-      WebSocketInstance.off('message_seen', handleMessageSeen);
-    };
-  }, [conversationId, userId, onUpdateLastSeen]);
+  
+      if (typeof onClearIncomingSeen === 'function') {
+        onClearIncomingSeen(conversationId);
+      }
+    }
+  }, [incomingSeen, conversationId, onClearIncomingSeen, onUpdateLastSeen, userId]);  
 
   useEffect(() => {
     const container = chatContainerRef.current;
@@ -179,9 +176,9 @@ function ChatWindow({ title, conversationId, onClose, userId, participants, last
       setIsAtBottom(true);
 
       const unseenMessages = messages.filter(msg =>
-            (!msg.seen_status || !msg.seen_status.some(status => status.user_id === userId)) &&
-            msg.sender_id !== userId
-        );
+        (!msg.seen_status || !msg.seen_status.some(status => status.user_id === userId)) &&
+        msg.sender_id !== userId
+      );
 
       if (unseenMessages.length > 0) {
         WebSocketInstance.sendMessage('messenger', 'mark_seen', {
@@ -198,20 +195,18 @@ function ChatWindow({ title, conversationId, onClose, userId, participants, last
       setLoading(true);
       fetchMessages(oldestMessageRef.current);
     }
-  }, 
-   [fetchMessages, hasMoreMessages, messages, conversationId, userId]), 500);
+  }, [fetchMessages, hasMoreMessages, messages, conversationId, userId]), 500);
 
   useEffect(() => {
     const container = chatContainerRef.current;
-
+    if (container) {
+      container.addEventListener('scroll', handleScroll);
+    }
+    return () => {
       if (container) {
-        container.addEventListener('scroll', handleScroll);
+        container.removeEventListener('scroll', handleScroll);
       }
-      return () => {
-        if (container) {
-          container.removeEventListener('scroll', handleScroll);
-        }
-      }
+    };
   }, [handleScroll]);
 
   const scrollToBottom = () => {
@@ -242,7 +237,7 @@ function ChatWindow({ title, conversationId, onClose, userId, participants, last
   };
 
   return (
-    <div className="chat-window">
+    <div className="chat-window" style={style}>
       <div className='chat-header'>
         <div className='title-pictures'>
           {participants.length < 3 ? (

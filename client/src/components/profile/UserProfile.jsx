@@ -20,7 +20,6 @@ function UserProfile({ user }) {
     const { handleSelectEvent } = useInteractionTracking(null);
     const isMobile = useMediaQuery('(max-width: 768px)');
 
-    // For mobile: tab selection state ("activity" or "topPosts")
     const [activeTab, setActiveTab] = useState('activity');
 
     const colorOptions = ["color1", "color2", "color3"];
@@ -92,7 +91,6 @@ function UserProfile({ user }) {
 
     if (!profileUser) return <p>Loading...</p>;
 
-    // Render top posts with color assignment
     const renderTopPosts = (
         <div className="profile-top-posts-wrapper">
             <div className="top-posts-header">
@@ -123,7 +121,6 @@ function UserProfile({ user }) {
         </div>
     );
 
-    // Render activity feed section
     const renderActivityFeed = (
         <div className="profile-activity-wrapper">
             {!isMobile && <h2 className="profile-activity-header">Activity Feed</h2>}
@@ -133,7 +130,6 @@ function UserProfile({ user }) {
         </div>
     );
 
-    // Desktop layout
     const desktopLayout = (
         <div className="profile-body">
             <div className="profile-left">
@@ -151,7 +147,6 @@ function UserProfile({ user }) {
         </div>
     );
 
-    // Mobile layout
     const mobileLayout = (
         <div className="profile-body mobile">
             <div className="profile-header-container">

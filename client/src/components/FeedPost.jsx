@@ -39,28 +39,54 @@ function FeedPost({ post, onLike, onShare, onAddEvent, onRemoveEvent, onBlock, c
         return `${Math.floor(diffInMonths / 12)} years ago`;
     };
 
-    const buttonItems = [
-        {
-            content: <><FontAwesomeIcon icon={faShare} /> Share Event</>,
-            onClick: () => onShare(post.event_id),
-            isDisabled: post.has_shared_event,
-        },
-        {
-            content: <><FontAwesomeIcon icon={faPlus} /> Subscribe</>,
-            onClick: () => onAddEvent(post.event_id),
-            isDisabled: post.event_status === 'opted_in',
-        },
-        {
-            content: <><FontAwesomeIcon icon={faTrashCan} /> Unsubscribe</>,
-            onClick: () => onRemoveEvent(post.event_id),
-            isDisabled: post.event_status !== 'opted_in',
-        },
-        {
-            content: <><FontAwesomeIcon icon={faBan} /> Block User</>,
-            onClick: () => onBlock(),
-            isDisabled: user.id === post.created_by,
-        },
-    ];
+    const buttonItems = [];
+
+if (!post.has_shared_event) {
+  buttonItems.push({
+    content: (
+      <>
+        <FontAwesomeIcon icon={faShare} /> Share Event
+      </>
+    ),
+    onClick: () => onShare(post.event_id)
+  });
+}
+
+if (post.event_status !== 'opted_in') {
+  buttonItems.push({
+    content: (
+      <>
+        <FontAwesomeIcon icon={faPlus} /> Subscribe
+      </>
+    ),
+    onClick: () => onAddEvent(post.event_id)
+  });
+} else {
+  buttonItems.push({
+    content: (
+      <>
+        <FontAwesomeIcon icon={faTrashCan} /> Unsubscribe
+      </>
+    ),
+    onClick: () => onRemoveEvent(post.event_id)
+  });
+}
+
+if (user.id !== post.created_by) {
+  buttonItems.push({
+          content: <><FontAwesomeIcon icon={faBan} /> Block User</>,
+          submenuTitle: "Are you sure?",
+          submenu: [
+            {
+              content: "Yes, Block User",
+              onClick: onBlock,
+              isDisabled: false
+            }
+          ],
+          isDisabled: false
+        });
+}
+
 
     const handleToggleMenu = () => setShowMenu(!showMenu);
 
@@ -86,7 +112,6 @@ function FeedPost({ post, onLike, onShare, onAddEvent, onRemoveEvent, onBlock, c
     }, [axiosInstance, post, post.has_shared_memory, post.memories_count]);
 
     const handlePostClick = (e) => {
-        // Prevent navigation when interacting with media
         if (
             e.target.tagName === "VIDEO" ||
             e.target.tagName === "IMG" ||

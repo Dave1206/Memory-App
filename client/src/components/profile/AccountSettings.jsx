@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAxios } from '../auth/AxiosProvider';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPencilAlt } from '@fortawesome/free-solid-svg-icons';
+import { faPencilAlt, faHardHat } from '@fortawesome/free-solid-svg-icons';
 import '../../styles/AccountSettings.css';
 
 function AccountSettings({ user, onSave }) {
@@ -60,7 +60,7 @@ function AccountSettings({ user, onSave }) {
       if (selectedFile) {
         const formData = new FormData();
         formData.append('profilePic', selectedFile);
-        const uploadResponse = await axiosInstance.post('/upload-profile-picture', formData, {
+        const uploadResponse = await axiosInstance.post('/upload/profile-picture', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
         if (uploadResponse.status === 200) {
@@ -259,6 +259,9 @@ function AccountSettings({ user, onSave }) {
 
         {/* Preferences Section */}
         <div className="preferences-section settings-group">
+          <div className='section-in-progress'>
+              <p><FontAwesomeIcon icon={faHardHat} /> Under Construction </p>
+          </div>
           <h3>Preferences</h3>
           <div className="setting">
             <label htmlFor="theme-preference">Theme Preference:</label>

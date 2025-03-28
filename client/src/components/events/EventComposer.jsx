@@ -227,14 +227,14 @@ function EventComposer({ show, onClose }) {
                 {/* Memory Input and Emoji Toolbar */}
                 <div className="memory-section">
                     <div className="memory-toolbar">
-                        <button onClick={() => setEmojiOpen(!emojiOpen)} title="Emoji Picker">
+                        <button className="emoji-toggle-button" onClick={() => setEmojiOpen(!emojiOpen)} title="Emoji Picker">
                             {"😊"}
                         </button>
                     </div>
                     {emojiOpen && (
                         <div className="emoji-toolbar">
                             {emojis.map((e) => (
-                                <button key={e} onClick={() => handleEmoji(e)}>
+                                <button className="emoji-button" key={e} onClick={() => handleEmoji(e)}>
                                     {e}
                                 </button>
                             ))}

@@ -2412,6 +2412,23 @@ app.post('/friends/request', isAuthenticated, async (req, res) => {
   }
 });
 
+app.post('/friends/remove', isAuthenticated, async (req, res) => {
+  const { userId, friendId } = req.body;
+  
+  try {
+    await db.query(`
+      DELETE FROM friends
+      WHERE (user_id = $1 AND friend_id = $2)
+         OR (user_id = $2 AND friend_id = $1)
+    `, [userId, friendId]);
+    
+    res.status(200).json({ message: 'Friend removed successfully.' });
+  } catch (error) {
+    console.error('Error removing friend:', error);
+    res.status(500).json({ message: 'Error removing friend' });
+  }
+});
+
 app.post('/friends/accept', isAuthenticated, async (req, res) => {
   const { userId, friendId } = req.body; //in this case, userId references the user with a request
   try {
@@ -2457,7 +2474,17 @@ app.get('/friends/:userId', isAuthenticated, async (req, res) => {
       [userId]
     );
 
+    const fetchPending = await db.query (
+      `SELECT u.id::text AS id, u.username, u.profile_picture
+            FROM friends f
+            JOIN users u ON (u.id = f.friend_id)
+            WHERE (f.user_id = $1) AND f.status = 'pending'
+            AND u.id != $1`,
+      [userId]
+    );
+
     const friends = fetchFriends.rows;
+    const pendingFriends = fetchPending.rows;
 
     const friendIds = friends.map(friend => friend.id);
 
@@ -2475,7 +2502,7 @@ app.get('/friends/:userId', isAuthenticated, async (req, res) => {
       return { ...friend, online: onlineStatus };
     });
 
-    res.status(200).json(friendsWithStatus);
+    res.status(200).json([friendsWithStatus, pendingFriends]);
   } catch (error) {
     console.error("Error retrieving friends with online status:", error);
     res.status(500).json({ error: 'Error retrieving friends' });

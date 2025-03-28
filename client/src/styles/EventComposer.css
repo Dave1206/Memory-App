@@ -7,11 +7,20 @@
     background-color: darksalmon;
     max-width: 500px;
     border-radius: 12px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
     position: relative;
     overflow-y: auto;
   }
-  
+
+  .event-composer::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .event-composer::-webkit-scrollbar-thumb {
+    background: #777;
+    border-radius: 4px;
+  }
+
   /* Title Input */
   .title-input {
     width: 95%;
@@ -21,7 +30,7 @@
     font-size: 1rem;
     margin-bottom: 5px;
   }
-  
+
   /* Character Counter */
   .character-counter {
     font-size: 0.8rem;
@@ -29,26 +38,43 @@
     text-align: right;
     margin-bottom: 10px;
   }
-  
+
   /* Memory Section */
   .memory-section {
     margin: 10px 0;
   }
-  
+
   /* Memory Toolbar & Emoji Toolbar */
   .memory-toolbar {
     display: flex;
     gap: 10px;
     margin-bottom: 5px;
   }
-  
+
   .emoji-toolbar {
     display: flex;
     flex-wrap: wrap;
     gap: 5px;
     margin-bottom: 10px;
   }
-  
+
+  .emoji-toggle-button {
+    background-color: rgba(0, 0, 0, 0.3);
+    width: 20px;
+    display: flex;
+    justify-content: center;
+    padding: 5px 15px;
+  }
+
+  .emoji-toggle-button:hover {
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+
+  .emoji-button {
+    background: none;
+    padding: 0;
+  }
+
   /* Memory Input (Textarea) */
   .memory-input {
     width: 95%;
@@ -60,7 +86,7 @@
     font-size: 1rem;
     margin-bottom: 5px;
   }
-  
+
   /* Checkbox Groups for Event Type, Visibility, and Location Detection */
   .checkbox-group {
     display: flex;
@@ -68,7 +94,7 @@
     gap: 10px;
     margin: 10px 0;
   }
-  
+
   .checkbox-group label {
     font-size: 0.9rem;
     cursor: pointer;
@@ -80,7 +106,7 @@
     gap: 0.5rem;
     margin-top: 1rem;
   }
-  
+
   .icon-button {
     border: none;
     background: transparent;
@@ -89,29 +115,29 @@
     color: gray;
     transition: color 0.2s ease;
   }
-  
+
   .icon-button.enabled {
     color: #3e9cff;
   }
-  
-  
+
+
   /* Friend Invites */
   .friend-select {
     margin: 10px 0;
   }
-  
+
   .friend-select ul {
     list-style: none;
     padding: 0;
     margin: 5px 0;
   }
-  
+
   .friend-select li {
     margin-bottom: 5px;
   }
-  
+
   /* Tag Selection */
-  .tag-input{
+  .tag-input {
     max-width: 95%;
   }
 
@@ -121,25 +147,26 @@
     gap: 5px;
     margin-bottom: 5px;
   }
-  
-  .tag-selected, .tag-unselected {
+
+  .tag-selected,
+  .tag-unselected {
     padding: 5px 10px;
     border: none;
     border-radius: 20px;
     cursor: pointer;
     font-size: 0.9rem;
   }
-  
+
   .tag-selected {
     background-color: #a0b2a3;
     color: #fff;
   }
-  
+
   .tag-unselected {
     background-color: #f0f0f0;
     color: #333;
   }
-  
+
   /* Action Buttons */
   .composer-actions {
     position: fixed;
@@ -150,7 +177,7 @@
     max-width: 250px;
     min-width: 250px;
   }
-  
+
   .composer-actions button {
     flex: 1;
     padding: 10px;
@@ -163,21 +190,21 @@
     cursor: pointer;
     transition: background-color 0.3s ease;
   }
-  
+
   .composer-actions button:hover {
     background-color: #555;
   }
-  
+
   .composer-actions button:disabled {
     background-color: #ccc;
     cursor: not-allowed;
   }
-  
+
   /* Media Uploader (if any additional styles needed) */
   .media-uploader {
     margin: 10px 0;
   }
-  
+
   /* Responsive adjustments */
   @media (max-width: 768px) {
     .event-composer {
@@ -190,7 +217,7 @@
       border-radius: 0;
     }
 
-    .composer-actions{
+    .composer-actions {
       position: fixed;
       min-width: 94%;
       max-width: 94%;
@@ -199,4 +226,3 @@
       bottom: 60px;
     }
   }
-  

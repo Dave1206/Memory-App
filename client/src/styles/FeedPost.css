@@ -31,10 +31,6 @@
     opacity: 0.4;
 }
 
-.feed-post:hover {
-    transform: translateY(-3px);
-}
-
 .feed-post-header {
     display: flex;
     align-items: center;

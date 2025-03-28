@@ -1,11 +1,13 @@
-.like-button {
+.stat-counter{
     display: inline-flex;
     align-items: center;
-    justify-content: center;
+}
+.like-button {
     font-size: 1.2em;
     transition: transform 0.2s ease;
     cursor: pointer;
     color: #555;
+    margin-right: 4px;
 }
 
 .like-button:hover {

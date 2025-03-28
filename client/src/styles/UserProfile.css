@@ -59,7 +59,7 @@
     padding: 1rem;
     border-radius: 8px;
     overflow-y: auto;
-    max-height: 60vh;
+    max-height: 53vh;
 }
 .profile-activity::-webkit-scrollbar {
     background-color: rgb(160, 178, 163);

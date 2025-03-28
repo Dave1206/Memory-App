@@ -4,7 +4,7 @@ import { useAuth } from '../auth/AuthContext';
 import WebSocketInstance from '../../utils/WebSocket';
 import '../../styles/ConversationList.css';
 
-function ConversationList({ onSelectConversation, lastSeenMessageId }) {
+function ConversationList({ onSelectConversation, lastSeenMessageId, preselectedChatId, clearPreselectedChat }) {
   const { axiosInstance } = useAxios();
   const { user } = useAuth();
   const userId = user.id;
@@ -29,7 +29,7 @@ function ConversationList({ onSelectConversation, lastSeenMessageId }) {
     const fetchFriends = async () => {
       try {
         const response = await axiosInstance.get(`/friends/${userId}`);
-        setFriends(response.data);
+        setFriends(response.data[0]);
       } catch (error) {
         console.error("Error fetching friends:", error);
       }
@@ -38,6 +38,20 @@ function ConversationList({ onSelectConversation, lastSeenMessageId }) {
     fetchConversations();
     fetchFriends();
   }, [axiosInstance, userId, lastSeenMessageId]);
+
+  useEffect(() => {
+    if (preselectedChatId && conversations.length > 0) {
+      const openedChat = conversations.find((conv) =>
+        conv.participants.some(
+          (participant) => Number(participant.user_id) === Number(preselectedChatId)
+        )
+      );
+      if (openedChat) {
+        onSelectConversation(openedChat);
+        clearPreselectedChat();
+      }
+    }
+  }, [preselectedChatId, conversations, onSelectConversation, clearPreselectedChat]);
 
   const handleNewConversation = async () => {
     if (!newConversationUser.trim()) return;
@@ -88,7 +102,7 @@ function ConversationList({ onSelectConversation, lastSeenMessageId }) {
                 if (data.seen_messages !== undefined) {
                   return Math.max((conv.unread_messages || 0) - data.seen_messages.length, 0);
                 }
-                if (data.unread_messages !== undefined){
+                if (data.unread_messages !== undefined) {
                   return data.unread_messages;
                 }
                 return conv.unread_messages;
@@ -99,7 +113,7 @@ function ConversationList({ onSelectConversation, lastSeenMessageId }) {
         })
       );
     };
-    
+
     WebSocketInstance.on('conversation_update', handleConversationUpdate);
 
     return () => {

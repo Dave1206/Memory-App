@@ -278,7 +278,7 @@ function Feed({ onFeedTabView }) {
                 <div className="feed-nav">
                     {Object.entries({
                         feed: "Feed",
-                        myEvents: "My Posts",
+                        myEvents: "Yours",
                         followedEvents: "Followed",
                         trending: "Trending",
                         forYou: "For You",

@@ -34,7 +34,7 @@
     margin: 0 0 5px 0;
     border: 1px solid #666;
     border-radius: 3px;
-    color: var(--text-color);
+    color: #333;
     background-color: #eceaea;
 }
 
@@ -58,6 +58,7 @@
 }
 
 .friend-suggestions {
+    color: #333;
     margin-top: 5px;
     list-style: none;
     padding: 0;
@@ -72,7 +73,7 @@
 }
 
 .friend-suggestions li:hover {
-    background: #444;
+    background: #44444436;
 }
 
 .no-conversations {
@@ -168,6 +169,6 @@
 
 @media (max-width: 768px) {
     .conversation-dropdown{
-        max-height: 92.3%;
+        max-height: 100%;
       }
 }
