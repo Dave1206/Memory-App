@@ -22,6 +22,7 @@ import { WebSocketServer } from "ws";
 import { handleSendMessage, handleMarkSeen, handleSendNotification, handleConversationUpdate } from "./utils/websocketHandlers.js";
 import { fileURLToPath } from 'url';
 import { basename, dirname, join } from 'path';
+import rateLimit from 'express-rate-limit';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const ffmpeg = require('fluent-ffmpeg');
@@ -181,7 +182,7 @@ async function deleteMediaAsset(publicId, resourceType = 'image') {
   });
 }
 
-//server functions
+//server functions/middleware
 function isAuthenticated(req, res, next) {
   if (req.isAuthenticated()) {
     return next();
@@ -202,6 +203,29 @@ function isAdmin(req, res, next) {
   }
   res.status(403).json({ error: 'Access denied. Admin status required.' });
 }
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 1000,
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const postLimit = 5;
+
+const postLimiter = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000,  // 1 day
+  max: postLimit,
+  message: (req, res) => {
+    const resetTime = new Date(Date.now() + req.rateLimit.resetTime);
+    return res.status(429).json({
+      message: `You have reached your daily post limit of ${postLimit}. You can post again at ${resetTime.toLocaleTimeString()}.`
+    });
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 async function notifyUser(userId, message) {
   await db.query(
@@ -256,7 +280,7 @@ const fetchUserLocation = async (ip) => {
 };
 
 //auth routes
-app.post("/register", async (req, res) => {
+app.post("/register", apiLimiter, async (req, res) => {
   const { username, email, password, confirmPassword } = req.body;
   const date = new Date().toISOString().replace("T", " ").replace("Z", "");
   const normalizedEmail = email.toLowerCase();
@@ -316,7 +340,7 @@ app.post("/register", async (req, res) => {
   }
 });
 
-app.get("/verify-email", async (req, res) => {
+app.get("/verify-email", apiLimiter, async (req, res) => {
   const { token } = req.query;
 
   try {
@@ -341,7 +365,7 @@ app.get("/verify-email", async (req, res) => {
   }
 });
 
-app.get("/check-username", async (req, res) => {
+app.get("/check-username", apiLimiter, async (req, res) => {
   const { username } = req.query;
 
   if (!username) {
@@ -362,7 +386,7 @@ app.get("/check-username", async (req, res) => {
   }
 });
 
-app.post("/login", (req, res, next) => {
+app.post("/login", apiLimiter, (req, res, next) => {
   passport.authenticate("local", (err, user, info) => {
     if (err) {
       console.error("Server error during login:", err);
@@ -382,7 +406,7 @@ app.post("/login", (req, res, next) => {
   })(req, res, next);
 });
 
-app.post("/logout", (req, res) => {
+app.post("/logout", apiLimiter, (req, res) => {
   const userId = req.user?.id;
 
   if (!userId) {
@@ -420,7 +444,7 @@ app.post("/logout", (req, res) => {
   });
 });
 
-app.get('/auth/session', isAuthenticated, (req, res) => {
+app.get('/auth/session', isAuthenticated, apiLimiter, (req, res) => {
   if (req.user) {
     res.json({ user: req.user });
   } else {
@@ -429,7 +453,7 @@ app.get('/auth/session', isAuthenticated, (req, res) => {
 });
 
 //events routes
-app.get('/eventdata/:event_id', isAuthenticated, async (req, res) => {
+app.get('/eventdata/:event_id', isAuthenticated, apiLimiter, async (req, res) => {
   const userId = req.user.id;
   const eventId = req.params.event_id;
 
@@ -484,7 +508,7 @@ app.get('/eventdata/:event_id', isAuthenticated, async (req, res) => {
   }
 });
 
-app.get("/events/mine", isAuthenticated, async (req, res) => {
+app.get("/events/mine", isAuthenticated, apiLimiter, async (req, res) => {
   const userId = req.user.id;
   const { search, filters: rawFilters, sortOrder = 'desc', limit = 10, offset = 0 } = req.query;
 
@@ -596,7 +620,7 @@ app.get("/events/mine", isAuthenticated, async (req, res) => {
   }
 });
 
-app.get("/events/followed", isAuthenticated, async (req, res) => {
+app.get("/events/followed", isAuthenticated, apiLimiter, async (req, res) => {
   const userId = req.user.id;
   const { search, filters: rawFilters, sortOrder = 'desc', limit = 10, offset = 0 } = req.query;
 
@@ -717,7 +741,7 @@ app.get("/events/followed", isAuthenticated, async (req, res) => {
   }
 });
 
-app.post("/events/compose", isAuthenticated, async (req, res) => {
+app.post("/events/compose", isAuthenticated, postLimiter, apiLimiter, async (req, res) => {
   try {
     const { newEvent, memoryContent, mediaToken } = req.body;
     const { title, invites = [], eventType, revealDate, visibility, tags = [], location } = newEvent;
@@ -816,7 +840,7 @@ app.post("/events/compose", isAuthenticated, async (req, res) => {
   }
 });
 
-app.post('/events/:eventId/start-interaction', isAuthenticated, async (req, res) => {
+app.post('/events/:eventId/start-interaction', isAuthenticated, apiLimiter, async (req, res) => {
   const { eventId } = req.params;
   const userId = req.user.id;
   const interactionStart = new Date();
@@ -840,7 +864,7 @@ app.post('/events/:eventId/start-interaction', isAuthenticated, async (req, res)
   }
 });
 
-app.post('/events/:eventId/end-interaction', isAuthenticated, async (req, res) => {
+app.post('/events/:eventId/end-interaction', isAuthenticated, apiLimiter, async (req, res) => {
   const { eventId } = req.params;
   const userId = req.user.id;
   const interactionEnd = new Date();
@@ -880,7 +904,7 @@ app.post('/events/:eventId/end-interaction', isAuthenticated, async (req, res) =
   }
 });
 
-app.post("/events/:eventId/opt-in", isAuthenticated, async (req, res) => {
+app.post("/events/:eventId/opt-in", isAuthenticated, apiLimiter, async (req, res) => {
   try {
     const userId = req.user.id;
     const eventId = req.params.eventId;
@@ -902,7 +926,7 @@ app.post("/events/:eventId/opt-in", isAuthenticated, async (req, res) => {
   }
 });
 
-app.post("/events/:eventId/reject", isAuthenticated, async (req, res) => {
+app.post("/events/:eventId/reject", isAuthenticated, apiLimiter, async (req, res) => {
   try {
     const userId = req.user.id;
     const eventId = req.params.eventId;
@@ -919,7 +943,7 @@ app.post("/events/:eventId/reject", isAuthenticated, async (req, res) => {
   }
 });
 
-app.post("/invite/:event_id", isAuthenticated, async (req, res) => {
+app.post("/invite/:event_id", isAuthenticated, apiLimiter, async (req, res) => {
   try {
     const { event_id } = req.params;
     const { usernames } = req.body;
@@ -951,7 +975,7 @@ app.post("/invite/:event_id", isAuthenticated, async (req, res) => {
   }
 })
 
-app.post("/deleteevent/:event_id", isAuthenticated, async (req, res) => {
+app.post("/deleteevent/:event_id", isAuthenticated, apiLimiter, async (req, res) => {
   const { event_id } = req.params;
   const userId = req.user.id;
 
@@ -1014,7 +1038,7 @@ app.post("/deleteevent/:event_id", isAuthenticated, async (req, res) => {
   }
 });
 
-app.post("/events/:event_id/memories", isAuthenticated, async (req, res) => {
+app.post("/events/:event_id/memories", isAuthenticated, postLimiter, apiLimiter, async (req, res) => {
   try {
     const { event_id } = req.params;
     const { content, mediaToken } = req.body;
@@ -1044,7 +1068,7 @@ app.post("/events/:event_id/memories", isAuthenticated, async (req, res) => {
       [event_id, userId]
     );
 
-    await logActivity(userId, 'shared_memory', `Shared a memory for event: ${eventTitle.rows[0]}`, event_id, 'memory');
+    await logActivity(userId, 'shared_memory', `Shared a memory for event: ${eventTitle.rows[0].title}`, event_id, 'memory');
 
     res.send("Memory shared successfully");
   } catch (err) {
@@ -1053,7 +1077,7 @@ app.post("/events/:event_id/memories", isAuthenticated, async (req, res) => {
   }
 });
 
-app.get("/events/:event_id/memories", isAuthenticated, async (req, res) => {
+app.get("/events/:event_id/memories", isAuthenticated, apiLimiter, async (req, res) => {
   try {
     const { event_id: eventId } = req.params;
     const { markChecked } = req.query;
@@ -1095,7 +1119,7 @@ app.get("/events/:event_id/memories", isAuthenticated, async (req, res) => {
   }
 });
 
-app.post('/events/:eventId/like', isAuthenticated, async (req, res) => {
+app.post('/events/:eventId/like', isAuthenticated, apiLimiter, async (req, res) => {
   const userId = req.user.id;
   const eventId = req.params.eventId;
 
@@ -1146,7 +1170,7 @@ app.post('/events/:eventId/like', isAuthenticated, async (req, res) => {
   }
 });
 
-app.post('/events/:eventId/share', isAuthenticated, async (req, res) => {
+app.post('/events/:eventId/share', isAuthenticated, apiLimiter, async (req, res) => {
   const userId = req.user.id;
   const eventId = req.params.eventId;
 
@@ -1191,7 +1215,7 @@ app.post('/events/:eventId/share', isAuthenticated, async (req, res) => {
   }
 });
 
-app.post('/memories/:memoryId/like', isAuthenticated, async (req, res) => {
+app.post('/memories/:memoryId/like', isAuthenticated, apiLimiter, async (req, res) => {
   const userId = req.user.id;
   const memoryId = req.params.memoryId;
 
@@ -1239,7 +1263,7 @@ app.post('/memories/:memoryId/like', isAuthenticated, async (req, res) => {
   }
 });
 
-app.delete("/memories/:memoryId", isAuthenticated, async (req, res) => {
+app.delete("/memories/:memoryId", isAuthenticated, apiLimiter, async (req, res) => {
   const { memoryId } = req.params;
   const userId = req.user.id;
 
@@ -1275,7 +1299,7 @@ app.delete("/memories/:memoryId", isAuthenticated, async (req, res) => {
 });
 
 // User data routes
-app.get("/user/:userId", isAuthenticated, async (req, res) => {
+app.get("/user/:userId", isAuthenticated, apiLimiter, async (req, res) => {
   try {
     const { userId } = req.params;
     const requesterId = req.user.id;
@@ -1323,7 +1347,7 @@ app.get("/user/:userId", isAuthenticated, async (req, res) => {
   }
 });
 
-app.get("/location", isAuthenticated, async (req, res) => {
+app.get("/location", isAuthenticated, apiLimiter, async (req, res) => {
   try {
     const clientIp = await fetchIP();
     const locationData = await fetchUserLocation(clientIp);
@@ -1335,7 +1359,7 @@ app.get("/location", isAuthenticated, async (req, res) => {
   }
 });
 
-app.get('/feed', isAuthenticated, async (req, res) => {
+app.get('/feed', isAuthenticated, apiLimiter, async (req, res) => {
   const userId = req.user.id;
   const { search, filters: rawFilters, sortOrder = 'asc', limit = 10, offset = 0 } = req.query;
 
@@ -1469,7 +1493,7 @@ app.get('/feed', isAuthenticated, async (req, res) => {
   }
 });
 
-app.get('/explore/trending', isAuthenticated, async (req, res) => {
+app.get('/explore/trending', isAuthenticated, apiLimiter, async (req, res) => {
   const { search, filters: rawFilters, sortOrder = 'desc' } = req.query;
   const limit = parseInt(req.query.limit, 10) || 10;
   const offset = parseInt(req.query.offset, 10) || 0;
@@ -1584,7 +1608,7 @@ app.get('/explore/trending', isAuthenticated, async (req, res) => {
   }
 });
 
-app.get('/explore/personalized', isAuthenticated, async (req, res) => {
+app.get('/explore/personalized', isAuthenticated, apiLimiter, async (req, res) => {
   const userId = req.user.id;
   const { search, filters: rawFilters, sortOrder = 'desc', limit = 10, offset = 0 } = req.query;
 
@@ -1739,7 +1763,7 @@ app.get('/explore/personalized', isAuthenticated, async (req, res) => {
   }
 });
 
-app.get('/user/preferences/:userId', isAuthenticated, async (req, res) => {
+app.get('/user/preferences/:userId', isAuthenticated, apiLimiter, async (req, res) => {
   try {
     const { userId } = req.params;
     const result = await db.query("SELECT * FROM user_preferences WHERE user_id = $1", [userId]);
@@ -1749,7 +1773,7 @@ app.get('/user/preferences/:userId', isAuthenticated, async (req, res) => {
   }
 });
 
-app.put('/user/preferences/:userId', isAuthenticated, async (req, res) => {
+app.put('/user/preferences/:userId', isAuthenticated, apiLimiter, async (req, res) => {
   try {
     const { userId } = req.params;
     const { username, email, accountSettings, notificationSettings, privacySettings, dataSettings } = req.body;
@@ -1838,7 +1862,7 @@ app.put('/user/preferences/:userId', isAuthenticated, async (req, res) => {
   }
 });
 
-app.put('/user/change-password', isAuthenticated, async (req, res) => {
+app.put('/user/change-password', isAuthenticated, apiLimiter, async (req, res) => {
   const { userId, currentPassword, newPassword } = req.body;
 
   try {
@@ -1875,7 +1899,7 @@ app.put('/user/change-password', isAuthenticated, async (req, res) => {
   }
 });
 
-app.get('/users/:userId/activities', isAuthenticated, async (req, res) => {
+app.get('/users/:userId/activities', isAuthenticated, apiLimiter, async (req, res) => {
   const { userId } = req.params;
 
   try {
@@ -1893,7 +1917,7 @@ app.get('/users/:userId/activities', isAuthenticated, async (req, res) => {
   }
 });
 
-app.get("/posts/top/:userId", isAuthenticated, async (req, res) => {
+app.get("/posts/top/:userId", isAuthenticated, apiLimiter, async (req, res) => {
   const profileUserId = req.params.userId;
   const { limit = 10, offset = 0 } = req.query;
 
@@ -1963,7 +1987,7 @@ app.get("/posts/top/:userId", isAuthenticated, async (req, res) => {
 });
 
 //notifications routes
-app.get('/notifications/:userId', isAuthenticated, async (req, res) => {
+app.get('/notifications/:userId', isAuthenticated, apiLimiter, async (req, res) => {
   const { userId } = req.params;
 
   try {
@@ -2104,7 +2128,7 @@ app.get('/notifications/:userId', isAuthenticated, async (req, res) => {
   }
 });
 
-app.post('/notifications/mark-read', isAuthenticated, async (req, res) => {
+app.post('/notifications/mark-read', isAuthenticated, apiLimiter, async (req, res) => {
   const { ids } = req.body;
 
   try {
@@ -2119,7 +2143,7 @@ app.post('/notifications/mark-read', isAuthenticated, async (req, res) => {
   }
 });
 
-app.delete('/notifications', isAuthenticated, async (req, res) => {
+app.delete('/notifications', isAuthenticated, apiLimiter, async (req, res) => {
   const { ids } = req.body;
 
   try {
@@ -2135,7 +2159,7 @@ app.delete('/notifications', isAuthenticated, async (req, res) => {
 });
 
 //messenger routes
-app.get('/conversations', isAuthenticated, async (req, res) => {
+app.get('/conversations', isAuthenticated, apiLimiter, async (req, res) => {
   try {
     const userId = req.user.id;
     const conversations = await db.query(`
@@ -2222,7 +2246,7 @@ app.get('/conversations', isAuthenticated, async (req, res) => {
   }
 });
 
-app.post('/conversations', isAuthenticated, async (req, res) => {
+app.post('/conversations', isAuthenticated, apiLimiter, async (req, res) => {
   const { participantIds, title } = req.body;
   const userId = req.user.id;
 
@@ -2272,7 +2296,7 @@ app.post('/conversations', isAuthenticated, async (req, res) => {
   }
 });
 
-app.get('/conversations/:conversationId/messages', isAuthenticated, async (req, res) => {
+app.get('/conversations/:conversationId/messages', isAuthenticated, apiLimiter, async (req, res) => {
   const { conversationId } = req.params;
   const { limit = 20, offset, before } = req.query;
 
@@ -2301,7 +2325,7 @@ app.get('/conversations/:conversationId/messages', isAuthenticated, async (req, 
   }
 });
 
-app.post('/conversations/:conversationId/messages', isAuthenticated, async (req, res) => {
+app.post('/conversations/:conversationId/messages', isAuthenticated, apiLimiter, async (req, res) => {
   const { conversationId } = req.params;
   const { content, mediaUrl } = req.body;
   const userId = req.user.id;
@@ -2335,7 +2359,7 @@ app.post('/conversations/:conversationId/messages', isAuthenticated, async (req,
   }
 });
 
-app.post('/conversations/:conversationId/media', isAuthenticated, upload.single('media'), async (req, res) => {
+app.post('/conversations/:conversationId/media', isAuthenticated, apiLimiter, upload.single('media'), async (req, res) => {
   try {
     const isSafe = await moderateImageContent(req.file.buffer);
     if (!isSafe) {
@@ -2351,7 +2375,7 @@ app.post('/conversations/:conversationId/media', isAuthenticated, upload.single(
 });
 
 //friend routes
-app.post('/friends/request', isAuthenticated, async (req, res) => {
+app.post('/friends/request', isAuthenticated, apiLimiter, async (req, res) => {
   const { userId, friendUsername } = req.body;
   try {
     const selfUser = await db.query(
@@ -2412,7 +2436,7 @@ app.post('/friends/request', isAuthenticated, async (req, res) => {
   }
 });
 
-app.post('/friends/remove', isAuthenticated, async (req, res) => {
+app.post('/friends/remove', isAuthenticated, apiLimiter, async (req, res) => {
   const { userId, friendId } = req.body;
   
   try {
@@ -2429,7 +2453,7 @@ app.post('/friends/remove', isAuthenticated, async (req, res) => {
   }
 });
 
-app.post('/friends/accept', isAuthenticated, async (req, res) => {
+app.post('/friends/accept', isAuthenticated, apiLimiter, async (req, res) => {
   const { userId, friendId } = req.body; //in this case, userId references the user with a request
   try {
     const getFriend = await db.query(`SELECT * FROM users WHERE id =$1`, [friendId]);
@@ -2449,7 +2473,7 @@ app.post('/friends/accept', isAuthenticated, async (req, res) => {
   }
 });
 
-app.post('/friends/reject', isAuthenticated, async (req, res) => {
+app.post('/friends/reject', isAuthenticated, apiLimiter, async (req, res) => {
   const { userId, friendId } = req.body;
   try {
     await db.query(
@@ -2462,7 +2486,7 @@ app.post('/friends/reject', isAuthenticated, async (req, res) => {
   }
 });
 
-app.get('/friends/:userId', isAuthenticated, async (req, res) => {
+app.get('/friends/:userId', isAuthenticated, apiLimiter, async (req, res) => {
   const { userId } = req.params;
   try {
     const fetchFriends = await db.query(
@@ -2509,7 +2533,7 @@ app.get('/friends/:userId', isAuthenticated, async (req, res) => {
   }
 });
 
-app.post('/block-user', isAuthenticated, async (req, res) => {
+app.post('/block-user', isAuthenticated, apiLimiter, async (req, res) => {
   const userId = req.user.id; // the user performing the block
   const { blockedId } = req.body; // the user being blocked
 
@@ -2526,7 +2550,7 @@ app.post('/block-user', isAuthenticated, async (req, res) => {
   }
 });
 
-app.post('/unblock-user', isAuthenticated, async (req, res) => {
+app.post('/unblock-user', isAuthenticated, apiLimiter, async (req, res) => {
   const userId = req.user.id;
   const { blockedId } = req.body;
 
@@ -2548,7 +2572,7 @@ app.post('/unblock-user', isAuthenticated, async (req, res) => {
 });
 
 // Password reset routes.
-app.post("/forgot-password", async (req, res) => {
+app.post("/forgot-password", apiLimiter, async (req, res) => {
   const { email } = req.body;
 
   try {
@@ -2586,7 +2610,7 @@ app.post("/forgot-password", async (req, res) => {
   }
 });
 
-app.post("/reset-password", async (req, res) => {
+app.post("/reset-password", apiLimiter, async (req, res) => {
   const { token, newPassword } = req.body;
 
   try {
@@ -2618,7 +2642,7 @@ app.post("/reset-password", async (req, res) => {
 });
 
 //media routes
-app.post('/upload/profile-picture', isAuthenticated, upload.single('profilePic'), async (req, res) => {
+app.post('/upload/profile-picture', isAuthenticated, apiLimiter, upload.single('profilePic'), async (req, res) => {
   try {
     const buffer = await sharp(req.file.buffer)
       .rotate()
@@ -2651,7 +2675,7 @@ app.post('/upload/profile-picture', isAuthenticated, upload.single('profilePic')
   }
 });
 
-app.post('/upload/memory-media', isAuthenticated, upload.single('media'), async (req, res) => {
+app.post('/upload/memory-media', isAuthenticated, apiLimiter, upload.single('media'), async (req, res) => {
   try {
     const { visibility, mediaToken } = req.body;
     const userId = req.user.id;
@@ -2787,7 +2811,7 @@ app.post('/upload/memory-media', isAuthenticated, upload.single('media'), async 
 });
 
 //moderator routes
-app.post('/moderate/profile-picture/:queueId', isAuthenticated, isModerator, async (req, res) => {
+app.post('/moderate/profile-picture/:queueId', isAuthenticated, isModerator, apiLimiter, async (req, res) => {
   const { queueId } = req.params;
   const { action } = req.body; // 'approve' or 'deny'
 
@@ -2809,7 +2833,7 @@ app.post('/moderate/profile-picture/:queueId', isAuthenticated, isModerator, asy
   }
 });
 
-app.get('/moderate/profile-picture/queue', isAuthenticated, isModerator, async (req, res) => {
+app.get('/moderate/profile-picture/queue', isAuthenticated, isModerator, apiLimiter, async (req, res) => {
   try {
     const result = await db.query(`SELECT *, 'profile_picture' AS type FROM profile_picture_queue`);
     res.json(result.rows);
@@ -2819,7 +2843,7 @@ app.get('/moderate/profile-picture/queue', isAuthenticated, isModerator, async (
   }
 });
 
-app.post('/moderate/media/:queueId', isAuthenticated, isModerator, async (req, res) => {
+app.post('/moderate/media/:queueId', isAuthenticated, isModerator, apiLimiter, async (req, res) => {
   const { queueId } = req.params;
   const { action } = req.body;
 
@@ -2856,7 +2880,7 @@ app.post('/moderate/media/:queueId', isAuthenticated, isModerator, async (req, r
   }
 });
 
-app.get('/moderate/media/queue', isAuthenticated, isModerator, async (req, res) => {
+app.get('/moderate/media/queue', isAuthenticated, isModerator, apiLimiter, async (req, res) => {
   try {
     const mediaQueue = await db.query(`
       SELECT *, 'memory_media' AS type 
@@ -2870,7 +2894,7 @@ app.get('/moderate/media/queue', isAuthenticated, isModerator, async (req, res) 
   }
 });
 
-app.delete('/moderate/remove/:type/:contentId', isAuthenticated, isModerator, async (req, res) => {
+app.delete('/moderate/remove/:type/:contentId', isAuthenticated, isModerator, apiLimiter, async (req, res) => {
   const { type, contentId } = req.params;
   let table = '';
   let message = '';
@@ -2946,7 +2970,7 @@ app.delete('/moderate/remove/:type/:contentId', isAuthenticated, isModerator, as
 });
 
 
-app.post('/moderate/ban/:userId?', isAuthenticated, isModerator, async (req, res) => {
+app.post('/moderate/ban/:userId?', isAuthenticated, isModerator, apiLimiter, async (req, res) => {
   const { userId } = req.params;
   const { duration, reason, username } = req.body; // Duration in days, 0 for permanent
 
@@ -2986,19 +3010,19 @@ app.post('/moderate/ban/:userId?', isAuthenticated, isModerator, async (req, res
   }
 });
 
-app.post('/moderate/notes', isAuthenticated, isModerator, async (req, res) => {
+app.post('/moderate/notes', isAuthenticated, isModerator, apiLimiter, async (req, res) => {
   const { note } = req.body;
   await db.query(`INSERT INTO moderator_notes (moderator_id, note, date) VALUES ($1, $2, NOW())`, [req.user.id, note]);
   res.status(200).json({ message: "Note added" });
 });
 
-app.get('/moderate/notes', isAuthenticated, isModerator, async (req, res) => {
+app.get('/moderate/notes', isAuthenticated, isModerator, apiLimiter, async (req, res) => {
   const result = await db.query(`SELECT m.note, u.username AS moderator_username FROM moderator_notes m JOIN users u ON m.moderator_id = u.id ORDER BY m.date DESC`);
   res.json(result.rows);
 });
 
 //admin routes
-app.get('/admin/ban-history', isAuthenticated, isAdmin, async (req, res) => {
+app.get('/admin/ban-history', isAuthenticated, isAdmin, apiLimiter, async (req, res) => {
   try {
     const banHistory = await db.query(`
           SELECT b.user_id, b.banned_until, b.reason, b.banned_by, u.username AS banned_by_username
@@ -3013,12 +3037,12 @@ app.get('/admin/ban-history', isAuthenticated, isAdmin, async (req, res) => {
   }
 });
 
-app.get('/admin/audit-log', isAuthenticated, isAdmin, async (req, res) => {
+app.get('/admin/audit-log', isAuthenticated, isAdmin, apiLimiter, async (req, res) => {
   const result = await db.query(`SELECT a.action, a.date, u.username AS moderator_username FROM audit_log a JOIN users u ON a.moderator_id = u.id ORDER BY a.date DESC`);
   res.json(result.rows);
 });
 
-app.delete('/admin/clear-moderator-notes', isAuthenticated, isAdmin, async (req, res) => {
+app.delete('/admin/clear-moderator-notes', isAuthenticated, isAdmin, apiLimiter, async (req, res) => {
   try {
     await db.query(`
       INSERT INTO archived_moderator_notes (original_id, moderator_username, note, date)
@@ -3036,7 +3060,7 @@ app.delete('/admin/clear-moderator-notes', isAuthenticated, isAdmin, async (req,
   }
 });
 
-app.delete('/admin/clear-audit-logs', isAuthenticated, isAdmin, async (req, res) => {
+app.delete('/admin/clear-audit-logs', isAuthenticated, isAdmin, apiLimiter, async (req, res) => {
   try {
     await db.query(`
       INSERT INTO archived_audit_log (original_id, moderator_username, action, date)

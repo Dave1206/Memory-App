@@ -15,7 +15,7 @@ const Login = () => {
   const [forgotPassword, setForgotPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
-  const [sessionMessage, setSessionMessage] = useState('');
+  const [sessionMessage, setSessionMessage] = useState(localStorage.getItem('logoutMessage') || '');
 
   const { login, user } = useAuth();
   const { setSessionExpired } = useAxios();
@@ -28,6 +28,8 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    localStorage.removeItem('logoutMessage');
+    setSessionMessage('');
 
     try {
       await login(identifier, password);

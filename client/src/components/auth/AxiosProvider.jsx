@@ -53,12 +53,35 @@ export const AxiosProvider = ({ children, onSessionExpired }) => {
   axiosInstance.interceptors.response.use(
     response => response,
     error => {
-      if (error.response && error.response.status === 401) {
-        if (!logoutTriggered.current) {
-          logoutTriggered.current = true;
-          logout();
-          if (onSessionExpired) {
-            onSessionExpired();
+      if (error.response) {
+        const { status, data } = error.response;
+
+        if (status === 401) {
+          if (!logoutTriggered.current) {
+            logoutTriggered.current = true;
+            logout();
+            localStorage.setItem('logoutMessage', 'Your session has expired. Please log in again.');
+            if (onSessionExpired) {
+              onSessionExpired();
+            }
+          }
+        }
+
+        if (status === 429) {
+          const retryAfter = error.response.headers['retry-after'];
+          const retryTime = retryAfter ? new Date(Date.now() + (retryAfter * 1000)) : null;
+          const retryMessage = retryTime
+            ? `You have been rate limited. Please try again at ${retryTime.toLocaleTimeString()}. Repeated abuse may result in restrictions. If you believe this is an error, contact me at david.n.waddell@gmail.com.`
+            : (data.message || 'You have been rate limited. Please try again later. Repeated abuse may result in restrictions. If you believe this is an error, contact me at david.n.waddell@gmail.com.');
+
+          localStorage.setItem('logoutMessage', retryMessage);
+
+          if (!logoutTriggered.current) {
+            logoutTriggered.current = true;
+            logout();
+            if (onSessionExpired) {
+              onSessionExpired();
+            }
           }
         }
       }

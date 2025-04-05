@@ -50,7 +50,6 @@ function ChatWindow({
         params: { limit: 20, offset, before },
       });
       const fetched = response.data;
-      console.log(fetched);
       oldestMessageRef.current = fetched[0].sent_at;
       offsetRef.current = offsetRef.current + 20;
       if (before) {

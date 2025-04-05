@@ -54,11 +54,13 @@ function ConversationList({ onSelectConversation, lastSeenMessageId, preselected
   }, [preselectedChatId, conversations, onSelectConversation, clearPreselectedChat]);
 
   const handleNewConversation = async () => {
-    if (!newConversationUser.trim()) return;
+    if (!newConversationUser.trim() || !isValidFriend()) return;
 
     try {
+      const friend = friends.find(f => f.username === newConversationUser);
+      if (!friend) return;
       const response = await axiosInstance.post('/conversations', {
-        participantIds: [friends.find(f => f.username === newConversationUser)?.id],
+        participantIds: [friend.id],
         title: null,
       });
 
@@ -74,12 +76,22 @@ function ConversationList({ onSelectConversation, lastSeenMessageId, preselected
     setNewConversationUser(input);
     if (input.trim()) {
       const matches = friends.filter((friend) =>
-        friend.username.toLowerCase().includes(input.toLowerCase())
+        friend.username.toLowerCase().includes(input.toLowerCase()) && !hasConversationWith(friend.id)
       );
       setSuggestedFriends(matches);
     } else {
       setSuggestedFriends([]);
     }
+  };
+
+  const hasConversationWith = (friendId) => {
+    return conversations.some(conversation => 
+      conversation.participants.some(participant => participant.user_id === friendId)
+    );
+  };
+
+  const isValidFriend = () => {
+    return friends.some(friend => friend.username.toLowerCase() === newConversationUser.toLowerCase());
   };
 
   useEffect(() => {
@@ -138,7 +150,7 @@ function ConversationList({ onSelectConversation, lastSeenMessageId, preselected
         <button
           className="start-conversation-btn"
           onClick={handleNewConversation}
-          disabled={!newConversationUser.trim()}
+          disabled={!isValidFriend()}
         >
           Start
         </button>
