@@ -86,7 +86,7 @@ function ConversationList({ onSelectConversation, lastSeenMessageId, preselected
 
   const hasConversationWith = (friendId) => {
     return conversations.some(conversation => 
-      conversation.participants.some(participant => participant.user_id === friendId)
+      conversation.participants.some(participant => Number(participant.user_id) === Number(friendId))
     );
   };
 
@@ -150,7 +150,7 @@ function ConversationList({ onSelectConversation, lastSeenMessageId, preselected
         <button
           className="start-conversation-btn"
           onClick={handleNewConversation}
-          disabled={!isValidFriend()}
+          disabled={!isValidFriend() || !hasConversationWith()}
         >
           Start
         </button>
