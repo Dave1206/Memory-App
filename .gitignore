@@ -14,7 +14,13 @@ server/build/
 client/.env
 .env
 
+# Ignore database dumps
+*.dump
+*.sql
+local_db.dump
+
 # Ignore OS/system-specific files
 .DS_Store
 Thumbs.db
 node_modules
+local_db.dump
