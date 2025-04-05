@@ -148,10 +148,10 @@ npm start
 ![Login Screen](./client/src/assets/screenshots/memoryappss1.png)
 
 ### Navigation and Feed 
-![Dashboard](./client/src/assets/screenshots/memoryappss2.png)
+![Feed and Nav](./client/src/assets/screenshots/memoryappss2.png)
 
-### Notifications and Messenger 
-![Dashboard](./client/src/assets/screenshots/memoryappss3.png)
+### Messenger and Notifications 
+![Messenger and Notifications](./client/src/assets/screenshots/memoryappss3.png)
 
 ## Live Demo
 Check out the live demo: [Memory App](https://memoryapp-d427aaf76968.herokuapp.com)
