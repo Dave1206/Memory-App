@@ -1,57 +1,121 @@
 .feed-wrapper {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    width: 100%;
-    height: 100%;
+    min-width: 50vw;
+    max-width: 50vw;
+    height: 90vh;
     margin: 0 auto;
-    transition: all 0.8s ease;
-    justify-content: space-between;
+    padding: 10px;
+    border-radius: 12px;
 }
 
-/* Header and Container */
-.feed-header-and-container {
+/* Top Navigation */
+.feed-nav {
     display: flex;
-    flex-direction: column;
-    width: 100%;
-    height:100%;
+    justify-content: center;
+    align-items: center;
+    padding: 5px;
+    border-radius: 50px;
+    margin-bottom: 10px;
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.2);
+    gap: 7px;
 }
 
-.feed-header-and-container h2{
-    margin:0 auto;
+.feed-nav-button {
+    flex: 1;
+    padding: 3px;
+    margin: 0 3px;
+    background: none;
+    border: none;
+    border-radius: 50px;
+    font-size: 1rem;
+    color: rgb(119, 134, 122);
+    cursor: pointer;
+    box-shadow: none;
 }
 
-/* Scrollable Feed Container */
+.feed-nav-button:hover{
+    background: #dde7df;
+}
+
+.feed-nav-button.active {
+    background: rgb(160, 178, 163);
+    color: white;
+    font-weight: bold;
+}
+
+/* Feed Content */
 .feed-container {
     position: relative;
-    border-radius: 8px;
-    box-shadow: inset 0px 4px 12px rgba(110, 110, 110, 0.15);
+    max-height: 86.5%;
     overflow-y: auto;
-    padding: 20px;
-    background-color: rgba(110, 110, 110, 0.15);
-    height: 80%;
-    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
+    padding: 10px;
+    border-radius: 10px;
+    box-shadow: inset 0px 2px 6px rgba(0, 0, 0, 0.15);
 }
 
-/* Hide scrollbar on Webkit */
+
+.feed-container::before{
+    content: "";
+    position: fixed;
+    top: 11%;
+    left: 23.5%;
+    width: 50vw;
+    height: 78vh;
+    background-image: url('../assets/Logo_transparent.png');
+    background-size:contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    filter: invert(78%) sepia(6%) saturate(162%) hue-rotate(85deg) brightness(97%) contrast(93%);
+    opacity: 0.4;
+}
+
+/* Scrollbar */
 .feed-container::-webkit-scrollbar {
     width: 8px;
 }
+
 .feed-container::-webkit-scrollbar-thumb {
-    background-color: #777;
-    border-radius: 8px;
+    background: #dde7df;
+    border-radius: 4px;
 }
 
+/* Color variations with contrasting text color */
+.color1 { background-color: rgba(160, 178, 163, 1); color: #190933; }
+.color2 { background-color: rgba(233, 151, 124, 1); color: #190933; }
+.color3 { background-color: rgba(219, 202, 167, 1); color: #190933; }
+
 @media (max-width: 768px) {
-    .feed-wrapper {
-        width: 95vw;
-        margin-top: 12%;
+    .feed-wrapper{
+        min-width: 100vw;
+        max-width: 100vw;
+        margin: 0;
+        position: fixed;
+        height: 85vh;
     }
     .feed-container{
-        padding:10px;
-        height: 80%;
+        width: 95%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
     }
-    .feed-header-and-container h2{
-        display:none;
+    .feed-container::before{
+        width: 100vw;
+        height: 76vh;
+        left: 0;
+        top: 12%;
+    }
+    .feed-nav-button{
+        font-size: .9rem;
+        padding: 3px;
+        margin: 0 2px;
+    }
+    .feed-nav-button.active{
+        font-weight: normal;
     }
 }
+
+

@@ -1,0 +1,31 @@
+.landing-toggle {
+    position: fixed;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    top: 10px;
+    right: 60px;
+    height: 36px;
+    width: 36px;
+    background-color: rgb(119, 134, 122);
+    color: white;
+    padding: 10px 15px;
+    border: 1px solid #fff;
+    border-radius: 50%;
+    font-size: 1.5em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+    z-index: 10005;
+  }
+  
+.landing-toggle:hover {
+    background-color: #8a9c8c;
+    transform: scale(1.1);
+  }
+  
+.landing-toggle:active {
+    transform: translateX(-10%) scale(0.95);
+  }
+  

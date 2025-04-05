@@ -1,6 +1,10 @@
-# My Project Title
+# Memory App
 
-A brief description of the app: its purpose, features, and what makes it stand out.
+A social memory app designed to let users share, explore, and interact with memories and events. Features include real-time messaging, memory uploads, event participation, and a queryable feed system with infinite scrolling.
+
+## A Polite Request
+
+While not required by the license, if you use this project, a link back to the original repository would be greatly appreciated. It helps me grow as a developer and improves my career opportunities. Thank you for your support!
 
 ## Table of Contents
 - [Features](#features)
@@ -14,91 +18,167 @@ A brief description of the app: its purpose, features, and what makes it stand o
 - [License](#license)
 
 ## Features
-- User authentication (sign-up, login, logout)
-- Password recovery via email
-- Invite others to share memories
-- Responsive design
+- User authentication (sign-up, login, logout) with password recovery via email
+- User profile customization
+- Rate limiting to prevent spam and abuse (Express Rate Limit)
+- Memory creation with text and media uploads (images and videos)
+- Google Vision API filtering for media moderation
+- Manual media approval queue for profile pictures and public content
+- Banning system for handling abusive users
+- Friend system for connecting with other users
+- Event creation and participation
+- Infinite scrolling for feed with pagination
+- Real-time messaging system (WebSocket-based)
+- Notification system for invites, messages, and event updates
+- Responsive design for mobile and desktop
 
 ## Technologies Used
-- **Frontend**: React, React Router
-- **Backend**: Node.js, Express, PostgreSQL
-- **Additional Libraries**: Nodemailer (for email recovery), bcrypt (for password hashing)
+### Backend (Node.js / Express)
+- Node.js
+- Express
+- PostgreSQL (Database)
+- Cloudinary (Media Storage)
+- WebSocket (WS Library) for real-time messaging
+- Multer, Sharp, FFmpeg (Media processing)
+- Google Vision API (Content Moderation)
+- Axios (API requests)
+- Bcrypt (Password hashing)
+- Nodemailer (Email handling)
+- Connect-pg-simple (Session store)
+- Express Rate Limit (Rate Limiting)
+
+### Frontend (React)
+- React
+- React Router DOM
+- Axios (for API requests)
+- FontAwesome (Icons)
+- Bad Words Filter (Content filtering)
+- DOMPurify (XSS Protection)
+
+### Dev Tools
+- Dotenv (Environment variable management)
+- Tempy (Temporary file handling)
 
 ## Project Structure
-
-     root ├── client # Frontend code (React)
-          │  ├── public # Public files (e.g., index.html)
-          │  └── src # React components and other client-side code 
-          ├── server # Backend code (Node.js, Express) 
-          │  ├── config # Configuration files (e.g., database setup) 
-          │  ├── routes # API routes 
-          │  └── controllers # Controller functions for handling requests 
-          └── README.md # Project documentation
-
+```
+root
+├── client                     # Frontend code (React)
+│   ├── public                 # Public files (e.g., index.html)
+│   ├── src                    # React components and client-side code
+│   │   ├── assets             # Static assets (e.g., images, icons)
+│   │   ├── components         # All React components (including authentication)
+│   │   ├── data               # Data fetching logic or constants
+│   │   ├── hooks              # Custom React hooks
+│   │   ├── styles             # CSS styles
+│   │   ├── utils              # Helper functions (e.g., WebSocket handling)
+│   │   └── index.jsx          # React entry point
+|   └── package.json       # Frontend dependencies    
+├── server                     # Backend code (Node.js, Express)
+│   ├── config                 # Configuration files (e.g., database setup)
+│   ├── public                 # Public files served by Express (e.g., media)
+│   ├── utils                  # Utility functions
+│   ├── server.js              # Express server setup
+├── README.md                  # Project documentation
+├── package.json               # Backend dependencies
+├── client
+├── .env.example               # Environment variable example file
+├── Procfile                   # For Heroku deployment
+├── .gitignore                 # Git ignore file
+└── LICENSE                    # License file (MIT License)
+```
 
 ## Installation
 
 To get a local copy up and running, follow these steps:
 
 1. **Clone the repository**:
-
-     - ```bash
-     - git clone https://github.com/yourusername/your-repo-name.git
+```bash
+git clone https://github.com/yourusername/your-repo-name.git
+```
 
 2. **Navigate to the project directory**:
-     - cd your-repo-name
+```bash
+cd your-repo-name
+```
 
 3. **Install dependencies for the backend**:
-
-     - cd server
-     - npm install
+```bash
+npm install
+```
 
 4. **Set up environment variables for the backend**:
-
-     - In the server folder, create a .env file based on the .env.example file provided.
-
-     - Fill in your own values.
+- In the root folder, create a `.env` file based on the `.env.example` file provided.
+- Fill in your own values.
 
 5. **Install dependencies for the frontend**:
-
-     - cd ../client
-     - npm install
+```bash
+cd ../client
+npm install
+```
 
 6. **Add server proxy to package.json in the client folder**:
-     
-     - Add the following line to the package.json to create proxy for the server:
-          "proxy": "http://localhost:your_server_port_here",
+Add the following line to the package.json to create a proxy for the server:
+```json
+"proxy": "http://localhost:4747"
+```
 
 ## Usage
 
 1. **Start the backend server**:
-
-     - In the server folder, run:
-          npm start
-     - This will start the backend server on the port specified in your .env file
-          (default: 5000).
+```bash
+cd server
+npm start
+```
+- This will start the backend server on the port specified in your `.env` file (default: 4747).
 
 2. **Start the frontend development server**:
-
-     - In the client folder, run:
-          npm start
-     - This will start the React app, typically available at http://localhost:3000.
+```bash
+cd ../client
+npm start
+```
+- This will start the React app, typically available at http://localhost:3000.
 
 3. **Access the app**:
-     - Navigate to http://localhost:3000 to view the app.
-     - Make sure both the client and server are running simultaneously.
+- Navigate to http://localhost:3000 to view the app.
+- Make sure both the client and server are running simultaneously.
 
-# Screenshots
+## Screenshots
 
-# Live Demo
+### Login and Friendslist
+![Login Screen](./client/src/assets/screenshots/memoryappss1.png)
 
-# Contributing
+### Navigation and Feed 
+![Feed and Nav](./client/src/assets/screenshots/memoryappss2.png)
 
-Contributions are welcome! Please open an issue or submit a pull request.
+### Messenger and Notifications 
+![Messenger and Notifications](./client/src/assets/screenshots/memoryappss3.png)
 
-# License
+## Live Demo
+Check out the live demo: [Memory App](https://memoryapp-d427aaf76968.herokuapp.com)
 
-This project is licensed under the MIT License.
+## Contributing
+
+Contributions are welcome! Please open an issue or submit a pull request. To contribute:
+
+Fork the repository
+
+Create a feature branch (git checkout -b feature/YourFeatureName)
+
+Commit your changes (git commit -m 'Add YourFeatureName')
+
+Push to your branch (git push origin feature/YourFeatureName)
+
+Create a Pull Request
+
+All contributions will be reviewed before merging. Make sure your changes are well-documented and tested where applicable.
+
+### A Polite Request to Contributors
+
+If you fork or use this project, a link back to the original repository would be greatly appreciated. It helps me grow as a developer and improves my chances of getting hired. Thank you for your support!
+
+## License
+
+This project is licensed under the MIT License. See the LICENSE file for more details.
 
 # Create React App Guide
 

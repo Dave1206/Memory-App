@@ -37,7 +37,7 @@ function Event({ event, handleClick, updateEvents, selected }) {
         {
             content: <><FontAwesomeIcon icon={faBan} /> Block User</>,
             onClick: () => handleBlockUser(),
-            isDisabled: false,
+            isDisabled: user.id === creator.id,
         },
     ];
 
@@ -87,7 +87,6 @@ function Event({ event, handleClick, updateEvents, selected }) {
     };
 
     const handleBlockUser = async (e) => {
-        e.stopPropagation();
         try {
             await axiosInstance.post('/block-user', {
                 userId: user.id,

@@ -1,5 +1,7 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
 :root {
-  font-family: 'Inter', 'Courier New', Courier, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Poppins', 'Inter', 'Courier New', Courier, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.6;
   font-weight: 400;
   color-scheme: light dark;
@@ -31,8 +33,6 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  background-color: var(--background-color);
-  color: var(--text-color);
   min-height: 100vh;
   overflow-x: hidden;
   overflow-y: auto;
@@ -42,13 +42,17 @@ body {
 /* Links */
 a {
   font-weight: 500;
-  color: var(--link-color);
+  color: #56539e;
   text-decoration: none;
   transition: color 0.2s ease;
 }
 
 a:hover {
-  color: var(--link-hover-color);
+  color: #8e8aff;
+}
+
+a:visited {
+  color: #56539e;
 }
 
 /* Typography */
@@ -81,7 +85,7 @@ ul {
   list-style-type: none;
 }
 
-/* Button Styles */
+Button Styles
 button {
   border-radius: 8px;
   border: 1px solid transparent;

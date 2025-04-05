@@ -9,7 +9,7 @@ function ToggleModMode() {
   }
 
   return (
-    <button onClick={toggleModMode}>
+    <button className="event-button" onClick={toggleModMode}>
       {isModMode ? "Disable Mod Mode" : "Enable Mod Mode"}
     </button>
   );

@@ -2,126 +2,111 @@ import React, { useState } from 'react';
 import { useAxios } from '../auth/AxiosProvider';
 import { useAuth } from '../auth/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLock } from '@fortawesome/free-solid-svg-icons';
-import MemoryModal from '../modals/MemoryModal';
-import InviteModal from '../modals/InviteModal';
+import { faTrashAlt, faCrown } from '@fortawesome/free-solid-svg-icons';
 import ModOptionsButton from '../moderation/ModOptionsButton';
 import '../../styles/Memory.css';
 
-function Memory({
-    event,
-    userId,
-    memories,
-    getMemories,
-}) {
-    const [showModal, setShowModal] = useState(false);
-    const [showInviteModal, setShowInviteModal] = useState(false);
+function Memory({ event, memory, getMemories, hasSharedMemory }) {
     const { axiosInstance } = useAxios();
     const { user } = useAuth();
+    const [enlargedImage, setEnlargedImage] = useState(null);
+    const memoryId = memory.memory_id;
 
     const currentDate = new Date();
     const revealDate = new Date(event.reveal_date);
-    const isTimeCapsuleRevealed = event.event_type !== 'time_capsule' || revealDate <= currentDate;
+    const isTimeCapsule = event.event_type === 'time_capsule';
+    const shouldBlur = isTimeCapsule ? (currentDate < revealDate) : (!hasSharedMemory);
 
-    const shareMemory = async (newMemory) => {
+    const handleDelete = async () => {
         try {
-            await axiosInstance.post(`/events/${event.event_id}/memories`, { content: newMemory });
+            await axiosInstance.delete(`/memories/${memoryId}`);
             getMemories(event.event_id);
-            event.has_shared_memory = true;
-        } catch (err) {
-            console.error("Error sharing memory:", err.response?.data || err.message);
+        } catch (error) {
+            console.error("Error deleting memory:", error.response?.data || error.message);
         }
     };
 
-    const openInviteModal = () => setShowInviteModal(true);
-    const closeInviteModal = () => setShowInviteModal(false);
+    const isMainMemory = memory.user_id === event.created_by;
 
-    const confirmInvites = (usernames) => {
-        closeInviteModal();
-        sendInvites(event.event_id, usernames);
+    const handleImageClick = (e, url) => {
+        e.stopPropagation();
+        setEnlargedImage(url);
     };
 
-    const sendInvites = async (eventId, usernames) => {
-        try {
-            await axiosInstance.post(`/invite/${eventId}`, { usernames });
-        } catch (err) {
-            console.error("Error sending invites:", err.response?.data || err.message);
-        }
-    };
+    const handleCloseImage = () => setEnlargedImage(null);
+
+    const scrambleText = (text) => {
+        return text
+          .split(" ")
+          .map(word => {
+            return word
+              .split("")
+              .sort(() => 0.5 - Math.random())
+              .join("");
+          })
+          .join(" ");
+      };      
 
     return (
-        <div className="memories-wrapper">
-            <div className='event-button-container'>
-                {event.created_by === userId && (
-                    <button className="invite-button" onClick={openInviteModal}>
-                        Invite others to share
+        <div className={`memory-entry ${memory.colorClass} ${isMainMemory ? 'main-memory' : ''}`}>
+            {isMainMemory && (
+                <div className="crown-icon" title="Main Memory">
+                    <FontAwesomeIcon icon={faCrown} />
+                </div>
+            )}
+            <div className="memory-header">
+                <strong className="memory-username">{`${memory.username} remembers . . .`}</strong>
+                {(!isMainMemory && memory.user_id === user.id) && (
+                    <button
+                        className="delete-memory-button"
+                        onClick={handleDelete}
+                        title="Delete Memory"
+                    >
+                        <FontAwesomeIcon icon={faTrashAlt} />
                     </button>
                 )}
-                {!event.has_shared_memory && (
-                    <button className='share-button' onClick={() => setShowModal(true)}>
-                        Share Memory
-                    </button>
+                {user.role !== 'user' && (
+                    <ModOptionsButton type="memory" contentId={memory.memory_id} />
                 )}
             </div>
-
-            <InviteModal 
-                show={showInviteModal}
-                onClose={closeInviteModal}
-                onConfirm={confirmInvites}
-                eventId={event.event_id}
-            />
-
-            <MemoryModal
-                show={showModal}
-                onCreate={shareMemory}
-                onClose={() => setShowModal(false)}
-                eventId={event.event_id}
-            />
-
-            {!event.has_shared_memory ? (
-                <div>
-                    <h3>Share your memory to reveal others' memories.</h3>
-                    <div className="memory-container">
-                        {memories.length === 0 && (
-                            <p>No one has shared a memory for this event yet. Be the first!</p>
-                        )}
-                        {memories.map((memory, index) => (
-                            <div key={index} className='memory-parent'>
-                                {user.role !== 'user' && (
-                                    <ModOptionsButton type='memory' contentId={memory.memory_id} />
-                                )}
-                                <div className="memory">
-                                    <p style={{ visibility: 'hidden' }}>{memory.content}</p>
-                                </div>
-                                <strong className="memory-username">{memory.username}</strong>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            ) : (
-                isTimeCapsuleRevealed ? (
-                    <div>
-                        <h3>Here's what everyone remembers of this event.</h3>
-                        <div className="memory-container">
-                            {memories.map((memory, index) => (
-                                <div key={index} className='memory-parent'>
-                                    {user.role !== 'user' && (
-                                        <ModOptionsButton type='memory' contentId={memory.memory_id} />
+            <div className={`memory-content ${shouldBlur ? 'blurred-memory' : ''}`}>
+                <p>{shouldBlur? scrambleText(memory.content) : memory.content}</p>
+            </div>
+            {memory.media_urls && memory.media_urls.length > 0 ? (
+                    <div className={`memory-media-collage ${shouldBlur ? 'blurred-memory' : ''}`}>
+                        {memory.media_urls.map((url, i) => {
+                            const isVideo = url.toLowerCase().endsWith('.mp4') || url.includes('video');
+                            return (
+                                <div key={i} className={`collage-item ${isVideo ? 'collage-item-video' : ''}`}>
+                                    {isVideo ? (
+                                        <video
+                                            src={url}
+                                            controls
+                                            className="collage-media"
+                                        />
+                                    ) : (
+                                        <img 
+                                            src={url} 
+                                            alt="Memory media" 
+                                            className="collage-media" 
+                                            onClick={(e) => !shouldBlur && handleImageClick(e, url)}
+                                        />
                                     )}
-                                    <div className="memory">
-                                        <p>{memory.content}</p>
-                                    </div>
-                                    <strong className="memory-username">{memory.username}</strong>
                                 </div>
-                            ))}
-                        </div>
+                            );
+                        })}
                     </div>
-                ) : (
-                    <>
-                    <h2>This time capsule will be available on {revealDate.toLocaleDateString()}.</h2>
-                    <FontAwesomeIcon icon={faLock} className="lock-icon-overlay" />
-                    </>
+            ) : (
+                memory.media_token && (
+                    <div className="pending-media-placeholder">
+                        <p>Media awaiting moderator approval...</p>
+                    </div>
                 )
+            )}
+            {enlargedImage && (
+                <div className="lightbox" onClick={handleCloseImage}>
+                    <img src={enlargedImage} alt="enlarged" />
+                </div>
             )}
         </div>
     );

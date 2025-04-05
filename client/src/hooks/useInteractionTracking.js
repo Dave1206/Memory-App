@@ -2,21 +2,23 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAxios } from '../components/auth/AxiosProvider';
 
-const useInteractionTracking = (onInteractionEnd, targetPathname) => {
+const useInteractionTracking = (onInteractionEnd) => {
     const [selectedEvent, setSelectedEvent] = useState(null);
+    const [targetPathname, setTargetPathname] = useState(null);
     const selectedEventRef = useRef(null);
     const { axiosInstance } = useAxios();
     const location = useLocation();
 
-    const handleSelectEvent = async (event) => {
+    const handleSelectEvent = useCallback(async (event, path) => {
         try {
             await axiosInstance.post(`/events/${event.event_id}/start-interaction`);
             setSelectedEvent(event);
             selectedEventRef.current = event;
+            setTargetPathname(path);
         } catch (error) {
             console.error('Error starting interaction:', error);
         }
-    };
+    }, [axiosInstance]);
 
     const handleEndInteraction = useCallback(async () => {
         if (selectedEventRef.current) {
@@ -51,6 +53,7 @@ const useInteractionTracking = (onInteractionEnd, targetPathname) => {
     }, [handleEndInteraction]);
 
     useEffect(() => {
+        if (!targetPathname) return;
         if (location.pathname !== targetPathname) {
             handleEndInteraction();
         }

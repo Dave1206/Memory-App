@@ -1,149 +1,182 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { useAxios } from './auth/AxiosProvider';
-import { useAuth } from './auth/AuthContext';
-import '../styles/Feed.css';
-import useInteractionTracking from '../hooks/useInteractionTracking';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAxios } from "./auth/AxiosProvider";
+import { useAuth } from "./auth/AuthContext";
+import { useEventUpdate } from "./events/EventContext";
+import "../styles/Feed.css";
+import useInteractionTracking from "../hooks/useInteractionTracking";
+import SearchAndFilter from "./SearchAndFilter";
+import FeedPost from "./FeedPost";
+import backgroundLogo from "../assets/Logo_transparent.png";
 
-import SearchAndFilter from './SearchAndFilter';
-import FeedPost from './FeedPost';
-import SelectedEvent from './events/SelectedEvent';
+function Feed({ onFeedTabView }) {
+    const { axiosInstance,isPageLoaded } = useAxios();
+    const { handleSelectEvent } = useInteractionTracking(null, "/feed");
+    const { user } = useAuth();
+    const { newEvent } = useEventUpdate();
+    const navigate = useNavigate();
 
-function Feed({ getEvents }) {
-    const [feed, setFeed] = useState([]);
+    const [activeTab, setActiveTab] = useState("feed");
+    const [content, setContent] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [filters, setFilters] = useState({});
-    const [sortOrder, setSortOrder] = useState("asc");
+    const [sortOrder, setSortOrder] = useState("desc");
     const [offset, setOffset] = useState(0);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [hasMore, setHasMore] = useState(true);
-    const { axiosInstance } = useAxios();
-    const { user } = useAuth();
-    const { selectedEvent, handleSelectEvent, handleBackButton } = useInteractionTracking(null, '/feed');
-
+    
     const postColorsRef = useRef({});
     const feedContainerRef = useRef(null);
+    const isFirstRender = useRef(true);
 
-    const filterOptions = [
-        {
-            key: 'filterByType',
-            label: '--Event Type--',
-            options: [
-                { value: 'regular', label: 'Regular' },
-                { value: 'time_capsule', label: 'Time Capsule' },
-            ]
-        }
-    ];
-
-    const sortOptions = [
-        { value: 'creation_date', label: 'Creation Date' },
-        { value: 'memories_count', label: 'Number of Memories' },
-        { value: 'likes_count', label: 'Event Type' }
-    ];
+    const tabEndpoints = useMemo(() => ({
+        feed: "/feed",
+        myEvents: "/events/mine",
+        followedEvents: "/events/followed",
+        trending: "/explore/trending",
+        forYou: "/explore/personalized",
+    }), []);
 
     const assignColors = useCallback((posts) => {
-        const colors = ["color1", "color2", "color3", "color4", "color5", "color6", "color7", "color8", "color9"];
+        const colors = ["color1", "color2", "color3"];
+        let lastColor = null;
+
         posts.forEach((post) => {
             if (!postColorsRef.current[post.event_id]) {
-                const randomColor = colors[Math.floor(Math.random() * colors.length)];
-                postColorsRef.current[post.event_id] = randomColor;
+                let availableColors = colors.filter(color => color !== lastColor);
+                let selectedColor = availableColors[Math.floor(Math.random() * availableColors.length)];
+                postColorsRef.current[post.event_id] = selectedColor;
+                lastColor = selectedColor;
             }
         });
     }, []);
 
-    const initialFetchFeed = useCallback(async () => {
-        setLoading(true);
-        setHasMore(true);
-        setOffset(10);
+    const fetchContent = useCallback(async (reset = false) => {  
+        setLoading(prevLoading => {
+            if (prevLoading || !tabEndpoints[activeTab]) return true;
+            return true;
+        });
 
         try {
-            const response = await axiosInstance.get('/feed', {
+            const response = await axiosInstance.get(tabEndpoints[activeTab], {
                 params: {
                     search: searchTerm,
                     filters: JSON.stringify(filters),
                     sortOrder,
                     limit: 10,
-                    offset: 0
+                    offset: reset ? 0 : offset,
                 },
             });
-            setFeed(response.data);
-            assignColors(response.data);
-            if (response.data.length < 10) setHasMore(false);
+
+            const newData = response.data;
+            setContent(prevContent => {
+                if (reset) return newData;
+
+                const updatedContent = [...prevContent, ...newData];
+                const uniqueContent = Array.from(new Map(updatedContent.map(post => [post.event_id, post])).values());
+                return uniqueContent;
+            });
+
+            setHasMore(newData.length === 10);
+            setOffset(prevOffset => reset ? 10 : prevOffset + 10);
+            assignColors(newData);
         } catch (error) {
-            console.error("Error fetching feed data:", error);
+            console.error(`Error fetching ${activeTab} data:`, error);
         } finally {
             setLoading(false);
         }
-    }, [axiosInstance, searchTerm, filters, sortOrder, assignColors]);
-
-    const loadMoreFeed = useCallback(async () => {
-        if (loading || !hasMore) return;
-        setLoading(true);
-
-        try {
-            const response = await axiosInstance.get('/feed', {
-                params: {
-                    search: searchTerm,
-                    filters: JSON.stringify(filters),
-                    sortOrder,
-                    limit: 10,
-                    offset
-                },
-            });
-            
-            if (response.data.length < 10) setHasMore(false);
-
-            setFeed((prevFeed) => {
-                const newFeed = [...prevFeed, ...response.data];
-                const uniqueFeed = Array.from(new Map(newFeed.map(post => [post.event_id, post])).values());
-                return uniqueFeed;
-            });
-            
-            assignColors(response.data);
-            setOffset((prevOffset) => prevOffset + 10);
-        } catch (error) {
-            console.error("Error loading more feed data:", error);
-        } finally {
-            setLoading(false);
-        }
-    }, [axiosInstance, searchTerm, filters, sortOrder, offset, hasMore, loading, assignColors]);
-
+    }, [axiosInstance, searchTerm, filters, sortOrder, activeTab, offset, assignColors, tabEndpoints]);
+//runs fetchContent(true) which resets the feed data when switching tabs or search
     useEffect(() => {
-        initialFetchFeed();
-    }, [initialFetchFeed, searchTerm, filters, sortOrder]);
-
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            return;
+        }
+        if (feedContainerRef.current) {
+            feedContainerRef.current.scrollTo({ top: 0, behavior: 'instant' });
+        }
+        fetchContent(true);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeTab, searchTerm, filters, sortOrder]);
+//Makes sure that data is fetched once the page has fully loaded
     useEffect(() => {
-        function debounce(func, delay) {
-            let debounceTimer;
-            return function(...args) {
-                clearTimeout(debounceTimer);
-                debounceTimer = setTimeout(() => func.apply(this, args), delay);
-            };
+        if (isPageLoaded) {
+            fetchContent(true);
         }
-        
-        const handleScroll = debounce(() => {
-            if (feedContainerRef.current) {
-                const { scrollTop, scrollHeight, clientHeight } = feedContainerRef.current;
-                if (scrollTop + clientHeight >= scrollHeight - 200 && hasMore && !loading) {
-                    loadMoreFeed();
-                }
-            }
-        }, 300);
-
-        const feedContainer = feedContainerRef.current;
-
-        if (feedContainer) {
-            feedContainer.addEventListener("scroll", handleScroll);
-        }
+    }, [isPageLoaded, fetchContent]);
+//Inserts created events into the feed
+    useEffect(() => {
+        if (newEvent) {
+            setContent((prevContent) => {
+                const shouldInclude = (
+                    (activeTab === "feed") ||
+                    (activeTab === "myEvents") 
+                );
     
-        return () => {
-            if (feedContainer) {
-                feedContainer.removeEventListener("scroll", handleScroll);
-            }
+                if (!shouldInclude) return prevContent;
+
+                const updatedContent = [newEvent, ...prevContent];
+                const uniqueContent = Array.from(new Map(updatedContent.map(post => [post.event_id, post])).values());
+
+                return uniqueContent.sort((a, b) => {
+                    if (filters.sortBy === "age_in_hours") {
+                        return sortOrder === "asc"
+                            ? a.age_in_hours - b.age_in_hours
+                            : b.age_in_hours - a.age_in_hours;
+                    }
+                    if (filters.sortBy === "hot_score") {
+                        return sortOrder === "asc" ? a.hot_score - b.hot_score : b.hot_score - a.hot_score;
+                    }
+                    if (filters.sortBy === "likes_count") {
+                        return sortOrder === "asc" ? a.likes_count - b.likes_count : b.likes_count - a.likes_count;
+                    }
+                    if (filters.sortBy === "shares_count") {
+                        return sortOrder === "asc" ? a.shares_count - b.shares_count : b.shares_count - a.shares_count;
+                    }
+                    if (filters.sortBy === "memories_count") {
+                        return sortOrder === "asc" ? a.memories_count - b.memories_count : b.memories_count - a.memories_count;
+                    }
+                    return 0;
+                });
+            });
+        }
+    }, [newEvent, activeTab, filters, sortOrder, user]);
+
+    useEffect(() => {
+        if (activeTab === "feed" && typeof onFeedTabView === "function") {
+          onFeedTabView();
+        }
+      }, [activeTab, onFeedTabView]);
+
+    useEffect(() => {
+        let debounceTimer;
+
+        const handleScroll = () => {
+            if (debounceTimer) clearTimeout(debounceTimer);
+
+            debounceTimer = setTimeout(() => {
+                if (!feedContainerRef.current) return;
+                const { scrollTop, scrollHeight, clientHeight } = feedContainerRef.current;
+
+                if (scrollTop + clientHeight >= scrollHeight - 200 && hasMore && !loading) {
+                    fetchContent(false);
+                }
+            }, 300);
         };
-    }, [loadMoreFeed, hasMore, loading]);
+
+        const container = feedContainerRef.current;
+        if (container) {
+            container.addEventListener("scroll", handleScroll);
+        }
+
+        return () => {
+            if (container) container.removeEventListener("scroll", handleScroll);
+            if (debounceTimer) clearTimeout(debounceTimer);
+        };
+    }, [fetchContent, hasMore, loading]);
 
     const updatePostInFeed = (postId, updateData) => {
-        setFeed((prevFeed) =>
+        setContent((prevFeed) =>
             prevFeed.map((post) =>
                 post.event_id === postId
                     ? typeof updateData === 'function'
@@ -187,23 +220,29 @@ function Feed({ getEvents }) {
         }
     };
 
-    const handleRemoveParticipationOrEvent = async (postId) => {
+    const handleRemove = async (postId) => {
         try {
             const response = await axiosInstance.post(`/deleteevent/${postId}`);
             const { isCreator } = response.data;
 
-            if (isCreator) {
-                setFeed((prevFeed) => prevFeed.filter((post) => post.event_id !== postId));
-            } else {
-                updatePostInFeed(postId, { event_status: null });
-            }
+            setContent((prevFeed) => {
+                if (isCreator) {
+                    return prevFeed.filter((post) => post.event_id !== postId);
+                } else {
+                    return prevFeed.map((post) =>
+                        post.event_id === postId
+                            ? { ...post, event_status: null }
+                            : post
+                    );
+                }
+            });
+            fetchContent(true);
         } catch (error) {
             console.error('Error removing participation or event:', error);
         }
     };
 
     const handleBlockUser = async (blockedId, e) => {
-        e.stopPropagation();
         try {
             await axiosInstance.post('/block-user', {
                 userId: user.id,
@@ -214,56 +253,69 @@ function Feed({ getEvents }) {
             console.error('Error blocking user:', err);
         }
     };
-    
-    if (feed.length === 0 && !loading) return (
-        <div className='feed-wrapper'>
-            <SearchAndFilter
-                onSearch={setSearchTerm}
-                onFilterChange={setFilters}
-                onSortOrderChange={setSortOrder}
-                filterOptions={filterOptions}
-                sortOptions={sortOptions}
-            />
-            <p>No results...</p>
-        </div>
-    );
+
+    const handlePostClick = async (post) => {
+        const path = `/event/${post.event_id}`;
+            await handleSelectEvent(post, path);
+            navigate(path);
+    }
 
     return (
-        !selectedEvent ? (
             <div className="feed-wrapper">
-            <SearchAndFilter
-                onSearch={setSearchTerm}
-                onFilterChange={setFilters}
-                onSortOrderChange={setSortOrder}
-                filterOptions={filterOptions}
-                sortOptions={sortOptions}
-            />
-            <div className='feed-header-and-container'>
-                <h2>Latest Posts</h2>
-                <div className="feed-container" ref={feedContainerRef}>
-                    {feed.map((post) => (
-                        <FeedPost 
-                            handleClick={() => handleSelectEvent(post)}
-                            key={post.event_id}
-                            post={post}
-                            onLike={handleLike}
-                            onShare={handleShare}
-                            onAddEvent={handleOptIn}
-                            onRemoveEvent={() => handleRemoveParticipationOrEvent(post.event_id)}
-                            onBlock={handleBlockUser}
-                            colorClass={postColorsRef.current[post.event_id]}
-                        />
+                <SearchAndFilter
+                    onSearch={setSearchTerm}
+                    onFilterChange={setFilters}
+                    onSortOrderChange={setSortOrder}
+                    sortOptions={[
+                        { value: 'hot_score', label: 'Trending' },
+                        { value: 'age_in_hours', label: 'New' },
+                        { value: 'likes_count', label: 'Likes' },
+                        { value: 'shares_count', label: 'Shares' },
+                        { value: 'memories_count', label: 'Memories' }
+                    ]}
+                />
+
+                <div className="feed-nav">
+                    {Object.entries({
+                        feed: "Feed",
+                        myEvents: "Yours",
+                        followedEvents: "Followed",
+                        trending: "Trending",
+                        forYou: "For You",
+                    }).map(([tabKey, tabLabel]) => (
+                        <button
+                            key={tabKey}
+                            className={`feed-nav-button ${activeTab === tabKey ? "active" : ""}`}
+                            onClick={() => setActiveTab(tabKey)}
+                        >
+                            {tabLabel}
+                        </button>
                     ))}
                 </div>
+
+                <div className="feed-bg" style={{
+                            backgroundImage: `url(${backgroundLogo})`,
+                            backgroundSize: 'contain',
+                            backgroundPosition: 'center',
+                        }}>
+                </div>
+                    <div className="feed-container" ref={feedContainerRef}>
+                        {content.length === 0 && !loading ? <p>No results...</p> : content.map((post) => (
+                            <FeedPost
+                                key={post.event_id}
+                                post={post}
+                                handleClick={() => handlePostClick(post)}
+                                onLike={handleLike}
+                                onShare={handleShare}
+                                onAddEvent={handleOptIn}
+                                onRemoveEvent={handleRemove}
+                                onBlock={handleBlockUser}
+                                colorClass={post.colorClass || postColorsRef.current[post.event_id]}
+                            />
+                        ))}
+                    </div>
+               
             </div>
-        </div>
-        ) : (
-            <SelectedEvent
-                event={selectedEvent}
-                handleBackButton={handleBackButton}
-                getEvents={getEvents}
-            />
-        )
     );
 }
 

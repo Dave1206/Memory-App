@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './components/App';
 import { AuthProvider } from './components/auth/AuthContext';
 import { AxiosProvider } from './components/auth/AxiosProvider';
+import { MessengerProvider } from './components/messenger/MessengerContext';
+import { EventUpdateProvider } from './components/events/EventContext';
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 
@@ -14,14 +16,29 @@ const setDynamicVh = () => {
 setDynamicVh();
 window.addEventListener('resize', setDynamicVh);
 
+function RootComponent() {
+  const [sessionExpired, setSessionExpired] = useState(false);
 
+  const handleSessionExpired = () => {
+    console.log("Session has expired.");
+    setSessionExpired(true);
+  };
+
+  return (
+    <AuthProvider>
+      <AxiosProvider onSessionExpired={handleSessionExpired}>
+        <MessengerProvider>
+          <EventUpdateProvider>
+            <App sessionExpired={sessionExpired} />
+          </EventUpdateProvider>
+        </MessengerProvider>
+      </AxiosProvider>
+    </AuthProvider>
+  );
+}
 
 root.render(
   <React.StrictMode>
-    <AuthProvider>
-      <AxiosProvider>
-        <App />
-      </AxiosProvider>
-    </AuthProvider>
+    <RootComponent />
   </React.StrictMode>
 );

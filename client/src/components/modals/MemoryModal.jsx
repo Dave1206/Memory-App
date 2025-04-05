@@ -1,13 +1,18 @@
 import React, { useState, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronDown } from '@fortawesome/free-solid-svg-icons';
+import DOMPurify from "dompurify";
+import { Filter } from "bad-words";
+import MediaUploader from '../events/MediaUploader';
 import '../../styles/MemoryModal.css';
 
-function MemoryModal({ show, onClose, onCreate, eventId }) {
+function MemoryModal({ show, onClose, onCreate, event }) {
     const [newMemory, setNewMemory] = useState("");
     const [isEmojiToolbarVisible, setIsEmojiToolbarVisible] = useState(false);
+    const [uploadMediaFn, setUploadMediaFn] = useState(null);
     const textAreaRef = useRef(null);
-    const maxCharacters = 200;
+    const maxCharacters = 500;
+    const filter = new Filter();
 
     const emojis = ["😊", "😢", "😂", "😎", "🎉", "❤️", "👍", "🙌", "💡"];
 
@@ -30,7 +35,7 @@ function MemoryModal({ show, onClose, onCreate, eventId }) {
     };
 
     const handleChange = (e) => {
-        const inputText = e.target.value;
+        const inputText = sanitizeInput(e.target.value);
         if (calculateLength(inputText) <= maxCharacters) {
             setNewMemory(inputText);
         } else {
@@ -39,8 +44,18 @@ function MemoryModal({ show, onClose, onCreate, eventId }) {
         }
     };
 
-    const handleCreate = () => {
-        onCreate(newMemory);
+    const handleCreate = async () => {
+        if (newMemory.split(" ").length < 20) {
+            alert("Memory must be 20 words or longer!");
+            return;
+        }
+        let token = null;
+            if (uploadMediaFn) {
+                const mediaResponses = await uploadMediaFn();
+                token = mediaResponses && mediaResponses.length ? mediaResponses[0].token : null;
+                console.log("Token set: ", token, mediaResponses);
+            }
+        onCreate(newMemory, token);
         setNewMemory("");
         onClose();
     };
@@ -54,6 +69,11 @@ function MemoryModal({ show, onClose, onCreate, eventId }) {
     if (!show) {
         return null;
     }
+
+    const sanitizeInput = (text) => {
+        const cleaned = DOMPurify.sanitize(text, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+        return filter.clean(cleaned);
+    };
 
     return (
         <div className="modal-backdrop" onClick={handleBackdropClick}>
@@ -97,8 +117,13 @@ function MemoryModal({ show, onClose, onCreate, eventId }) {
                         {calculateLength(newMemory)}/{maxCharacters} characters
                     </div>
 
+                    <MediaUploader
+                        visibility={event.visibility}
+                        onRegisterUpload={(fn) => setUploadMediaFn(() => fn)}
+                    />
+
                     <div className="button-container">
-                        <button className='modal-button' onClick={handleCreate}>Share Memory</button>
+                        <button className='modal-button' onClick={handleCreate}>Submit</button>
                         <button className='modal-button'  onClick={onClose}>Cancel</button>
                     </div>
                 </div>

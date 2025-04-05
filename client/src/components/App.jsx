@@ -1,162 +1,79 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { useAxios } from './auth/AxiosProvider';
 import { useAuth } from "./auth/AuthContext";
 import Footer from './Footer';
 import Login from './auth/Login';
 import UserProfile from './profile/UserProfile';
-import EventList from './events/Eventlist';
+import UserPreferences from './profile/UserPreferences';
 import ResetPassword from './auth/ResetPassword';
 import ForgotPassword from './auth/ForgotPassword';
 import ToggleableList from './ToggleableList';
-import MessengerToggle from './messenger/MessengerToggle';
 import Navbar from './Navbar';
+import Messenger from './messenger/Messenger';
 import Feed from './Feed';
-import Explore from './Explore';
+import EventRoute from './events/EventRoute';
+import LandingToggle from "./LandingToggle";
+import RightSidebar from "./RightSidebar";
+import useMediaQuery from "../hooks/useMediaQuery";
 import '../styles/App.css';
 import ModeratorTools from './moderation/ModeratorTools';
 
-function App() {
+function App({ sessionExpired }) {
   const { user, logout } = useAuth();
-  const { axiosInstance, sessionExpired } = useAxios();
-  const [events, setEvents] = useState([]);
-  const [eventInvites, setEventInvites] = useState([]);
+  const { isPageLoaded } = useAxios();
   const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const clearFeedNotificationsRef = useRef(null);
+  const isMobile = useMediaQuery("(max-width: 768px)");
 
-  const getEvents = useCallback(async () => {
-    if (!axiosInstance) return;
-    try {
-      const response = await axiosInstance.get("/events");
-      const fetchedEvents = response.data;
-      const sortedEvents = fetchedEvents.Optins.sort((a, b) => a.has_shared - b.has_shared);
-      const sortedEventInvites = fetchedEvents.Invites.sort((a, b) => a.has_shared - b.has_shared);
-      setEvents(sortedEvents);
-      setEventInvites(sortedEventInvites);
-    } catch (err) {
-      console.error("Error fetching events", err.response?.data || err.message);
+  const handleFeedViewed = () => {
+    if (clearFeedNotificationsRef.current) {
+      clearFeedNotificationsRef.current();
     }
-  }, [axiosInstance]);
-
-  useEffect(() => {
-    if (user) {
-      getEvents();
-    }
-  }, [user, getEvents]);
-
-  const handleEventInvite = (eventId) => {
-    setEventInvites((prevEventInvites) =>
-      prevEventInvites.filter((event) => event.event_id !== eventId)
-    );
   };
 
   useEffect(() => {
-    if (sessionExpired) {
-      alert('Your session has expired. Please log in again.');
+    if (sessionExpired && user) {
       logout();
     }
-  }, [sessionExpired, logout]);
+  }, [sessionExpired, logout, user]);
 
   useEffect(() => {
     const timer = setTimeout(() => setIsCheckingSession(false), 500);
     return () => clearTimeout(timer);
   }, []);
 
-  if (isCheckingSession) {
-    return <div>Loading...</div>;
+  if (isCheckingSession || !isPageLoaded) {
+    return (
+      <div className="loading-container">
+        <p>Loading</p>
+        <div className="spinner"></div>
+      </div>
+    );
   }
 
   return (
-    <Router>
+    <Router future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
       <div className="wrapper">
+        {!isMobile && <LandingToggle /> }
+        {user && <Messenger />}
+        {user && <Navbar userId={user?.id} registerClearFeed={(fn) => (clearFeedNotificationsRef.current = fn)} />}
+        {user && isMobile && <ToggleableList />}
+
+        {sessionExpired && <Navigate to="/login" state={{ sessionExpired: true }} replace />}
+
         <Routes>
-          {/* Public routes */}
-          <Route path="/login" element={!user ? <Login /> : <Navigate to="/events" />} />
+          <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
-
-          {/* Protected routes */}
-          <Route
-            path="/events"
-            element={
-              user ? (
-                <>
-                  <MessengerToggle />
-                  <ToggleableList getEvents={getEvents} user={user} onLogout={logout} />
-                  <Navbar events={eventInvites} userId={user?.id} onEventUpdate={handleEventInvite} />
-                  <EventList events={events} getEvents={getEvents} userId={user?.id} />
-                </>
-              ) : (
-                <Navigate to="/login" />
-              )
-            }
-          />
-
-          <Route
-            path="/profile/:userId"
-            element={
-              user ? (
-                <>
-                  <MessengerToggle />
-                  <UserProfile user={user} />
-                  <ToggleableList getEvents={getEvents} user={user} onLogout={logout} />
-                  <Navbar events={eventInvites} userId={user?.id} onEventUpdate={handleEventInvite} />
-                </>
-              ) : (
-                <Navigate to="/login" />
-              )
-            }
-          />
-
-          <Route
-            path="/feed"
-            element={
-              user ? (
-                <>
-                  <MessengerToggle />
-                  <Feed user={user} getEvents={getEvents} />
-                  <ToggleableList getEvents={getEvents} user={user} onLogout={logout} />
-                  <Navbar events={eventInvites} userId={user?.id} />
-                </>
-              ) : (
-                <Navigate to="/login" />
-              )
-            }
-          />
-
-          <Route
-            path="/explore"
-            element={
-              user ? (
-                <>
-                  <MessengerToggle />
-                  <Explore getEvents={getEvents} />
-                  <ToggleableList getEvents={getEvents} user={user} onLogout={logout} />
-                  <Navbar events={eventInvites} userId={user?.id} />
-                </>
-              ) : (
-                <Navigate to="/login" />
-              )
-            }
-          />
-
-          <Route
-            path="/moderator-tools"
-            element={
-              user ? (
-                <>
-                  <MessengerToggle />
-                  <ModeratorTools user={user} />
-                  <ToggleableList getEvents={getEvents} user={user} onLogout={logout} />
-                  <Navbar events={eventInvites} userId={user?.id} />
-                </>
-              ) : (
-                <Navigate to="/login" />
-              )
-            }
-          />
-
-          <Route path="/" element={user ? <Navigate to="/events" /> : <Navigate to="/login" />} />
+          <Route path="/profile/:userId" element={user ? <UserProfile user={user} /> : <Navigate to="/login" />} />
+          <Route path="/settings/:userId" element={user ? <UserPreferences user={user} /> : <Navigate to="/login" />} />
+          <Route path="/home" element={user ? <Feed user={user} onFeedTabView={handleFeedViewed} /> : <Navigate to="/login" />} />
+          <Route path="/event/:eventId" element={user? <EventRoute /> : <Navigate to="/login" />} /> 
+          <Route path="/moderator-tools" element={user ? <ModeratorTools user={user} /> : <Navigate to="/login" />} />
+          <Route path="/" element={user ? <Navigate to="/home" /> : <Navigate to="/login" />} />
         </Routes>
+        {!isMobile && user && <RightSidebar />}
         <Footer />
       </div>
     </Router>

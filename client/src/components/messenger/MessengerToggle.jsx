@@ -1,30 +1,24 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faMessage, faChevronDown } from '@fortawesome/free-solid-svg-icons';
-import Messenger from './Messenger';
+import { faMessage } from '@fortawesome/free-solid-svg-icons';
+import NotificationBadge from '../NotificationBadge';
+import { useMessenger } from './MessengerContext';
+import { v4 as uuidv4} from 'uuid';
 import '../../styles/MessengerToggle.css';
 
-function MessengerToggle() {
-    const [isExpanded, setIsExpanded] = useState(false);
+function MessengerToggle({ notifications, isMobile, variant }) {
+    const { toggleMessenger } = useMessenger();
 
-    const toggleExpand = () => {
-        setIsExpanded(!isExpanded);
+    const toggleExpand = (e) => {
+        e.stopPropagation();
+        toggleMessenger();
     };
 
     return (
-        <div className={`messenger-toggle ${isExpanded ? 'expanded' : 'compact'}`}>
-            <button className="messenger-toggle-button" onClick={toggleExpand}>
-                <FontAwesomeIcon icon={isExpanded ? faChevronDown : faMessage} />
-            </button>
-
-            {isExpanded && (
-                <div className="messenger-overlay">
-                    <button className="close-overlay-btn" onClick={toggleExpand}>
-                        Close
-                    </button>
-                    <Messenger isOpen={isExpanded} />
-                </div>
-            )}
+        <div className={`nav-toggle`} onClick={toggleExpand}>
+                <div className={variant === 'navbar' ? 'nav-item-icon' : 'toggleable-button'}><FontAwesomeIcon icon={faMessage} /></div>
+                {!isMobile && <div className='nav-item-name'>Messages</div> }
+                {notifications > 0 && <div className="nav-item-notif"><NotificationBadge key={`nb-${uuidv4()}`} count={notifications} /> </div>}
         </div>
     );
 }

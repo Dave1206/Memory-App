@@ -1,15 +1,22 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from "react-dom";
+import MemoryModal from './MemoryModal';
 import { useAxios } from '../auth/AxiosProvider';
+import { useAuth } from '../auth/AuthContext';
+import { useEventUpdate } from '../events/EventContext';
+import { v4 as uuidv4 } from 'uuid';
 import '../../styles/Modal.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faMusic, faBasketballBall, faFlask, faLaptopCode, faPalette, faBookOpen, faUtensils } from '@fortawesome/free-solid-svg-icons';
 
-function CreateModal({ show, onClose, onCreate, userId }) {
+function CreateModal({ show, onClose, userId }) {
     const { axiosInstance } = useAxios();
+    const { user } = useAuth();
+    const { addNewEvent } = useEventUpdate();
     const [friends, setFriends] = useState([]); 
+    const [showMemoryModal, setShowMemoryModal] = useState(false);
     const [newEvent, setNewEvent] = useState({ 
         title: "", 
-        description: "", 
         invites: [],
         eventType: "regular",
         revealDate: Date,
@@ -29,8 +36,18 @@ function CreateModal({ show, onClose, onCreate, userId }) {
         { name: "Food", icon: faUtensils }
     ]
     
-    const maxDescription = 500;
-    const maxTitle = 50;
+    const maxTitle = 150;
+
+    const calculateHotScore = (likes, shares, memories, interactions, interactionDuration, ageInHours) => {
+        return (
+            (likes * 1.5 + 
+             shares * 1.2 + 
+             memories * 1.0 + 
+             interactions * 1.1 + 
+             Math.log(Math.max(interactionDuration + 1, 1)) * 0.7)
+            / Math.pow(ageInHours + 2, 1.2)
+        );
+    };
 
     useEffect(() => {
         const fetchFriends = async () => {
@@ -60,29 +77,74 @@ function CreateModal({ show, onClose, onCreate, userId }) {
         }
     };
 
-    const handleCreate = () => {
+    const handleShareMemory = () => {
+        setShowMemoryModal(true); 
+    };
+
+    const handleCreate = async (memory) => {
         const parsedCustomTags = customTags
         .split(',')
         .map(tag => tag.trim())
         .filter(tag => tag);
 
         const allTags = [...new Set([...newEvent.tags, ...parsedCustomTags])]
-        
-        onCreate({ ...newEvent, tags: allTags });
+        setNewEvent({ ...newEvent, tags: allTags })
 
-        setNewEvent({ 
-            title: "", 
-            description: "", 
-            invites: [],
-            eventType: "regular",
-            revealDate: Date,
-            visibility: 'public',
-            tags: [],
-            location: "",
-        });
-        setCustomTags("");
-        setAutoLocation(false);
-        onClose();
+        const colors = ["color1", "color2", "color3"];
+        let selectedColor = colors[Math.floor(Math.random() * colors.length)];
+
+        let newEventData = {
+            event_id: uuidv4(),
+            title: newEvent.title,
+            description: "No description provided",
+            creation_date: new Date().toISOString(),
+            event_type: newEvent.eventType,
+            reveal_date: newEvent.revealDate,
+            created_by: userId,
+            username: user.username,
+            profile_picture: user.profile_picture || "",
+            visibility: newEvent.visibility,
+            has_shared_memory: true,
+            has_liked: false,
+            has_shared_event: false,
+            event_status: "opted_in",
+            likes_count: 0,
+            shares_count: 0,
+            memories_count: 1,
+            tags: newEvent.tags,
+            age_in_hours: 0,
+            hot_score: calculateHotScore(0, 0, 1, 0, 0, 0),
+            colorClass: selectedColor,
+        };
+
+        try {
+            const response = await axiosInstance.post("/events", {
+                newEvent: newEvent, 
+                memoryContent: memory
+            });
+
+            console.log("Event & Memory Created:", response.data);
+            newEventData.event_id = response.data.eventId;
+            addNewEvent(newEventData);
+
+            setNewEvent({ 
+                title: "", 
+                description: "", 
+                invites: [],
+                eventType: "regular",
+                revealDate: Date,
+                visibility: 'public',
+                tags: [],
+                location: "",
+            });
+            
+            setCustomTags("");
+            setAutoLocation(false);
+            setShowMemoryModal(false);
+            onClose();
+        } catch (err) {
+            console.error("Error creating event & memory:", err);
+        }
     };
 
     const handleTagToggle = (tag) => {
@@ -122,81 +184,75 @@ function CreateModal({ show, onClose, onCreate, userId }) {
         return null;
     }
 
-    return (
-        <div className="modal-backdrop" onClick={handleBackdropClick}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
-                <div className='modal-left-column'>
+    return ReactDOM.createPortal(
+        <>
+            <div className="modal-backdrop" onClick={handleBackdropClick}>
+                <div className="modal" onClick={(e) => e.stopPropagation()}>
                     <h2>Create a New Event</h2>
-                    
+
                     <textarea
                         className='title-input'
                         name="title"
-                        placeholder="Title"
+                        placeholder="Descriptive Event Title"
                         value={newEvent.title}
                         onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
                         maxLength={maxTitle}
                     />
-                    
+
                     <div className="character-counter">
                         {newEvent.title.length}/{maxTitle} characters
                     </div>
-                    
-                    <textarea
-                        name="description"
-                        placeholder="Description"
-                        value={newEvent.description}
-                        onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
-                        maxLength={maxDescription}
-                    />
-                    
-                    <div className="character-counter">
-                        {newEvent.description.length}/{maxDescription} characters
+
+                    <div className="checkbox-group">
+                        <label>
+                            <input
+                                type="checkbox"
+                                checked={newEvent.eventType === "time_capsule"}
+                                onChange={() => setNewEvent(prev => ({ ...prev, eventType: prev.eventType === "regular" ? "time_capsule" : "regular" }))}
+                            />
+                            Time Capsule
+                        </label>
+
+                        {newEvent.eventType === "time_capsule" && (
+                            <label>
+                                Reveal Date:
+                                <input
+                                    type="date"
+                                    value={newEvent.revealDate || ""}
+                                    onChange={(e) => setNewEvent({ ...newEvent, revealDate: e.target.value })}
+                                />
+                            </label>
+                        )}
                     </div>
 
-                    <label for='event-type'>
-                        {"Event type: "}
-                        <select 
-                            id="event-type"
-                            value={newEvent.eventType} 
-                            onChange={(e) => setNewEvent({ ...newEvent, eventType: e.target.value })} 
-                        >
-                            <option value="regular">Regular</option>
-                            <option value="time_capsule">Time Capsule</option>
-                        </select>
-                    </label>
-
-                    {newEvent.eventType === 'time_capsule' && (
-                        <label for="reveal-date">
-                            {"Reveal Date: "} 
+                    <div className="checkbox-group">
+                        <label>
                             <input
-                                id="reveal-date"
-                                type="date"
-                                value={newEvent.revealDate}
-                                onChange={(e) => setNewEvent({ ...newEvent, revealDate: e.target.value })}
+                                type="checkbox"
+                                checked={newEvent.visibility === "friends_only"}
+                                onChange={() => setNewEvent(prev => ({ ...prev, visibility: prev.visibility === "public" ? "friends_only" : "public" }))}
                             />
+                            Friends-Only
                         </label>
-                    )}
 
-                    <label for="visibility">
-                        {"Event visibility: "}
-                        <select 
-                            id="visibility"
-                            value={newEvent.visibility} 
-                            onChange={(e) => setNewEvent({ ...newEvent, visibility: e.target.value })} 
-                        >
-                            <option value="public">Public</option>
-                            <option value="friends_only">Friends-only</option>
-                            <option value="private">Private</option>
-                        </select>
-                    </label>
+                        <label>
+                            <input
+                                type="checkbox"
+                                checked={newEvent.visibility === "private"}
+                                onChange={() => setNewEvent(prev => ({ ...prev, visibility: prev.visibility === "private" ? "public" : "private" }))}
+                            />
+                            Private
+                        </label>
+                    </div>
                     {newEvent.visibility === 'private' && (
                         <div className="friend-select">
-                            <h3>Invites</h3>
+                            <h3>You must invite someone to a private event.</h3>
                             <ul>
                                 {friends.map(friend => (
-                                    <li key={friend.id}>
-                                        <label for="invites">
+                                    <li key={`${friend.id}-${uuidv4()}`}>
+                                        <label key={`${friend.id}-${uuidv4()}`} for="invites">
                                             <input
+                                                key={`${friend.id}-${uuidv4()}`}
                                                 name="invites"
                                                 type="checkbox"
                                                 checked={newEvent.invites.includes(friend.id)}
@@ -209,26 +265,24 @@ function CreateModal({ show, onClose, onCreate, userId }) {
                             </ul>
                         </div>
                     )}
-                </div>
 
-                <div className='modal-right-column'>
                     <div>
                         <h3>Select Tags</h3>
                         <div className="tag-buttons">
                             {commonTags.map(tag => (
                                 <button
-                                    key={tag}
+                                    key={`${tag.name}-${uuidv4()}`}
                                     className={newEvent.tags.includes(tag) ? "tag-selected" : "tag-unselected"}
                                     onClick={() => handleTagToggle(tag)}
                                 >
-                                    <FontAwesomeIcon icon={tag.icon} />
+                                    <FontAwesomeIcon key={`${tag.name}-${uuidv4()}`} icon={tag.icon} />
                                     {tag.name}
                                 </button>
                             ))}
                         </div>
                         <textarea
                             name="custom-tags"
-                            placeholder="Add custom tags, separated by commas"
+                            placeholder="Add custom tags separated by commas."
                             value={customTags}
                             onChange={(e) => {
                                 setCustomTags(e.target.value);
@@ -241,30 +295,37 @@ function CreateModal({ show, onClose, onCreate, userId }) {
                         />
                     </div>
 
-                    <div>
-                        <h3>Location</h3>
-                        <textarea
-                            className='location-input'
-                            placeholder="City, Region, Country"
-                            value={newEvent.location}
-                            onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
-                            disabled={autoLocation}
-                        />
-                        <button onClick={handleAutoDetectLocation} disabled={autoLocation}>
-                            Auto-Detect Location
-                        </button>
-                        {autoLocation && <span>Auto-detected location enabled</span>}
+                    <div className="checkbox-group">
+                        <label>
+                            <input
+                                type="checkbox"
+                                onChange={handleAutoDetectLocation}
+                                disabled={autoLocation}
+                            />
+                            Detect Location
+                        </label>
                     </div>
 
+                    <div>
+                        <button className='modal-button' onClick={handleShareMemory}>
+                            Share Memory
+                        </button>
+                        <button className='modal-button' onClick={onClose}>Cancel</button>
+                    </div>
 
                 </div>
-                <div className='button-container'>
-                    <button className='modal-button' onClick={handleCreate}>Create Event</button>
-                    <button className='modal-button' onClick={onClose}>Cancel</button>
-                </div>
-  
             </div>
-        </div>
+
+            {showMemoryModal && (
+                <MemoryModal
+                    key={uuidv4()}
+                    show={showMemoryModal}
+                    onClose={() => setShowMemoryModal(false)}
+                    onCreate={handleCreate}
+                />
+            )}
+        </>,
+        document.getElementById("modal-root")
     );
 }
 

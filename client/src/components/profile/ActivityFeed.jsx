@@ -37,7 +37,6 @@ function ActivityFeed({ userId }) {
 
     return (
         <div className="activity-feed">
-            <h2>Recent Activities</h2>
             <ul>
                 {activities.map((activity, index) => (
                     <li key={index}>{renderActivityDescription(activity)}</li>

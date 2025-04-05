@@ -1,114 +1,164 @@
-/* Main Profile Wrapper */
+/* Overall container */
 .profile-wrapper {
-    display: flex;
-    gap: 20px;
-    width: 100%;
-    height: 90.5%;
-    background-color: #333;
-    color: #e4dbc3;
-    border-radius: 8px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    background: #fff;
+    padding: 1rem;
+    box-sizing: border-box;
+    min-height: calc(100vh - 60px);
 }
 
-/* Sidebar */
-.profile-sidebar {
-    display: flex;
-    flex-direction: column;
-    width: 100px;
-    height: 98%;
-    background-color: #444;
-    border-radius: 8px;
-    padding: 10px;
-}
-
-/* Sidebar Buttons */
-.tab-button {
-    padding: 12px;
-    font-size: 1rem;
-    font-weight: bold;
-    color: #e4dbc3;
-    background-color: transparent;
-    border: none;
-    text-align: left;
-    cursor: pointer;
-    transition: background-color 0.3s, color 0.3s;
-    border-radius: 0%;
-}
-
-.tab-button:hover,
-.tab-button.active {
-    background-color: #4CAF50;
-    color: #fff;
-}
-
-/* Profile Content Area */
+/* Center content */
 .profile-content {
-    flex: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Desktop Layout */
+.profile-body {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 1rem;
+}
+
+/* Left Column: header & activity feed */
+.profile-left {
     display: flex;
     flex-direction: column;
-    background-color: #333;
-    border-radius: 8px;
-    padding: 20px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    gap: 1rem;
 }
 
-/* Profile Sections */
-.profile-sections {
+/* Right Column: top posts */
+.profile-right {
     display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-    margin-top: 20px;
-    height: 66vh;
+    flex-direction: column;
 }
 
-/* Individual Sections */
-.profile-overview,
-.profile-activity,
-.profile-friends {
-    flex: 1;
-    height: 100%;
-    padding: 15px;
+/* Profile Header Container */
+.profile-header-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: rgba(219, 202, 167, 0.815);
     border-radius: 8px;
-    background-color: #444;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    overflow-y: scroll;
-    scrollbar-width: none;
 }
 
-.profile-overview h2,
-.profile-friends h2 {
-    margin-bottom: 10px;
+/* Activity Feed Section */
+.profile-activity-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.profile-activity-header {
+    margin: 0;
+    font-size: 1.2rem;
+    color: #333;
+    text-align: center;
+}
+.profile-activity {
+    background: rgb(160, 178, 163);
+    padding: 1rem;
+    border-radius: 8px;
+    overflow-y: auto;
+    max-height: 53vh;
+}
+.profile-activity::-webkit-scrollbar {
+    background-color: rgb(160, 178, 163);
+    width: 8px;
+    border-radius: 16px;
+}
+.profile-activity::-webkit-scrollbar-thumb {
+    background-color: #777;
+    border-radius: 8px;
 }
 
-/* Responsive Design */
+/* Top Posts Section */
+.profile-top-posts-wrapper {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid #ddd;
+}
+.top-posts-header {
+    background-color: #fff;
+    font-size: 1.2rem;
+    text-align: center;
+    padding-bottom: 10px;
+    border-bottom: 2px solid rgba(219, 202, 167, 0.5);
+}
+.profile-top-posts {
+    border-radius: 10px;
+    overflow-y: auto;
+    max-height: 80vh;
+    min-height: 80vh;
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
+}
+.profile-top-posts::-webkit-scrollbar {
+    background-color: #fff;
+    width: 8px;
+    border-radius: 16px;
+}
+.profile-top-posts::-webkit-scrollbar-thumb {
+    background-color: #777;
+    border-radius: 8px;
+}
+.top-posts-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Mobile Layout */
+.profile-body.mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+.profile-tabs {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 1rem;
+}
+.tab-button {
+    flex: 1;
+    padding: 0.75rem;
+    background: rgba(219, 202, 167, 0.5);
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+}
+.tab-button.active {
+    background: rgba(219, 202, 167, 0.9);
+    font-weight: bold;
+}
+
+/* Responsive adjustments */
 @media (max-width: 768px) {
-    .profile-wrapper {
-        flex-direction: column;
-        padding: 10px;
-        width: 90%;
-        overflow-y: scroll;
-        scrollbar-width: none;
+    .profile-body {
+        grid-template-columns: 1fr;
     }
-    .profile-header{
-        width:87%;
-        margin: auto;
+
+    .profile-tabs {
+        margin: 0;
     }
-    .profile-sidebar {
-        flex-direction: row;
-        gap: 5px;
-        width: 100%;
-        height: 5%;
-        justify-content: space-around;
-        padding: 0;
+
+    .profile-tab-content {
+        margin: 0;
     }
-    .tab-button {
-        font-size: 0.9rem;
-        padding: 0 10px;
+
+    .profile-top-posts {
+        max-height: 54vh;
+        min-height: 54vh;
     }
-    .profile-content {
-        padding: 0;
+
+    .top-posts-header {
+        display: none;
     }
-    .profile-sections {
-        flex-direction: column;
+
+    .profile-top-posts-wrapper{
+        padding: 0 0 0 8px;
+        margin: 0;
+        min-width: 100vw;
     }
 }

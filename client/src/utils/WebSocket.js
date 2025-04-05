@@ -1,114 +1,114 @@
 const WebSocketInstance = (() => {
-    let socket = null;
+    let sockets = {};
     let listeners = {};
-    let reconnectTimeout = null;
-    let heartbeatInterval = null;
-    let heartbeatTimeout = null;
+    let reconnectTimeouts = {};
+    let heartbeatIntervals = {};
+    let heartbeatTimeouts = {};
 
     const reconnectDelay = 5000;
     const heartbeatDelay = 30000;
     const heartbeatTimeoutDelay = 10000;
 
-    const connect = (userId) => {
-        if (socket && socket.readyState === WebSocket.OPEN) {
-            console.log("WebSocket already connected.");
+    const connect = (userId, clientType = "navbar") => {
+        if (sockets[clientType] && sockets[clientType].readyState === WebSocket.OPEN) {
+            console.log(`WebSocket for ${clientType} already connected.`);
             return;
         }
 
-        const wsUrl = `ws://${window.location.hostname}:4747/ws?userId=${userId}`;
-        console.log("Attempting to connect to WebSocket:", wsUrl);
-        socket = new WebSocket(wsUrl);
+        const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
+        const wsPort = process.env.NODE_ENV === "production" ? "" : ":4747";
+        const wsUrl = `${wsProtocol}${window.location.hostname}${wsPort}/ws?userId=${userId}&type=${clientType}`;
 
-        socket.onopen = () => {
-            console.log("WebSocket connection established to", socket.url);
-            clearReconnectTimeout();
-            startHeartbeat();
+        console.log(`Attempting to connect to WebSocket: ${wsUrl} for ${clientType}`);
+        sockets[clientType] = new WebSocket(wsUrl);
+
+        sockets[clientType].onopen = () => {
+            console.log(`✅ WebSocket connection established to ${wsUrl} for ${clientType}`);
+            clearReconnectTimeout(clientType);
+            startHeartbeat(clientType);
         };
 
-        socket.onmessage = (event) => {
+        sockets[clientType].onmessage = (event) => {
             try {
                 const message = JSON.parse(event.data);
-
+    
                 if (message.type === 'pong') {
-                    clearTimeout(heartbeatTimeout);
+                    clearTimeout(heartbeatTimeouts[clientType]);
                     return;
                 }
-
-                handleClientMessage(message);
+    
+                handleClientMessage(clientType, message);
             } catch (error) {
-                console.error("Error parsing WebSocket message:", error, event.data)
+                console.error("Error parsing WebSocket message:", error, event.data);
             }
         };
 
-        socket.onclose = (event) => {
-            console.warn(
-                `WebSocket connection closed: Code=${event.code}, Reason=${event.reason}`
-            );
-
-            stopHeartbeat();
-
-            if (event.code !== 1000 && !reconnectTimeout) {
-                scheduleReconnect(userId);
+        sockets[clientType].onclose = (event) => {
+            console.warn(`⚠️ WebSocket connection closed for ${clientType}: Code=${event.code}, Reason=${event.reason}`);
+            stopHeartbeat(clientType);
+    
+            if (event.code !== 1000 && !reconnectTimeouts[clientType]) {
+                scheduleReconnect(userId, clientType);
             }
         };
-
-        socket.onerror = (error) => {
-            console.error("WebSocket error:", error.message || error);
+    
+        sockets[clientType].onerror = (error) => {
+            console.error(`❌ WebSocket error (${clientType}):`, error);
         };
     };
 
-    const startHeartbeat = () => {
-        stopHeartbeat();
-        heartbeatInterval = setInterval(() => {
-            if (socket && socket.readyState === WebSocket.OPEN) {
-                sendMessage('ping');
-                heartbeatTimeout = setTimeout(() => {
-                    console.warn("No pong received from server. There may be a connection issue.")
+    const startHeartbeat = (clientType) => {
+        stopHeartbeat(clientType);
+        heartbeatIntervals[clientType] = setInterval(() => {
+            if (sockets[clientType] && sockets[clientType].readyState === WebSocket.OPEN) {
+                sendMessage(clientType, 'ping');
+                heartbeatTimeouts[clientType] = setTimeout(() => {
+                    console.warn(`No pong received from server for ${clientType}. Possible connection issue.`);
                 }, heartbeatTimeoutDelay);
             }
         }, heartbeatDelay);
     };
 
-    const stopHeartbeat = () => {
-        if (heartbeatInterval) {
-            clearInterval(heartbeatInterval);
-            heartbeatInterval = null;
+    const stopHeartbeat = (clientType) => {
+        if (heartbeatIntervals[clientType]) {
+            clearInterval(heartbeatIntervals[clientType]);
+            delete heartbeatIntervals[clientType];
         }
-        if (heartbeatTimeout) {
-            clearTimeout(heartbeatTimeout);
-            heartbeatTimeout = null;
+        if (heartbeatTimeouts[clientType]) {
+            clearTimeout(heartbeatTimeouts[clientType]);
+            delete heartbeatTimeouts[clientType];
         }
     };
 
-    const scheduleReconnect = (userId) => {
-        reconnectTimeout = setTimeout(() => {
-            console.log(`Reconnecting WebSocket in ${reconnectDelay / 1000}s...`);
-            connect(userId);
+    const scheduleReconnect = (userId, clientType) => {
+        reconnectTimeouts[clientType] = setTimeout(() => {
+            console.log(`Reconnecting WebSocket (${clientType}) in ${reconnectDelay / 1000}s...`);
+            connect(userId, clientType);
         }, reconnectDelay);
     };
 
-    const clearReconnectTimeout = () => {
-        if (reconnectTimeout) {
-            clearTimeout(reconnectTimeout);
-            reconnectTimeout = null;
+    const clearReconnectTimeout = (clientType) => {
+        if (reconnectTimeouts[clientType]) {
+            clearTimeout(reconnectTimeouts[clientType]);
+            delete reconnectTimeouts[clientType];
         }
     };
 
-    const sendMessage = (type, data) => {
-        if (socket && socket.readyState === WebSocket.OPEN) {
-            socket.send(JSON.stringify({ type, ...data }));
+    const sendMessage = (clientType, type, data = {}) => {
+        if (sockets[clientType] && sockets[clientType].readyState === WebSocket.OPEN) {
+            sockets[clientType].send(JSON.stringify({ type, ...data }));
         } else {
-            console.error("WebSocket is not connected or ready");
+            console.error(`WebSocket (${clientType}) is not connected. Cannot send message.`);
         }
     };
 
-    const disconnect = () => {
-        if (socket) {
-            stopHeartbeat();
-            clearReconnectTimeout();
-            socket.close(1000, "User closed the messenger.");
-            socket = null;
-            console.log("WebSocket disconnected")
+    const disconnect = (clientType) => {
+        if (sockets[clientType]) {
+            stopHeartbeat(clientType);
+            clearReconnectTimeout(clientType);
+            sockets[clientType].close(1000, `User closed the ${clientType} connection.`);
+            delete sockets[clientType];
+            console.log(`WebSocket (${clientType}) disconnected`);
         }
     };
 
@@ -120,8 +120,10 @@ const WebSocketInstance = (() => {
         delete listeners[type];
     };
 
-    const handleClientMessage = (message) => {
+    const handleClientMessage = (clientType, message) => {
         const { type, data } = message;
+        console.log(`WebSocket received message:`, message);
+
         if (listeners[type]) {
             listeners[type](data);
         } else {
@@ -129,9 +131,14 @@ const WebSocketInstance = (() => {
         }
     };
 
+    const getWebSocketStatus = (clientType) => {
+        return sockets[clientType] && sockets[clientType].readyState === WebSocket.OPEN;
+    };
+
     return {
         connect,
         sendMessage,
+        getWebSocketStatus,
         disconnect,
         on,
         off,

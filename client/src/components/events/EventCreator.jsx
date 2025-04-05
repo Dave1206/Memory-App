@@ -1,35 +1,25 @@
 // EventCreator.js
-import React, { useState } from "react";  
-import CreateModal from "../modals/CreateModal";
+import React, { useState } from "react";
+// import CreateModal from "../modals/CreateModal";
+import EventComposer from "./EventComposer";
 import '../../styles/EventCreator.css';
-import { useAxios } from '../auth/AxiosProvider';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPlus} from '@fortawesome/free-solid-svg-icons';
+import { v4 as uuidv4 } from 'uuid';
 
-function EventCreator({ getEvents, userId }) {
+function EventCreator({ isMobile }) {
     const [showModal, setShowModal] = useState(false);
-    const { axiosInstance } = useAxios();
-
-    // Create a new event and refresh events list
-    const createEvent = async (newEvent) => {
-        try {
-            await axiosInstance.post("/events", { newEvent });
-            getEvents();
-        } catch (err) {
-            console.error("Error creating event", err.response?.data || err.message);
-        }
-    };
 
     return (
-        <div className="event-creator">
-            <button className="event-button" onClick={() => setShowModal(true)}>
-                Create new event
-            </button>
-            <CreateModal
-                show={showModal}
-                onClose={() => setShowModal(false)}
-                onCreate={createEvent}
-                userId={userId}
-            />
-        </div>
+        <>
+            <div className="nav-toggle" onClick={() => setShowModal(true)}>
+                <div className={`nav-item-icon ${isMobile ? 'lg' : ''}`}><FontAwesomeIcon icon={faPlus} /></div> 
+                {!isMobile &&<div className="nav-item-name">Create</div>}
+            </div>
+            {showModal && (
+                <EventComposer key={`composer-${uuidv4()}`} show={showModal} onClose={() => setShowModal(false)} />
+            )}
+        </>
     );
 }
 

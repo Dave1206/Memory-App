@@ -1,12 +1,13 @@
 .conversation-dropdown {
-    position: fixed;
-    top: 50px;
-    right: 0;
+    position: absolute;
+    top: 0;
+    right: -5px;
     width: 300px;
-    height: 85vh;
-    background: #333;
+    height: 100%;
+    background: #fff;
     color:#fff;
-    border: 1px solid #fff;
+    border-left: 5px solid #333;
+    margin-left: 5px;
     border-radius: 0;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     overflow-y: auto;
@@ -18,7 +19,7 @@
 }
 
 .conversation-dropdown::-webkit-scrollbar-thumb {
-    background: #b35f8d;
+    background: darksalmon;
     border-radius: 4px;
 }
 
@@ -33,16 +34,22 @@
     margin: 0 0 5px 0;
     border: 1px solid #666;
     border-radius: 3px;
+    color: #333;
+    background-color: #eceaea;
 }
 
 .start-conversation-btn {
     width: 100%;
     padding: 8px;
-    background-color: #007bff;
+    background-color:darksalmon;
     color: white;
     border: none;
     border-radius: 3px;
     cursor: pointer;
+}
+
+.start-conversation-btn:hover{
+    background-color: salmon;
 }
 
 .start-conversation-btn:disabled {
@@ -51,6 +58,7 @@
 }
 
 .friend-suggestions {
+    color: #333;
     margin-top: 5px;
     list-style: none;
     padding: 0;
@@ -65,7 +73,7 @@
 }
 
 .friend-suggestions li:hover {
-    background: #444;
+    background: #44444436;
 }
 
 .no-conversations {
@@ -78,28 +86,45 @@
     padding: 10px;
 }
 
-.conversation-item {
-    padding: 10px;
-    border-bottom: 1px solid #444;
+.conv-item {
+    color: var(--text-color);
+    padding: 3px;
+    border: 1px solid #444;
     cursor: pointer;
-    margin-bottom: 5px;
-    border-radius: 3px;
+    border-radius: 38px;
 }
 
-.conversation-item:hover {
+.conv-item:hover {
     opacity: 0.9;
 }
 
-.conversation-info h3 {
+.conv-item-info {
+    display:flex;
+    gap: 20px;
+}
+
+.conv-item-info h3 {
     margin: 0;
     font-size: 16px;
     margin-bottom: 5px;
-    color:#fff;
+    color:var(--text-color);
+}
+
+.conv-item-header {
+    display:flex;
+    flex-direction: column;
+    margin: 0 0 0 10px;
+}
+
+.conv-item-preview {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
 }
 
 .participants-avatars {
     display: flex;
-    margin-bottom: 5px;
+    margin: 0 auto;
     gap: 5px;
 }
 
@@ -113,7 +138,7 @@
 
 .last-message-preview{
     font-size: 14px;
-    color: #333;
+    color: var(--text-color);
     margin: 5px 0;
     white-space: nowrap;
     overflow: hidden;
@@ -122,15 +147,28 @@
 
 .timestamp {
     font-size: 10px;
-    padding: 2px 6px;
+    padding: 0 6px;
     margin: 0;
 }
 
 .unread-badge {
+    position: absolute;
+    right: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background-color: #007bff;
     color: white;
-    padding: 2px 6px;
-    border-radius: 10px;
+    height: 16px;
+    width: 16px;
+    padding: 6px;
+    border-radius: 50%;
     font-size: 12px;
     margin-left: 5px;
+}
+
+@media (max-width: 768px) {
+    .conversation-dropdown{
+        max-height: 100%;
+      }
 }

@@ -36,13 +36,13 @@
 }
 
 .active-explore-tab {
-    background: #a70275;
+    background: #8c7051;
     color: #fff;
     box-shadow: 0px 4px 12px rgba(75, 1, 29, 0.5);
 }
 
 .active-explore-tab:hover {
-    background: #b80181;
+    background: #6d583f;
     color: #fff;
     box-shadow: 0px 4px 12px rgba(75, 1, 29, 0.5);
 }
@@ -80,6 +80,7 @@
 @media (max-width: 768px) {
     .explore-wrapper {
         width: 95vw;
+        height: 75vh;
         margin-top: 12%;
     }
     .explore-container {

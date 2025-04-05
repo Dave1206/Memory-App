@@ -83,7 +83,7 @@
 
 /* Title, including Time Capsule Icon if applicable */
 .event-content h3 {
-    font-family: 'Inter', sans-serif;
+    /* font-family: 'Inter', sans-serif; */
     font-size: 1.1rem;
     font-weight: bold;
     margin: 10px 0;
@@ -101,7 +101,7 @@
 
 /* Event description */
 .event-content p {
-    font-family: 'Inter', sans-serif;
+    /* font-family: 'Inter', sans-serif; */
     font-size: 0.95rem;
     margin-top: 8px;
     line-height: 1.2;
@@ -143,7 +143,7 @@
 }
 
 .creator-link {
-    font-family: 'Inter', sans-serif;
+    /* font-family: 'Poppins', sans-serif; */
     font-size: 0.85em;
     text-decoration: none;
     font-weight: bold;
@@ -159,12 +159,12 @@
 }
 
 /* Color variations with contrasting text color */
-.color1 { background-color: #a0b2a3; color: #2a2f23; }
+.color1 { background-color: #a0b2a3; color: #190933; }
 .color2 { background-color: #768e79; color: #ffffff; }
-.color3 { background-color: #b0beab; color: #333333; }
-.color4 { background-color: #e9977c; color: #2a2f23; }
-.color5 { background-color: #e4aa88; color: #2a2f23; }
+.color3 { background-color: #b0beab; color: #190933; }
+.color4 { background-color: #e9977c; color: #190933; }
+.color5 { background-color: #e4aa88; color: #190933; }
 .color6 { background-color: #d1765e; color: #ffffff; }
-.color7 { background-color: #dbcaa7; color: #333333; }
-.color8 { background-color: #caaf8d; color: #333333; }
-.color9 { background-color: #dbc49f; color: #333333; }
+.color7 { background-color: #dbcaa7; color: #190933; }
+.color8 { background-color: #caaf8d; color: #190933; }
+.color9 { background-color: #dbc49f; color: #190933; }
