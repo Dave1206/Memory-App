@@ -32,6 +32,21 @@ While not required by the license, if you use this project, a link back to the o
 - Notification system for invites, messages, and event updates
 - Responsive design for mobile and desktop
 
+## How It Works
+
+Memory App is a social platform where users can share events and their personal memories of those events. Here's how it works:
+
+###  Core Concepts
+- **Events**: When you create an event, you provide a title, description, tags, and select a visibility level, and share your initial memory, which can include media. 
+- **Memories**: To post an event, you must also share your memory of that event. This memory can include text, images, or videos to complement your post. Memories posted to the event will be blurred for users until they share their own memory of that event. This ensures that each memory shared is authentic, and unbiased by what others have shared.
+- **Time Capsule Mode**: Events can be created with a **reveal date**, where all memories remain hidden until the specified reveal date.
+
+### 📸 Example Use Cases
+- **Friends at a concert - Private**: This could be a private, invite only event. It would not be publicly viewable, and meant for that friend group to share what they remembered collectively.
+- **Big name concert attendance - Public**: This could be a public post regarding the same event, but rather than being intended for a small friend group, it could be posted with the intention of collecting memories of anyone who attended that public event. This can be recommended to other users from the trending tab or for you tab.
+- **Friend group going off to college - Time Capsule Event - Private**: This event could be a private time capsule meant for a friend group, who would like to set a future date where they would all have their memories revealed to one another, so that they could reflect on what they remembered of the last day of that chapter of their lives together.
+- **Collaborative Storytelling**: Multiple people contribute memories to a shared event to build a comprehensive story.
+
 ## Technologies Used
 ### Backend (Node.js / Express)
 - Node.js

@@ -50,6 +50,9 @@ const Landing = ({ onClose, toggleButtonRef }) => {
         <button onClick={() => setActiveTab("welcome")} className={activeTab === "welcome" ? "active" : ""}>
           Welcome
         </button>
+        <button onClick={() => setActiveTab("overview")} className={activeTab === "overview" ? "active" : ""}>
+          Overview
+        </button>
         <button onClick={() => setActiveTab("issues")} className={activeTab === "issues" ? "active" : ""}>
           {isNew("issues") && "🆕 "} Known Issues
         </button>
@@ -114,7 +117,24 @@ const Landing = ({ onClose, toggleButtonRef }) => {
           </div>
         )}
 
-        {/* Walkthrough Section */}
+        {activeTab === "overview" && (
+          <div className="overview-content">
+            <h2>How MemoryApp Works</h2>
+            <p>
+              MemoryApp is designed to encourage storytelling and sharing of personal experiences. Here's how it works:
+            </p>
+            <ul>
+              <li><strong>Events:</strong> Create an event by providing a title, description, tags, and visibility settings. You will share your initial memory of this event on creation of the event. You may also opt to make this event a time capsule, to have its contents revealed at a future date.</li>
+              <li><strong>Memories:</strong> When you create an event, you must also share your memory of the event. This can include text, images, or videos.</li>
+              <li><strong>Blurred Content:</strong> Memories shared by others are blurred until you share your own memory of the same event.</li>
+              <li><strong>Time Capsule Mode:</strong> When creating an event, you can set a reveal date that keeps all memories hidden until the specified time.</li>
+            </ul>
+            <p>
+              This structure encourages users to actively contribute their own experiences before seeing others' memories, making storytelling collaborative and engaging.
+            </p>
+          </div>
+        )}
+
         {activeTab === "walkthrough" && (
           <div className="walkthrough-container">
             <div className="walkthrough-menu">
@@ -138,8 +158,7 @@ const Landing = ({ onClose, toggleButtonRef }) => {
           </div>
         )}
 
-        {/* Issues, Features, and Upcoming Features Sections */}
-        {activeTab !== "welcome" && activeTab !== "walkthrough" && (
+        {activeTab !== "welcome" && activeTab !== "walkthrough" && activeTab !== "overview" && (
           <div>
             <p className="last-updated">
               Last Updated: {new Date(lastUpdatedData[activeTab]).toLocaleString()}
